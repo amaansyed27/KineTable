@@ -131,6 +131,8 @@ If this interaction feels clear and satisfying, the core product is working.
 - [AI interaction model](docs/AI-TOOLS.md)
 - [Starter component library](docs/COMPONENT-LIBRARY.md)
 - [Development roadmap](docs/ROADMAP.md)
+- [Decision log](docs/DECISIONS.md)
+- [Testing strategy](docs/TESTING.md)
 - [Asset and model licensing](docs/ASSET-LICENSING.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
