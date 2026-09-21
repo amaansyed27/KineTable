@@ -32,28 +32,6 @@ Kinetable is not intended to be another Arduino IDE, generic circuit simulator, 
 7. **Fun through interaction, not clutter.** Tactile objects, motion, feedback, and satisfying cause/effect.
 8. **The real workbench is the destination.** Camera-based digital-twin support is a later extension of the same model, not a separate product.
 
-## Initial user flow
-
-```text
-Open Kinetable
-    ↓
-Select / detect board
-    ↓
-Your table is ready
-    ↓
-Describe an idea
-    ↓
-Kinetable chooses owned parts
-    ↓
-3D project assembles
-    ↓
-Build / Simulate / Explain
-    ↓
-Visual logic + signal flow
-    ↓
-Run on real board
-```
-
 ## Browser-first architecture
 
 Kinetable should work for normal users directly in the browser with no installation required for the virtual experience.
@@ -76,28 +54,281 @@ Internally Kinetable may have board packs, component packs, simulation drivers, 
 
 A small native bridge or future Tauri desktop app remains an optional fallback for hardware or browser combinations that need deeper local access.
 
-## Development slices
+## Build plan — outside to inside
 
-Build one complete, testable product slice at a time.
+The project should be built in the same order a new user experiences it. Each stage should look finished before moving deeper into the product.
 
-| Slice | Goal |
-| --- | --- |
-| **01 — Spatial foundation** | React/Vite/R3F shell, table, camera, lighting, design system, one interactive ESP32. |
-| **02 — Component system** | Reusable hardware objects, breadboard, LED, button, OLED, metadata. |
-| **03 — Wiring** | Pin anchors, wire creation/routing, snapping, electrical connection graph. |
-| **04 — Breadboard intelligence** | Real row/rail topology, connected-hole highlighting, placement validation. |
-| **05 — BONK demo** | ESP32 + OLED + LED + button + buzzer assembled as the canonical project. |
-| **06 — Simulation** | Button press drives LED, OLED and buzzer behaviour. |
-| **07 — Explain / X-Ray** | Visualize power, data and signal paths spatially. |
-| **08 — Visual Logic** | Behaviour editing without code: `BUTTON → BONK → LED / OLED / BEEP`. |
-| **09 — My Parts** | Personal hardware inventory and builds based on what the user owns. |
-| **10 — AI build actions** | Prompt-driven structured actions such as add, connect, replace, explain and modify logic. |
-| **11 — Browser hardware** | Board detection, Web Serial/WebUSB where supported, compile/flash abstraction, live data. |
-| **12 — Advanced layer** | Optional code view, technical details, raw serial/debugging. |
-| **13 — Real Workbench** | Photo scan, digital twin, component recognition and alignment. |
-| **14 — Live Workbench** | Camera-guided physical assembly, verification and real-time spatial debugging. |
+### 01 — Landing
 
-**Immediate target:** Slice 01 only. Get the spatial interaction and visual quality right before adding wiring, simulation or AI.
+Public-facing Kinetable introduction.
+
+- minimal premium landing page;
+- strong product statement;
+- interactive 3D hardware hero;
+- visual demonstration of prompt → 3D build → simulation;
+- sections for visual logic, personalization, learning and real-workbench vision;
+- `Open Kinetable` CTA;
+- responsive desktop-first implementation.
+
+### 02 — Sign in / Continue
+
+Authentication should never block experimentation.
+
+- Google / GitHub / email sign-in;
+- continue without account;
+- explain cloud sync in one sentence;
+- preserve local projects for guest users.
+
+### 03 — First-run onboarding
+
+The only required setup should be choosing a board.
+
+- welcome screen;
+- board picker: ESP32, Pico, Arduino, Other;
+- optional USB auto-detection;
+- no COM-port, framework, compiler or library setup;
+- create the user's first table automatically.
+
+### 04 — My Table / Home
+
+The main home screen is a personal workbench, not a dashboard.
+
+- selected board already present;
+- recent project visible spatially;
+- prompt: `What do you want to make?`;
+- suggestions based on owned parts;
+- lightweight navigation: Table / Projects / Parts / Learn;
+- returning-user state restores the previous table.
+
+### 05 — New Build
+
+Intent-first project creation.
+
+- natural-language prompt;
+- use owned parts by default;
+- show selected parts before building;
+- optional `Show me first` preview;
+- project name generated automatically but editable.
+
+### 06 — AI Assembly
+
+The build itself becomes the loading state.
+
+- components enter the table spatially;
+- auto-placement;
+- auto-wiring;
+- subtle progress: choosing parts → planning → building → checking;
+- deterministic hardware validation before declaring the build ready.
+
+### 07 — Core 3D Workbench
+
+The primary Kinetable screen.
+
+- pan / orbit / zoom / focus;
+- select, move, rotate and inspect hardware;
+- snap components to valid positions;
+- add / remove / replace parts;
+- contextual controls only when needed;
+- minimal `Build / Simulate / Explain` mode switch;
+- `Ask Kinetable` available without becoming a chat sidebar.
+
+### 08 — Wiring + Breadboard Intelligence
+
+Physical connectivity must be real, not decorative.
+
+- pin anchors;
+- draggable wires;
+- breadboard hole topology;
+- center-gap and power-rail rules;
+- connected-row highlighting;
+- invalid-placement warnings;
+- electrical graph underlying every visible connection.
+
+### 09 — Component Inspector
+
+Understand one object without leaving the table.
+
+- plain-language component description;
+- `Used here for` explanation;
+- connections;
+- try/interact action;
+- replace action;
+- optional technical details with pinout, voltage and protocol information.
+
+### 10 — Simulation
+
+Make the virtual project behave like the real system.
+
+- play / pause / reset;
+- press buttons;
+- rotate potentiometers;
+- trigger PIR and other sensors;
+- LED/OLED/buzzer/servo behaviour;
+- signal and state propagation through the electrical graph;
+- small spatial event labels instead of a debugger console.
+
+### 11 — Explain / X-Ray
+
+Turn invisible electronics into visible behaviour.
+
+- Power / Signals / Data views;
+- isolate one connection path;
+- animate signal flow through wires;
+- explain why a connection exists;
+- highlight relevant pins and components;
+- beginner explanation first, technical explanation on demand.
+
+### 12 — Visual Logic
+
+Programming without requiring code.
+
+- spatial cause/effect graph;
+- events, conditions and actions;
+- example: `BUTTON → BONK → LED / OLED / BEEP ×2`;
+- edit values directly in the logic representation;
+- simulation updates immediately;
+- code remains hidden by default.
+
+### 13 — My Parts
+
+Persistent personal hardware inventory.
+
+- Boards / Sensors / Displays / Outputs / Components / Tools;
+- accurate 3D object previews;
+- quantities;
+- add/search hardware;
+- USB-detect boards;
+- later: scan physical parts with the camera;
+- recommendations based on what the user already owns.
+
+### 14 — Component Library
+
+The canonical Kinetable hardware knowledge base.
+
+Each supported component can contain:
+
+- accurate 3D model;
+- dimensions and attachment points;
+- pins and capabilities;
+- voltage/current constraints;
+- protocol metadata;
+- simulation behaviour;
+- compatible boards/frameworks;
+- known libraries;
+- common mistakes;
+- documentation and examples.
+
+Normal users never manage these as plugins. Kinetable resolves the correct packs and adapters automatically.
+
+### 15 — Projects
+
+Projects should look like things the user built, not document rows.
+
+- Recent / Saved;
+- miniature 3D workbench previews;
+- duplicate / rename / archive;
+- saved table layout, hardware graph, logic and simulation state;
+- instant reopen.
+
+### 16 — Explore
+
+`What can I make with what I already own?`
+
+- Build now;
+- Everything required;
+- One part away;
+- personalized project generation;
+- `Use something I already own instead` AI redesign action.
+
+### 17 — Learn
+
+Learning should work like interactive missions rather than courses.
+
+- breadboard basics;
+- LED/button/sensor missions;
+- guided physical puzzles;
+- hints rather than immediate answers;
+- concepts explained spatially;
+- progression without childish gamification.
+
+### 18 — Run on Board
+
+Move from simulation to the user's actual hardware.
+
+- connect board in browser where supported;
+- auto-detect target;
+- compile behind the scenes;
+- upload/flash;
+- show only `Preparing → Sending → Running`;
+- hide ports, packages, compilers and libraries unless Technical Details is opened.
+
+### 19 — Live Data
+
+Friendly runtime inspection.
+
+- sensor values;
+- GPIO state;
+- board status;
+- visual mapping back to the 3D component;
+- raw serial console available only as an advanced option.
+
+### 20 — Advanced Code
+
+Optional escape hatch for developers.
+
+- generated firmware editor;
+- code ↔ hardware highlighting;
+- code ↔ visual-logic synchronization;
+- libraries and build details;
+- never required for the default workflow.
+
+### 21 — Real Workbench Scan — later
+
+Create a digital twin from the physical desk.
+
+- camera/photo import;
+- identify board, breadboard and components;
+- map breadboard geometry;
+- align detected objects to Kinetable models;
+- confirm uncertain detections;
+- add recognized parts to My Parts.
+
+### 22 — Live Workbench — later
+
+Closed-loop physical building support.
+
+- continuous camera mode;
+- overlay next connection on the real build;
+- compare intended vs observed topology;
+- verify physical actions;
+- spatial debugging of incorrect rows, reversed components and missing connections;
+- combine visual observations with firmware/runtime state.
+
+## Canonical first end-to-end demo: BONK
+
+The first complete internal project should recreate the existing real ESP32 build:
+
+```text
+BUTTON PRESS
+      ↓
+   BONK EVENT
+   ├── OLED: "BONK!"
+   ├── LED: ON
+   └── BUZZER: BEEP ×2
+```
+
+It should eventually prove the full product loop:
+
+1. select ESP32;
+2. open My Table;
+3. ask for the BONK build;
+4. watch components assemble;
+5. inspect real breadboard/wire topology;
+6. press the virtual button;
+7. see the OLED/LED/buzzer respond;
+8. use Explain/X-Ray;
+9. edit `BEEP ×2` to `BEEP ×3` in Visual Logic;
+10. run it on the real board.
 
 ## Recommended stack
 
@@ -115,8 +346,6 @@ Build one complete, testable product slice at a time.
 | Desktop, later | Tauri + Rust |
 | Cloud sync, later | Supabase or equivalent |
 | Hardware bridge, later | Arduino CLI / ESP-IDF / Pico SDK behind a local adapter |
-
-The 3D scene, electrical graph, project state, and simulation should remain framework-independent enough to be reused by the future desktop app.
 
 ## Proposed repository shape
 
@@ -140,32 +369,6 @@ KineTable/
 └── .github/
 ```
 
-## Canonical first demo: BONK
-
-The first end-to-end project should recreate a small real build:
-
-```text
-BUTTON PRESS
-      ↓
-   BONK EVENT
-   ├── OLED: "BONK!"
-   ├── LED: ON
-   └── BUZZER: BEEP ×2
-```
-
-The demo must prove Kinetable's core interaction loop:
-
-1. ESP32 appears on the table.
-2. User asks for the BONK build.
-3. Components assemble spatially.
-4. Connections are represented by a real electrical graph.
-5. Pressing the virtual button runs the simulation.
-6. Explain mode visualizes the relevant signal path.
-7. Visual Logic shows the behaviour without code.
-8. Changing `BEEP ×2` to `BEEP ×3` changes simulation behaviour.
-
-If this interaction feels clear and satisfying, the core product is working.
-
 ## Documentation
 
 - [Product specification](docs/PRODUCT-SPEC.md)
@@ -186,7 +389,7 @@ If this interaction feels clear and satisfying, the core product is working.
 
 **Planning / pre-implementation.**
 
-The immediate goal is not to build every feature. It is to build one excellent product slice at a time, beginning with the spatial foundation and one interactive board.
+Implementation should proceed page-by-page and feature-by-feature in the order above, keeping every completed stage usable and visually finished before moving deeper into the product.
 
 ## License
 
