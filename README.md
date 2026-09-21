@@ -54,6 +54,51 @@ Visual logic + signal flow
 Run on real board
 ```
 
+## Browser-first architecture
+
+Kinetable should work for normal users directly in the browser with no installation required for the virtual experience.
+
+```text
+Kinetable Web
+    ↓
+3D Workbench + Visual Logic + Simulation + AI
+    ↓
+Kinetable Hardware Runtime
+    ↓
+Board / Component / Toolchain adapters
+    ↓
+Arduino · ESP-IDF · Pico SDK · others
+```
+
+For supported physical boards, Kinetable can use browser hardware APIs such as Web Serial or WebUSB. Compilation can be handled by a cloud compiler or compatible runtime so users do not manually install board packages, libraries, compilers, or plugins.
+
+Internally Kinetable may have board packs, component packs, simulation drivers, and toolchain adapters. For normal users these stay invisible: the user sees **ESP32**, **OLED**, **PIR sensor**, etc., not plugin/package management.
+
+A small native bridge or future Tauri desktop app remains an optional fallback for hardware or browser combinations that need deeper local access.
+
+## Development slices
+
+Build one complete, testable product slice at a time.
+
+| Slice | Goal |
+| --- | --- |
+| **01 — Spatial foundation** | React/Vite/R3F shell, table, camera, lighting, design system, one interactive ESP32. |
+| **02 — Component system** | Reusable hardware objects, breadboard, LED, button, OLED, metadata. |
+| **03 — Wiring** | Pin anchors, wire creation/routing, snapping, electrical connection graph. |
+| **04 — Breadboard intelligence** | Real row/rail topology, connected-hole highlighting, placement validation. |
+| **05 — BONK demo** | ESP32 + OLED + LED + button + buzzer assembled as the canonical project. |
+| **06 — Simulation** | Button press drives LED, OLED and buzzer behaviour. |
+| **07 — Explain / X-Ray** | Visualize power, data and signal paths spatially. |
+| **08 — Visual Logic** | Behaviour editing without code: `BUTTON → BONK → LED / OLED / BEEP`. |
+| **09 — My Parts** | Personal hardware inventory and builds based on what the user owns. |
+| **10 — AI build actions** | Prompt-driven structured actions such as add, connect, replace, explain and modify logic. |
+| **11 — Browser hardware** | Board detection, Web Serial/WebUSB where supported, compile/flash abstraction, live data. |
+| **12 — Advanced layer** | Optional code view, technical details, raw serial/debugging. |
+| **13 — Real Workbench** | Photo scan, digital twin, component recognition and alignment. |
+| **14 — Live Workbench** | Camera-guided physical assembly, verification and real-time spatial debugging. |
+
+**Immediate target:** Slice 01 only. Get the spatial interaction and visual quality right before adding wiring, simulation or AI.
+
 ## Recommended stack
 
 | Layer | Choice |
