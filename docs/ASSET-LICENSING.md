@@ -17,7 +17,7 @@ Maintain one row per external asset.
 
 | Asset | Type | Source | Author/Owner | License | Redistribution allowed? | Modified? | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| _none yet_ |  |  |  |  |  |  |  |
+| Space Grotesk variable font | TTF | [Google Fonts](https://github.com/google/fonts/tree/main/ofl/spacegrotesk), [upstream](https://github.com/floriankarsten/space-grotesk) | Space Grotesk Project Authors / Florian Karsten | SIL OFL 1.1 | Yes, with included license | No | Self-hosted in apps/web/public/fonts; license included |
 
 ## Preferred asset strategy
 
@@ -83,3 +83,22 @@ The license of a 3D model and the provenance of electrical facts are different c
 ## Trademark note
 
 Names such as ESP32, Arduino, Raspberry Pi, and product/module names may be trademarks of their respective owners. Kinetable should use them descriptively and should not imply endorsement unless an actual partnership exists.
+
+## Slice 01 original presentation assets
+
+All geometry in `apps/web/src/spatial/Models.tsx`, `LearningModel.tsx`, and `Wire.tsx`, generated surface markings in `SurfaceMarkings.tsx`, and the letter-based favicon were created in this repository for Kinetable. No external meshes, images, textures, or icons are bundled. Space Grotesk is self-hosted under its included OFL license; the existing wordmark retains its system-font treatment.
+
+| Asset | Provenance | Rights | Scale / origin | Verification |
+| --- | --- | --- | --- | --- |
+| ESP32-style development board | Original procedural geometry | Repository LICENSE | Presentation units; PCB center at origin, Y up | Approximate silhouette and proportions; not dimension- or pin-verified |
+| Pico-style development board | Original procedural geometry | Repository LICENSE | Same convention | Approximate; black controller package, no ESP32 antenna/shield |
+| Breadboard, OLED, PIR, buzzer, DHT11, relay | Original procedural geometry | Repository LICENSE | Same convention | Simplified presentation models; no electrical metadata |
+| Jumper wires | Original generated curves | Repository LICENSE | World-space presentation coordinates | Illustrative endpoints; not verified pin anchors |
+| LED and resistor learning scene | Original procedural geometry | Repository LICENSE | Presentation units; Y up | Illustrative circuit, not electrically verified |
+| PCB, shield, rail and display markings | Original generated canvas textures | Repository LICENSE | Model UV coordinates | Descriptive labels, not verified pinout references |
+| Soft shadows and studio lighting | Original generated texture and light geometry | Repository LICENSE | Scene coordinates | No downloaded HDRI or image |
+| Favicon | Original inline SVG | Repository LICENSE | SVG viewBox coordinates | Letter-based mark |
+
+These assets are redistributable with the application under the repository's license. They are deliberately simplified landing illustrations, not third-party development-only placeholders. Their temporary limitation is engineering accuracy: replace or verify geometry, dimensions, and anchors before reusing them to teach wiring or in the actual workbench. No electrical validity is implied by the landing demo.
+
+The subtle surface-grain.png is an original deterministic 128px texture created in this repository. It uses no third-party image and no runtime filter.

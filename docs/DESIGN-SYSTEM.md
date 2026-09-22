@@ -107,6 +107,8 @@ Desired qualities:
 
 Use one main sans family plus an optional mono face only for technical/code views.
 
+Slice 01 uses self-hosted **Space Grotesk** for interface and editorial text, with regular-weight major statements. The existing Kinetable wordmark retains its Arial/Helvetica treatment. Font provenance and the bundled SIL OFL license are recorded in [Asset licensing](ASSET-LICENSING.md).
+
 Typography hierarchy:
 
 ```text

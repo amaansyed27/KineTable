@@ -387,10 +387,30 @@ KineTable/
 
 ## Status
 
-**Planning / pre-implementation.**
+**Slice 01 — public landing implemented. Subsequent product slices remain planned.**
 
 Implementation should proceed page-by-page and feature-by-feature in the order above, keeping every completed stage usable and visually finished before moving deeper into the product.
 
 ## License
 
 Kinetable is currently a private project and is **not open source**. See [LICENSE](LICENSE).
+
+## Run the landing page
+
+Requirements: Node.js 22.12+ and pnpm (the exact pnpm version is recorded in `package.json`).
+
+```sh
+pnpm install
+pnpm dev
+```
+
+Open the local URL printed by Vite. To verify this slice:
+
+```sh
+pnpm lint
+pnpm test
+pnpm build
+pnpm --filter @kinetable/web exec vite preview
+```
+
+Slice 01 lives in `apps/web`. The public landing has a continuous 3D product preview, a personal parts tray, and an interactive learning teaser. Open Kinetable navigates to the preview; accounts and the actual application are not implemented. See [Slice 01 implementation and QA](docs/SLICE-01.md).

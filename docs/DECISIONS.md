@@ -129,3 +129,11 @@ Future vision observations should map into existing component instances, breadbo
 **Status:** accepted
 
 Do not ask an implementation agent to "build Kinetable" as one task. Follow `docs/ROADMAP.md` and complete/test one slice at a time.
+
+## D-021 — Landing choreography stays presentation-only
+
+**Status:** implemented for Slice 01
+
+The landing uses one persistent R3F scene from the hero through the motion-alarm story and personal parts tray. A shared normalized scroll value drives DOM and spatial interpolation without per-frame React state updates. The learning teaser and final composition use separate demand-rendered scenes.
+
+Hardware geometry, wiring, signal playback, ownership and lesson outcomes are illustrative fixtures. They do not implement or replace the electrical graph, simulation engine, inventory or AI architecture described above. See [Slice 01 implementation and QA](SLICE-01.md) for verification and remaining limits.

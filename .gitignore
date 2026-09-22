@@ -47,3 +47,7 @@ local-data/
 # Temporary 3D exports
 *.blend1
 *.tmp.glb
+
+# Local visual QA artifacts
+.playwright-cli/
+output/

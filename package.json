@@ -1,0 +1,11 @@
+{
+  "name": "kinetable",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "dev": "pnpm --filter @kinetable/web dev",
+    "build": "pnpm --filter @kinetable/web build",
+    "lint": "pnpm --filter @kinetable/web lint",
+    "test": "pnpm --filter @kinetable/web test"
+  }
+}
