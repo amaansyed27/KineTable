@@ -56,6 +56,8 @@ A small native bridge or future Tauri desktop app remains an optional fallback f
 
 ## Build plan — outside to inside
 
+The numbered pages below describe the broader product journey. The active delivery order is Slice 01 public landing, Slice 02 product entry/onboarding/backend foundation, Slice 03 Auth, and Slice 04 project persistence; see [the roadmap](docs/ROADMAP.md).
+
 The project should be built in the same order a new user experiences it. Each stage should look finished before moving deeper into the product.
 
 ### 01 — Landing
@@ -375,6 +377,8 @@ KineTable/
 - [UX flows and screen mocks](docs/UX-MOCKS.md)
 - [Design system](docs/DESIGN-SYSTEM.md)
 - [Technical architecture](docs/ARCHITECTURE.md)
+- [Backend and deployment foundation](docs/BACKEND.md)
+- [Slice 02 implementation and QA](docs/SLICE-02.md)
 - [Hardware and simulation model](docs/HARDWARE-MODEL.md)
 - [AI interaction model](docs/AI-TOOLS.md)
 - [Starter component library](docs/COMPONENT-LIBRARY.md)
@@ -387,7 +391,7 @@ KineTable/
 
 ## Status
 
-**Slice 01 — public landing implemented. Subsequent product slices remain planned.**
+**Slice 02 completed — board-first onboarding, persistent local table handoff, and Supabase/Vercel foundation. Slice 01 landing is preserved. Auth (Slice 03) and project persistence (Slice 04) remain planned.**
 
 Implementation should proceed page-by-page and feature-by-feature in the order above, keeping every completed stage usable and visually finished before moving deeper into the product.
 
@@ -397,7 +401,7 @@ Kinetable is currently a private project and is **not open source**. See [LICENS
 
 ## Run the landing page
 
-Requirements: Node.js 22.12+ and pnpm (the exact pnpm version is recorded in `package.json`).
+Requirements: Node.js 24 LTS (or 22.22+) and pnpm (the exact pnpm version is recorded in `package.json`).
 
 ```sh
 pnpm install
@@ -413,4 +417,15 @@ pnpm build
 pnpm --filter @kinetable/web exec vite preview
 ```
 
-Slice 01 lives in `apps/web`. The public landing has a continuous 3D product preview, a personal parts tray, and an interactive learning teaser. Open Kinetable navigates to the preview; accounts and the actual application are not implemented. See [Slice 01 implementation and QA](docs/SLICE-01.md).
+The web app lives in `apps/web`. The public landing retains its continuous 3D story. Open Kinetable enters `/start`, where you choose ESP32, Pico or Uno; `/table` restores that board from local IndexedDB. No account or cloud configuration is required.
+
+Optional Supabase variables are documented in `.env.example` and [BACKEND.md](docs/BACKEND.md). Vercel uses the repository-root `vercel.json` for the monorepo build and direct SPA routes. Auth and project creation remain unimplemented.
+
+Browser journey tests:
+
+```sh
+pnpm --filter @kinetable/web exec playwright install chromium
+pnpm test:e2e
+```
+
+See [Slice 01](docs/SLICE-01.md) and [Slice 02](docs/SLICE-02.md) for implementation boundaries and verification.

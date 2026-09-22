@@ -51,3 +51,8 @@ local-data/
 # Local visual QA artifacts
 .playwright-cli/
 output/
+
+# Provider-local state
+.vercel/
+supabase/.temp/
+supabase/.branches/

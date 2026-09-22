@@ -6,6 +6,7 @@
     "dev": "pnpm --filter @kinetable/web dev",
     "build": "pnpm --filter @kinetable/web build",
     "lint": "pnpm --filter @kinetable/web lint",
-    "test": "pnpm --filter @kinetable/web test"
+    "test": "pnpm --filter @kinetable/web test",
+    "test:e2e": "pnpm --filter @kinetable/web test:e2e"
   }
 }

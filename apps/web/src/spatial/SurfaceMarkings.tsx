@@ -35,6 +35,13 @@ function markings(kind: string) {
     c.font = "bold 34px Arial"; c.fillText(kind === "pico" ? "PICO" : "ESP32",256,780);
     c.font = "16px Arial"; c.fillText("KINETABLE",256,825); c.fillText("3V3",105,937); c.fillText("GND",409,937);
     c.strokeStyle = "#b2bca7"; c.strokeRect(177,620,158,64);
+  } else if (kind === "uno") {
+    c.fillStyle = "#d6e6db"; c.font = "bold 54px Arial"; c.fillText("UNO",230,330);
+    c.font = "20px Arial"; c.fillText("KINETABLE",230,390);
+    c.font = "15px Arial";
+    for(let i=0;i<14;i++) { c.fillText(String(i),470,130+i*51); if(i<12) c.fillText(String(i),42,130+i*51); }
+    c.strokeStyle="#69a29d"; c.lineWidth=2;
+    for(let i=0;i<10;i++) { c.beginPath(); c.moveTo(445,130+i*51); c.lineTo(350,160+i*45); c.lineTo(300,230+i*38); c.stroke(); }
   } else if (kind === "shield") {
     c.fillStyle = "#737e79"; c.font = "bold 60px Arial"; c.fillText("ESP32",256,280);
     c.font = "28px Arial"; c.fillText("WIRELESS MODULE",256,390);

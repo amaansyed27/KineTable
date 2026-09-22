@@ -102,3 +102,7 @@ All geometry in `apps/web/src/spatial/Models.tsx`, `LearningModel.tsx`, and `Wir
 These assets are redistributable with the application under the repository's license. They are deliberately simplified landing illustrations, not third-party development-only placeholders. Their temporary limitation is engineering accuracy: replace or verify geometry, dimensions, and anchors before reusing them to teach wiring or in the actual workbench. No electrical validity is implied by the landing demo.
 
 The subtle surface-grain.png is an original deterministic 128px texture created in this repository. It uses no third-party image and no runtime filter.
+
+## Slice 02 shared board assets
+
+`UnoModel.tsx` adds an original simplified Uno-style PCB with headers, controller, USB housing and barrel socket, using the existing procedural primitives and new original `uno` surface markings. It follows the repository license and Y-up presentation-unit convention. Dimensions and pin anchors are not verified. ESP32 and Pico geometry are reused unchanged. No third-party models, textures or manufacturer logos were added.

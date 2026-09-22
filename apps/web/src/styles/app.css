@@ -1,0 +1,57 @@
+.product-app { min-height: 100svh; }
+.app-header { height: 92px; padding: 0 4.5%; display: flex; align-items: center; }
+.app-header .wordmark { width: fit-content; }
+.route-loading { min-height: 70svh; display: grid; place-content: center; gap: 24px; text-align: center; padding: 30px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.onboarding-page { max-width: 1300px; margin: 0 auto; padding: clamp(22px, 5vh, 64px) 48px 38px; }
+.onboarding-intro, .table-intro { text-align: center; }
+.onboarding-intro h1, .table-intro h1 { font-size: clamp(38px, 4.4vw, 72px); line-height: 1.12; font-weight: 400; letter-spacing: -.055em; margin: 17px 0 20px; }
+.onboarding-intro > p:last-child { font-size: 18px; color: #686c62; }
+.board-selector { position: relative; border: 0; padding: 0; margin: 25px 0 0; min-width: 0; height: clamp(300px, 38vh, 400px); }
+.board-stage { position: absolute; inset: 0; pointer-events: none; }
+.board-stage > div, .table-board > div { width: 100%; height: 100%; }
+.board-options { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.board-option { position: relative; display: flex; align-items: flex-end; justify-content: center; padding: 22px 10px; cursor: pointer; }
+.board-option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.board-option:has(input:focus-visible) { outline: 2px solid #657d21; outline-offset: 2px; border-radius: 3px; }
+.board-label { text-align: center; transition: opacity .25s ease; }
+.board-name { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 23px; font-weight: 500; letter-spacing: -.045em; }
+.selection-dot { width: 7px; height: 7px; background: #b7f000; border-radius: 50%; opacity: 0; }
+.board-option[data-selected="true"] .selection-dot { opacity: 1; }
+.board-option[data-quiet="true"] .board-name { color: #64685e; }
+.board-description { display: block; font-size: 13px; color: #62675c; margin: 8px 0 0 17px; }
+.setup-action { min-height: 150px; text-align: center; padding-top: 22px; }
+.selection-status { font-size: 14px; min-height: 20px; margin: 0 0 17px; }
+.setup-action .button { min-width: 216px; }
+.button:disabled { cursor: wait; opacity: .6; }
+.local-note { color: #73786b; font-size: 12px; margin: 20px 0 0; }
+.storage-error { color: #9b3b2d; max-width: 440px; margin: 12px auto; }
+.ready-table { min-height: calc(100svh - 92px); display: flex; flex-direction: column; align-items: center; padding: 42px 24px 40px; }
+.table-board { width: min(850px, 100%); height: clamp(290px, 46vh, 510px); }
+.table-caption { text-align: center; }
+.table-caption p { font-size: 23px; margin: 0 0 9px; letter-spacing: -.04em; }
+.table-caption > span { color: #686c62; font-size: 13px; }
+.table-caption a { display: block; width: fit-content; margin: 30px auto 0; font-size: 13px; border-bottom: 1px solid #a4a99a; padding-bottom: 6px; }
+@media (max-width: 800px) {
+ .onboarding-page { padding: 34px 22px; }
+ .board-name { font-size: 19px; }
+ .board-description { font-size: 11px; }
+ .board-selector { height: 320px; }
+}
+@media (max-width: 600px) {
+ .app-header { height: 76px; padding: 0 24px; }
+ .onboarding-page { padding-top: 22px; }
+ .onboarding-intro { text-align: left; }
+ .onboarding-intro h1 { max-width: 310px; font-size: 42px; }
+ .onboarding-intro > p:last-child { font-size: 15px; }
+ .board-selector { height: 630px; margin-top: 14px; }
+ .board-options { grid-template-columns: 1fr; grid-template-rows: repeat(3, 1fr); gap: 0; }
+ .board-option { align-items: flex-end; padding: 0 0 12px; }
+ .board-name { font-size: 21px; }
+ .board-description { font-size: 12px; margin-top: 5px; }
+ .setup-action { padding-top: 24px; }
+ .ready-table { min-height: calc(100svh - 76px); padding-top: 45px; }
+ .table-intro h1 { max-width: 310px; }
+ .table-board { height: 340px; }
+}
+@media (prefers-reduced-motion: reduce) { .board-label { transition: none; } }

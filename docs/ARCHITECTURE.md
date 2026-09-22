@@ -491,3 +491,9 @@ The user should be able to trust statements such as:
 Those statements must come from deterministic metadata/rules and validated sources, not model improvisation.
 
 That reliability boundary is one of the most important architectural constraints in Kinetable.
+
+## 21. Slice 02 implementation boundary
+
+React Router now supplies `/`, `/start` and `/table`. Canonical board metadata lives under `apps/web/src/hardware`; the local profile store uses Zustand and a repository backed by Dexie. Presentation geometry is shared independently of landing choreography. No future hardware-core package has been scaffolded.
+
+Supabase is the selected cloud provider and Vercel the deployment provider. Their current configuration and explicit local-only behavior are documented in [BACKEND.md](BACKEND.md); auth and project cloud persistence remain future work.

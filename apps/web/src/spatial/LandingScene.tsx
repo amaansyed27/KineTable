@@ -12,7 +12,8 @@ import {
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { BoardModel } from "./Models";
-import { StoryWorld, SoftShadow, makeShadow } from "./StoryWorld";
+import { StoryWorld } from "./StoryWorld";
+import { SoftShadow, makeShadow } from "./SoftShadow";
 import { LearningModel } from "./LearningModel";
 export type SceneMode = "final" | "learn";
 function StaticCamera({ mode }: { mode: SceneMode }) {

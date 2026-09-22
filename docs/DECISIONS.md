@@ -137,3 +137,15 @@ Do not ask an implementation agent to "build Kinetable" as one task. Follow `doc
 The landing uses one persistent R3F scene from the hero through the motion-alarm story and personal parts tray. A shared normalized scroll value drives DOM and spatial interpolation without per-frame React state updates. The learning teaser and final composition use separate demand-rendered scenes.
 
 Hardware geometry, wiring, signal playback, ownership and lesson outcomes are illustrative fixtures. They do not implement or replace the electrical graph, simulation engine, inventory or AI architecture described above. See [Slice 01 implementation and QA](SLICE-01.md) for verification and remaining limits.
+
+## D-022 — Board-first product entry, before accounts
+
+**Status:** implemented for Slice 02
+
+All public Open Kinetable actions enter `/start`. A canonical board selection is saved through Zustand and a Dexie repository before `/table` is ready. Native radio semantics are retained beneath physical 3D interaction. Accounts are not required.
+
+## D-023 — Optional Supabase boundary and Vercel SPA hosting
+
+**Status:** implemented foundation; hosted Supabase data deferred
+
+Use a validated, publishable-key-only Supabase client boundary. Missing or invalid configuration keeps onboarding local; configuration is not a cloud success claim. No cloud tables are created without a current data use case. Vercel builds the workspace web app and rewrites direct SPA routes. Auth is Slice 03, project persistence Slice 04.

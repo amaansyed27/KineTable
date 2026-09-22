@@ -6,6 +6,19 @@ The rule for every slice:
 
 > Build one coherent capability, verify it completely, then move on.
 
+## Current delivery order
+
+The active product slices supersede the older technical milestone numbering below:
+
+1. **Slice 01 — Public landing:** complete; see [Slice 01](SLICE-01.md).
+2. **Slice 02 — Product entry + onboarding + backend foundation:** complete; see [Slice 02](SLICE-02.md) for scope and verification. Landing → select board → local table; Supabase/Vercel foundation.
+3. **Slice 03 — Authentication:** planned; local use remains available.
+4. **Slice 04 — Project persistence:** planned.
+
+The following sections are retained as a technical backlog, not instructions to build additional capabilities in Slice 02. In particular, mocked device detection and the BONK-capable workbench are outside this slice.
+
+## Earlier technical backlog
+
 ## Phase 0 — Repository and product foundation
 
 Status: planning/docs.

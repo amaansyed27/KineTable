@@ -1,5 +1,7 @@
 # Slice 01 - Public landing
 
+> This report describes the Slice 01 baseline. Slice 02 preserves the landing visuals and changes Open Kinetable to `/start`; see [Slice 02](SLICE-02.md) for the real onboarding/table routes.
+
 ## Implemented boundary
 
 The public React/TypeScript/Vite landing lives in apps/web. No authentication, onboarding, backend, persistence, electrical simulator, or additional product pages are implemented. Open Kinetable navigates to the product preview; Sign in explains availability in a native dialog.

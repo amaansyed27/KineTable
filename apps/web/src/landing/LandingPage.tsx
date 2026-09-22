@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useRef } from "react";
 import { ScrollStory } from "./ScrollStory";
 import { LearningTeaser } from "./LearningTeaser";
@@ -21,9 +22,9 @@ export function LandingPage() {
         </nav>
         <div className="nav-actions">
           <button onClick={() => dialog.current?.showModal()}>Sign in</button>
-          <a className="button small" href="#product">
+          <Link className="button small" to="/start">
             Open Kinetable <span>↗</span>
-          </a>
+          </Link>
         </div>
       </header>
       <main>
@@ -43,7 +44,7 @@ export function LandingPage() {
           <p>
             Accounts aren’t available yet.
             <br />
-            For now, take a look around the product preview.
+            You can set up your table without an account.
           </p>
           <button className="button">
             Back to exploring <span>↗</span>

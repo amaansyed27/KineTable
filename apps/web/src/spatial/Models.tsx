@@ -37,7 +37,7 @@ export function Slab({
     </group>
   );
 }
-function RepeatedBoxes({
+export function RepeatedBoxes({
   positions,
   size,
   color,
@@ -73,7 +73,7 @@ function RepeatedBoxes({
     </instancedMesh>
   );
 }
-function MountHole({ position }: { position: [number, number, number] }) {
+export function MountHole({ position }: { position: [number, number, number] }) {
   return (
     <group position={position} rotation={[-Math.PI / 2, 0, 0]}>
       <mesh>
