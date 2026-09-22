@@ -1,272 +1,255 @@
 # Kinetable Development Roadmap
 
-Kinetable should be built as a sequence of independently testable product slices. Do not implement the whole product in one pass.
+Kinetable is built **outside to inside**, in the same order a new user experiences the product.
 
 The rule for every slice:
 
-> Build one coherent capability, verify it completely, then move on.
+> Ship one coherent user-visible capability, plus the real backend/persistence required by that capability, verify it completely, then move on.
 
-## Phase 0 — Repository and product foundation
+Do not build the whole frontend first and defer the backend. Do not build unused backend infrastructure far ahead of the feature that needs it.
 
-Status: planning/docs.
+---
 
-Deliverables:
+# Slice 01 — Public Landing ✅
 
-- repository structure;
-- design tokens;
-- lint/test/build setup;
-- architecture boundaries;
-- project-format skeleton;
-- component schema skeleton;
-- first 3D asset conventions.
+Status: implemented.
+
+Goal: establish the Kinetable visual language and public product story.
+
+Includes:
+
+- premium minimal landing page;
+- continuous R3F product story;
+- personalization and learning teaser;
+- responsive visual QA;
+- reduced-motion support;
+- no fake application/backend claims.
+
+See `docs/SLICE-01.md`.
+
+---
+
+# Slice 02 — Product Entry + Onboarding + Backend Foundation
+
+Goal: let a new user enter the real product with one meaningful setup decision: choose a board.
+
+User flow:
+
+```text
+Landing
+→ Open Kinetable
+→ /start
+→ choose ESP32 / Pico / Arduino
+→ Set up my table
+→ /table
+```
+
+Frontend:
+
+- real application routing;
+- onboarding page;
+- 3D board selection;
+- keyboard-accessible selection;
+- selected-board transition into `/table`;
+- minimal empty-table handoff.
+
+Data/backend foundation:
+
+- canonical board definitions;
+- local hardware profile;
+- persistence boundary (not direct `localStorage` access from UI);
+- IndexedDB/Dexie if appropriate;
+- Supabase client/config boundary;
+- `supabase/migrations/` foundation;
+- `.env.example`;
+- Vercel-ready environment configuration;
+- typed repository/data access layer.
+
+Do not implement full auth yet.
 
 Exit criteria:
 
-- `pnpm lint`
-- `pnpm test`
-- `pnpm build`
-
-all pass from the repository root once code exists.
+- landing is not regressed;
+- board choice survives refresh;
+- `/start` and `/table` work via direct navigation/back/forward;
+- no fake connected-board success state;
+- build/lint/tests pass;
+- browser QA performed;
+- backend config is real and documented even if production secrets are not present locally.
 
 ---
 
-# Slice 01 — Spatial foundation
+# Slice 03 — Sign In / Account Upgrade + Supabase Auth
 
-Goal: prove the app can feel like Kinetable before adding product complexity.
+Goal: add cloud identity without gating first use.
 
 Build:
 
-- React + TypeScript + Vite app;
-- React Three Fiber canvas;
-- warm Kinetable background/workbench;
-- camera controls;
-- lighting/environment;
-- minimal top chrome;
-- one ESP32 object;
-- hover/select state;
-- drag and rotate;
-- focus selected object;
-- responsive desktop shell.
+- Google / GitHub / email auth;
+- continue locally/guest;
+- session restore/logout;
+- profile row;
+- RLS policies;
+- migration/schema tests where practical;
+- preserve local onboarding/project data when account is created or connected.
 
-Do not add:
+Exit criteria:
 
-- AI;
-- wiring;
-- simulation;
-- backend;
-- parts library UI;
-- fake dashboards.
-
-Verification:
-
-- ESP32 is easy to inspect from useful angles;
-- camera never becomes disorienting;
-- selection is obvious but restrained;
-- drag/rotate feels physical;
-- 60 fps target on a normal modern laptop;
-- reduced-motion preference does not break controls.
+- guest use remains possible;
+- authenticated user data cannot be read by another user;
+- local data is not silently lost on sign-in;
+- production secrets are server/environment managed.
 
 ---
 
-# Slice 02 — Component system
+# Slice 04 — My Table / Home + Real Project Persistence
 
-Goal: prove multiple hardware objects can share one generic spatial architecture.
+Goal: make the first real Kinetable home/workbench usable and persistent.
+
+Frontend:
+
+- selected board already present;
+- `What do you want to make?` prompt;
+- lightweight Table / Projects / Parts / Learn navigation;
+- returning-user table restore;
+- recent project spatial preview.
+
+Backend/data:
+
+- local project store in IndexedDB;
+- Supabase `projects` table;
+- versioned JSONB project document;
+- cloud sync for signed-in users;
+- ownership RLS;
+- deliberate sync/checkpoint strategy.
+
+---
+
+# Slice 05 — New Build + Real Project Creation
+
+Goal: create a real project from intent.
 
 Build:
 
-- `HardwareObject` abstraction;
-- component instance IDs;
-- model loading/cache;
-- transform persistence;
-- selection store;
-- component metadata binding;
-- add breadboard, LED, button, OLED.
+- prompt entry;
+- generated editable project name;
+- create local/cloud project document;
+- owned-part awareness where available;
+- `Show me first` preview;
+- autosave/checkpoint boundary.
 
-Verification:
-
-- no component-specific scene logic duplicated unnecessarily;
-- reload restores layout;
-- selection identifies canonical component instance;
-- unsupported/broken asset fails gracefully.
+AI planning may still be mocked in this slice; project persistence may not be mocked.
 
 ---
 
-# Slice 03 — Pin anchors and wiring
+# Slice 06 — AI Assembly + Real AI Backend
 
-Goal: make components electrically connectable.
+Goal: turn a natural-language idea into validated Kinetable project commands.
+
+Build:
+
+- Vercel Function AI endpoint;
+- provider adapter;
+- structured tool/command responses only;
+- server-side secret handling;
+- inventory/project context input;
+- hardware-core validation;
+- spatial assembly/loading choreography;
+- clear unsupported-request behaviour.
+
+AI must never mutate DOM/Three.js directly or bypass deterministic product rules.
+
+---
+
+# Slice 07 — Core 3D Workbench
+
+Goal: make the table itself a serious editor.
+
+Build:
+
+- pan/orbit/zoom/focus;
+- select/move/rotate;
+- add/remove/replace parts;
+- contextual controls;
+- Build / Simulate / Explain shell;
+- undo/redo foundation;
+- local autosave of spatial state.
+
+---
+
+# Slice 08 — Wiring + Breadboard Intelligence
+
+Goal: make visible connections electrically meaningful.
 
 Build:
 
 - machine-readable pin anchors;
-- hoverable pins/leads;
-- start wire from endpoint;
-- preview valid/invalid targets;
-- wire curve rendering;
-- net creation/removal;
-- undo/redo for connections;
-- connection inspector.
-
-Verification:
-
-- visual wire always references a real net/endpoint;
-- wire deletion updates graph;
-- invalid targets cannot silently become valid nets;
-- moving an object updates wire geometry without changing electrical identity.
-
----
-
-# Slice 04 — Breadboard intelligence
-
-Goal: make breadboard connectivity understandable and real.
-
-Build:
-
-- supported breadboard hole grid;
-- A–E / F–J center split;
-- conductive-group model;
-- rails;
-- component lead snapping;
+- wire creation/routing;
+- real nets/endpoints;
+- breadboard A–E / F–J topology;
+- rails/center gap;
 - connected-hole highlighting;
-- off-by-one placement feedback.
-
-Verification:
-
-- hover A17 highlights A17–E17 only;
-- F17–J17 remains separate;
-- lead placement updates electrical graph correctly;
-- moving one row changes connectivity;
-- tests cover rail and row topology.
+- invalid-placement feedback;
+- serialization and deterministic tests.
 
 This slice is core Kinetable value and must not be faked.
 
 ---
 
-# Slice 05 — BONK physical project
+# Slice 09 — Component Inspector
 
-Goal: reconstruct the canonical real project in Kinetable.
-
-Parts:
-
-- ESP32;
-- breadboard;
-- OLED;
-- push button;
-- LED;
-- 220 ohm resistor;
-- active buzzer;
-- jumper wires.
-
-Connections:
-
-```text
-OLED SDA  → GPIO21
-OLED SCL  → GPIO22
-LED       → GPIO23 through 220 Ω
-Button    → GPIO18
-Buzzer    → GPIO19
-```
-
-Build a saved fixture that loads directly for development.
-
-Verification:
-
-- every visible connection maps to project graph;
-- project can serialize/reload;
-- selecting any connection identifies both endpoints;
-- breadboard-mediated connections are represented correctly.
-
----
-
-# Slice 06 — Simulation core
-
-Goal: make BONK come alive.
+Goal: explain one selected hardware object without leaving the table.
 
 Build:
 
-- deterministic logical clock;
-- component simulation driver API;
-- digital signal state;
-- button input;
-- LED output;
-- OLED rendered text state;
-- active buzzer state/sound;
-- basic timed actions.
-
-BONK behaviour:
-
-```text
-button press
-→ OLED "BONK!"
-→ LED ON
-→ BEEP ×2
-
-button release
-→ OLED "READY"
-→ LED OFF
-```
-
-Verification:
-
-- simulation tests use deterministic time;
-- repeated runs produce same result;
-- UI animation does not control simulation correctness;
-- sound can be muted without changing state;
-- OLED output matches logical state.
+- plain-language description;
+- `Used here for` context;
+- connection list;
+- Try / Replace actions;
+- technical details on demand;
+- metadata sourced from canonical definitions.
 
 ---
 
-# Slice 07 — Simulate mode UX
+# Slice 10 — Simulation
 
-Goal: make simulation feel tactile rather than like a debugger.
+Goal: make supported virtual hardware actually behave.
 
 Build:
 
-- Build / Simulate mode switching;
-- authoring chrome recedes in Simulate;
-- button physically depresses;
-- LED emits restrained light;
-- OLED updates;
-- buzzer reacts;
-- event annotations near components;
-- pause/reset.
+- deterministic simulation clock;
+- component driver API;
+- digital/analog states;
+- buttons/potentiometers/PIR/etc.;
+- LED/OLED/buzzer/servo outputs;
+- play/pause/reset;
+- spatial event feedback;
+- deterministic automated tests.
 
-Verification:
-
-A first-time viewer should understand that pressing the virtual button causes all three outputs without looking at code.
+UI animation must not determine electrical/simulation correctness.
 
 ---
 
-# Slice 08 — Explain and X-Ray
+# Slice 11 — Explain / X-Ray
 
-Goal: make invisible electrical relationships understandable.
+Goal: make invisible relationships visible.
 
 Build:
 
-- Explain mode;
-- causal trace visualization;
-- Power / Signals / Data filters;
-- active-path highlighting;
-- contextual short explanations;
-- component isolation/fade.
-
-Verification:
-
-For BONK, the user can answer:
-
-- which pin reads the button;
-- which pin drives the LED;
-- which pins talk to the OLED;
-- why pressing the button changes outputs.
-
-without opening source code.
+- Power / Signals / Data modes;
+- active-path isolation;
+- signal animation;
+- pin/component highlighting;
+- concise beginner explanation;
+- deeper technical explanation on demand.
 
 ---
 
-# Slice 09 — Visual Logic
+# Slice 12 — Visual Logic
 
-Goal: prove programming can be represented as understandable behaviour.
+Goal: represent programming as understandable behaviour.
 
-Build:
+Canonical BONK logic:
 
 ```text
 WHEN button pressed
@@ -275,289 +258,252 @@ AND LED ON
 AND BEEP ×2
 ```
 
-Features:
+Build:
 
-- visual node/semantic representation;
-- mapping to physical objects;
+- semantic behaviour graph;
+- events/conditions/actions;
+- physical-object mapping;
 - editable action properties;
-- compile to simulation IR;
+- simulation IR;
 - validation;
-- synchronization with simulation.
-
-Demo requirement:
-
-Change:
-
-```text
-BEEP ×2
-```
-
-to:
-
-```text
-BEEP ×3
-```
-
-and observe three beeps on the next simulation run.
+- immediate simulation sync.
 
 ---
 
-# Slice 10 — Onboarding and Table shell
+# Slice 13 — My Parts + Real Inventory Persistence
 
-Goal: make the prototype usable from a cold start.
+Goal: make Kinetable personal to the hardware the user owns.
 
 Build:
 
-- splash;
-- Welcome;
-- board selection;
-- optional mocked detection;
-- Table ready screen;
-- persistent navigation;
-- local onboarding state;
-- returning-user Table.
-
-Verification:
-
-A new user can reach the BONK-capable table without configuration terminology.
+- Boards / Sensors / Displays / Outputs / Components / Tools;
+- quantities;
+- add/search;
+- local inventory persistence;
+- Supabase inventory table;
+- ownership RLS;
+- signed-in sync;
+- project/recommendation queries use this same model.
 
 ---
 
-# Slice 11 — My Parts
+# Slice 14 — Component Library
 
-Goal: introduce the personalization layer.
+Goal: establish the canonical hardware knowledge base.
+
+Each component can include:
+
+- GLB model;
+- dimensions/anchors;
+- pins/capabilities;
+- voltage/current constraints;
+- protocols;
+- simulation driver;
+- framework/library metadata;
+- common mistakes;
+- provenance/license data.
+
+Cloud:
+
+- metadata in PostgreSQL;
+- canonical models/thumbnails in Supabase Storage;
+- version/provenance tracked explicitly.
+
+Do not optimize for raw component count; optimize for correctness and usefulness.
+
+---
+
+# Slice 15 — Projects + Cloud Sync / Versioning
+
+Goal: make projects reliable across sessions/devices.
 
 Build:
 
-- inventory store;
-- My Parts UI;
-- add/remove quantities;
-- owned status in component library;
-- board-specific compatibility metadata;
-- local persistence.
-
-Seed initial demo inventory with common kit parts.
-
-Verification:
-
-Project generation/recommendation logic can query owned components independently of UI.
+- Recent / Saved;
+- miniature 3D previews;
+- rename/duplicate/archive;
+- project versions/checkpoints;
+- cloud restore;
+- conflict-safe sync rules;
+- signed-out local projects remain usable.
 
 ---
 
-# Slice 12 — Prompt-to-build, mocked first
+# Slice 16 — Explore
 
-Goal: prove the desired AI interaction without model unpredictability.
-
-Input:
-
-> Make the BONK button.
-
-Mock planner returns structured commands.
-
-The UI should:
-
-- preview parts;
-- assemble them;
-- create project graph;
-- set visual logic;
-- load simulation-ready state.
-
-No chat transcript.
-
-Verification:
-
-The same command system could have been triggered manually; AI is not bypassing product rules.
-
----
-
-# Slice 13 — Real AI planner
-
-Goal: support constrained natural-language builds using the supported component set.
-
-Initial requests:
-
-- blink an LED;
-- button controls LED;
-- BONK;
-- motion alarm;
-- DHT11 → OLED;
-- potentiometer controls threshold.
-
-Requirements:
-
-- structured tools only;
-- inventory-aware planning;
-- deterministic validation;
-- clear unsupported-request response;
-- provider adapter boundary.
-
-Verification:
-
-AI cannot create a project state that manual tools would reject.
-
----
-
-# Slice 14 — Explore and recommendations
-
-Goal: make My Parts meaningfully useful.
+Goal: answer `What can I build with what I already own?`
 
 Build:
 
 - Build Now;
+- Everything Required;
 - One Part Away;
-- project requirement matching;
-- "use something I already own instead" action;
-- saved example projects.
-
-Verification:
-
-Inventory matching is deterministic and explainable.
+- deterministic inventory requirement matching;
+- saved examples/templates;
+- AI action: `Use something I already own instead`.
 
 ---
 
-# Slice 15 — Learn missions
+# Slice 17 — Learn
 
-Goal: prove Kinetable as a learning environment.
+Goal: teach hardware by interaction rather than courses.
 
 Initial missions:
 
 1. understand breadboard rows;
 2. make an LED light;
 3. use a button;
-4. control brightness with potentiometer;
-5. display text on OLED.
+4. control brightness;
+5. show text on OLED.
 
 Requirements:
 
-- staged hints;
 - topology-aware validation;
+- staged hints;
 - no answer dump by default;
-- explain why success works.
+- explain why success works;
+- progression without childish gamification.
 
 ---
 
-# Slice 16 — Component library expansion
+# Slice 18 — Run on Board + Compile Infrastructure
 
-Goal: reach roughly 25 high-quality components.
+Goal: move from simulation to supported real hardware.
 
-Do not optimize for raw count.
+Browser:
 
-For each component require:
+- explicit Web Serial/WebUSB connection where supported;
+- target confirmation;
+- friendly `Preparing → Sending → Running` UX;
+- technical details optional.
 
-- validated metadata;
-- anchors;
-- asset provenance;
-- basic tests;
-- simulation if relevant;
-- beginner explanation.
+Backend:
 
----
+- compile-job API;
+- replaceable isolated worker interface;
+- Arduino CLI / ESP-IDF / Pico SDK toolchains;
+- binary/UF2 artifact delivery;
+- job errors mapped to user-friendly states;
+- no compiler/toolchain secrets or commands exposed to normal users.
 
-# Slice 17 — Desktop shell and real board bridge
-
-Goal: move from pure simulation to real hardware.
-
-Build later with Tauri:
-
-- serial/USB discovery;
-- board target detection;
-- compile adapter;
-- upload adapter;
-- live runtime/serial abstraction;
-- permissions/error UX.
-
-Primary UI remains:
-
-> Run on my ESP32
-
-not raw toolchain controls.
+Do not run heavy compilation in Supabase Edge Functions.
 
 ---
 
-# Slice 18 — Advanced code
+# Slice 19 — Live Data
 
-Goal: provide escape hatch for experienced users.
+Goal: inspect the running physical system visually.
 
 Build:
 
-- generated code view;
-- physical pin ↔ source highlight;
-- technical details;
-- raw serial/log view;
-- clear synchronization rules.
-
-Do not let this change the default beginner experience.
+- sensor values;
+- GPIO state;
+- board status;
+- mapping to 3D objects;
+- raw serial as an advanced option.
 
 ---
 
-# Future Phase — Camera and digital twin
+# Slice 20 — Advanced Code
 
-Only begin after the virtual project model is robust.
+Goal: provide a serious developer escape hatch without changing the default workflow.
 
-Sequence:
+Build:
 
-1. still-photo component recognition;
-2. breadboard geometry calibration;
-3. component placement reconciliation;
-4. wire endpoint inference;
-5. confidence-aware confirmation UI;
-6. persistent digital twin;
-7. continuous camera observations;
-8. guided physical actions;
-9. closed-loop verification.
-
-The camera layer must map observations into the same core entities used by simulation and the virtual table.
+- generated firmware editor;
+- physical pin ↔ source highlighting;
+- code ↔ visual-logic synchronization rules;
+- build/library details;
+- raw serial/debug logs.
 
 ---
 
-# Product milestone definitions
+# Slice 21 — Real Workbench Scan — later
 
-## Milestone A — Spatial prototype
+Goal: create a digital twin from a real desk.
+
+Build:
+
+- camera/photo import;
+- detect board/breadboard/components;
+- geometry calibration;
+- reconcile observations with Kinetable entities;
+- confidence-aware user confirmation;
+- media upload/processing backend only when needed.
+
+---
+
+# Slice 22 — Live Workbench — later
+
+Goal: close the loop between Kinetable and the physical build.
+
+Build:
+
+- continuous camera mode;
+- next-connection overlay;
+- intended vs observed topology comparison;
+- physical-action verification;
+- spatial debugging;
+- combine visual observations with runtime/firmware state.
+
+---
+
+# Product milestones
+
+## Milestone A — Entry
 
 Slices 01–04.
 
-Kinetable already feels physically different from an IDE, even without simulation.
+A new user can discover Kinetable, choose a board, optionally create an account, and return to a persistent personal table.
 
-## Milestone B — Core demo
+## Milestone B — AI Builder
 
 Slices 05–09.
 
-BONK is fully interactive, explainable, and visually programmable.
+A user can describe a build, receive a validated assembly, manipulate it spatially, wire it, and inspect each part.
 
-This is the first serious demo milestone.
+## Milestone C — Living Hardware
 
-## Milestone C — Usable alpha
+Slices 10–12.
 
-Slices 10–16.
+The virtual project behaves, explains itself, and exposes editable visual logic without requiring code.
 
-A new user can onboard, maintain parts, request supported builds, explore ideas, and complete learning missions.
+## Milestone D — Personal Platform
 
-## Milestone D — Physical bridge
+Slices 13–17.
 
-Slices 17–18.
+Inventory, component knowledge, projects, recommendations and learning are persistent and useful.
 
-Kinetable can run supported projects on real boards and expose advanced code when desired.
+## Milestone E — Physical Hardware
 
-## Milestone E — Real workbench
+Slices 18–20.
 
-Future camera/digital-twin phase.
+Kinetable can compile, flash and inspect supported real boards while still keeping code optional.
 
-Virtual and physical projects begin to synchronize.
+## Milestone F — Digital Twin
+
+Slices 21–22.
+
+The real workbench becomes part of the same Kinetable project model.
 
 ---
 
 # Slice completion template
 
-Every implementation PR should include:
+Every implementation slice should report:
 
 ```text
 What this slice adds
 What it deliberately does not add
+Routes/screens added
+Backend/data added
+Schema/migrations added
 Architecture changed
 User-visible interaction
 Test checklist
+Visual/browser QA
+Security/privacy considerations
 Known limitations
-Screenshots/video where visual
 ```
 
-A slice is not complete because the screen renders. The intended interaction must be tested end-to-end.
+A slice is not complete because the screen renders. The intended user flow, persistence/server behaviour, and failure paths must work end-to-end.
