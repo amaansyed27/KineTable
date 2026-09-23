@@ -10,6 +10,8 @@ export default defineConfig(({ mode }) => {
     // Explicit allowlist: invalid or privileged keys never enter browser output.
     envPrefix: [],
     define: {
+      "import.meta.env.VITE_AUTH_GOOGLE_ENABLED": JSON.stringify(env.VITE_AUTH_GOOGLE_ENABLED === "true" ? "true" : "false"),
+      "import.meta.env.VITE_AUTH_GITHUB_ENABLED": JSON.stringify(env.VITE_AUTH_GITHUB_ENABLED === "true" ? "true" : "false"),
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(config.cloudConfigured ? config.url : ""),
       "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(config.cloudConfigured ? config.publishableKey : ""),
       "import.meta.env.VITE_BACKEND_CONFIG_INVALID": JSON.stringify(!config.cloudConfigured && config.reason === "invalid" ? "true" : "false"),

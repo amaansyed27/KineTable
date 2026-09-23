@@ -17,7 +17,7 @@ describe("optional cloud boundary", () => {
     const backend = await import("./supabaseClient");
     expect(backend.cloudConfigured).toBe(false); expect(backend.getSupabaseClient()).toBeNull();
   });
-  it("constructs a singleton client with auth side effects disabled", async () => {
+  it("constructs a singleton client with centralized auth configuration", async () => {
     vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co"); vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_example");
     const backend = await import("./supabaseClient");
     expect(backend.cloudConfigured).toBe(true);

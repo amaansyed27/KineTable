@@ -1,10 +1,11 @@
 import { useEffect, type ReactNode } from "react";
 import { Link } from "react-router";
+import { AccountControl } from "../auth/AccountControl";
 import { useProfileStore } from "../state/profileStore";
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
   useEffect(() => { document.title = `${title} · Kinetable`; }, [title]);
   return <div className="product-app"><a className="skip-link" href="#app-main">Skip to your table</a>
-    <header className="app-header"><Link className="wordmark" to="/" aria-label="Kinetable home">kinetable<span className="brand-dot" /></Link></header>
+    <header className="app-header"><Link className="wordmark" to="/" aria-label="Kinetable home">kinetable<span className="brand-dot" /></Link><AccountControl /></header>
     {children}
   </div>;
 }

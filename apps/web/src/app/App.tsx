@@ -2,6 +2,9 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router";
 import { LandingPage } from "../landing/LandingPage";
 import "../styles/app.css";
+import { AuthBoundary } from "../auth/AuthBoundary";
+const AuthPage = lazy(() => import("../auth/AuthPage"));
+const AuthCallback = lazy(() => import("../auth/AuthCallback"));
 const OnboardingPage = lazy(() => import("../onboarding/OnboardingPage"));
 const TablePage = lazy(() => import("../table/TablePage"));
 function RoutePosition() {
@@ -10,12 +13,14 @@ function RoutePosition() {
   return null;
 }
 export function App() {
-  return <BrowserRouter><RoutePosition /><Suspense fallback={<div className="route-loading" role="status">Opening your table…</div>}>
+  return <BrowserRouter><AuthBoundary><RoutePosition /><Suspense fallback={<div className="route-loading" role="status">Opening your table…</div>}>
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/start" element={<OnboardingPage />} />
       <Route path="/table" element={<TablePage />} />
       <Route path="*" element={<main className="route-loading"><h1>This table isn’t here.</h1><Link to="/">Back to Kinetable</Link></main>} />
     </Routes>
-  </Suspense></BrowserRouter>;
+  </Suspense></AuthBoundary></BrowserRouter>;
 }

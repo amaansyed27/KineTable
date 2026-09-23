@@ -1,10 +1,8 @@
 import { Link } from "react-router";
-import { useRef } from "react";
 import { ScrollStory } from "./ScrollStory";
 import { LearningTeaser } from "./LearningTeaser";
 import { FinalCTA } from "./FinalCTA";
 export function LandingPage() {
-  const dialog = useRef<HTMLDialogElement>(null);
   return (
     <>
       <a className="skip-link" href="#product">
@@ -21,7 +19,7 @@ export function LandingPage() {
           <a href="#parts">Parts</a>
         </nav>
         <div className="nav-actions">
-          <button onClick={() => dialog.current?.showModal()}>Sign in</button>
+          <Link to="/auth">Sign in</Link>
           <Link className="button small" to="/start">
             Open Kinetable <span>↗</span>
           </Link>
@@ -32,25 +30,7 @@ export function LandingPage() {
         <LearningTeaser />
         <FinalCTA />
       </main>
-      <dialog
-        ref={dialog}
-        onClick={(e) => {
-          if (e.target === dialog.current) dialog.current.close();
-        }}
-      >
-        <form method="dialog">
-          <p className="eyebrow">A little more time at the workbench.</p>
-          <h2>Kinetable is taking shape.</h2>
-          <p>
-            Accounts aren’t available yet.
-            <br />
-            You can set up your table without an account.
-          </p>
-          <button className="button">
-            Back to exploring <span>↗</span>
-          </button>
-        </form>
-      </dialog>
+
     </>
   );
 }

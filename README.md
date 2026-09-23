@@ -379,6 +379,7 @@ KineTable/
 - [Technical architecture](docs/ARCHITECTURE.md)
 - [Backend and deployment foundation](docs/BACKEND.md)
 - [Slice 02 implementation and QA](docs/SLICE-02.md)
+- [Slice 03 implementation and verification status](docs/SLICE-03.md)
 - [Hardware and simulation model](docs/HARDWARE-MODEL.md)
 - [AI interaction model](docs/AI-TOOLS.md)
 - [Starter component library](docs/COMPONENT-LIBRARY.md)
@@ -391,7 +392,7 @@ KineTable/
 
 ## Status
 
-**Slice 02 completed — board-first onboarding, persistent local table handoff, and Supabase/Vercel foundation. Slice 01 landing is preserved. Auth (Slice 03) and project persistence (Slice 04) remain planned.**
+**Slice 03 completed — optional email/password accounts and real Supabase cloud-profile sync. Slice 01 landing and Slice 02 guest onboarding/local table remain intact. Project persistence (Slice 04) remains planned.**
 
 Implementation should proceed page-by-page and feature-by-feature in the order above, keeping every completed stage usable and visually finished before moving deeper into the product.
 

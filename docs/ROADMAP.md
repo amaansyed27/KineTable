@@ -12,7 +12,7 @@ The active product slices supersede the older technical milestone numbering belo
 
 1. **Slice 01 — Public landing:** complete; see [Slice 01](SLICE-01.md).
 2. **Slice 02 — Product entry + onboarding + backend foundation:** complete; see [Slice 02](SLICE-02.md) for scope and verification. Landing → select board → local table; Supabase/Vercel foundation.
-3. **Slice 03 — Authentication:** planned; local use remains available.
+3. **Slice 03 — Authentication + cloud identity:** complete; real hosted email/password auth, owner-only profiles and local/cloud reconciliation verified on Vercel. Guest use remains available. See [Slice 03](SLICE-03.md).
 4. **Slice 04 — Project persistence:** planned.
 
 The following sections are retained as a technical backlog, not instructions to build additional capabilities in Slice 02. In particular, mocked device detection and the BONK-capable workbench are outside this slice.

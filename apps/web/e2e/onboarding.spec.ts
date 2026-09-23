@@ -25,7 +25,9 @@ test("direct table entry redirects, keyboard-only selection and reduced motion w
   await page.emulateMedia({ reducedMotion: "reduce" });
   const response = await page.goto("/table"); expect(response?.status()).toBe(200);
   await expect(page).toHaveURL(/\/start$/);
-  await page.keyboard.press("Tab"); await page.keyboard.press("Tab"); await page.keyboard.press("Tab");
+  const firstBoard = page.getByRole("radio", { name: "ESP32", exact: true });
+  await expect(firstBoard).toBeVisible();
+  for (let i = 0; i < 8 && !await firstBoard.evaluate(el => el === document.activeElement); i++) await page.keyboard.press("Tab");
   await expect(page.getByRole("radio", { name: "ESP32", exact: true })).toBeFocused();
   await page.keyboard.press("Space"); await expect(page.getByRole("radio", { name: "ESP32", exact: true })).toBeChecked();
   await page.keyboard.press("ArrowRight"); await expect(page.getByRole("radio", { name: "Raspberry Pi Pico", exact: true })).toBeChecked();

@@ -8,6 +8,7 @@ type ProfileState = {
   error: string | null;
   hydrate: () => Promise<void>;
   selectBoard: (id: BoardId) => Promise<void>;
+  applyCloud: (expected: HardwareProfile | null, profile: HardwareProfile) => Promise<boolean>;
   completeSetup: () => Promise<boolean>;
 };
 export function createProfileStore(repository = profileRepository) {
@@ -23,10 +24,18 @@ export function createProfileStore(repository = profileRepository) {
         .finally(() => { hydration = undefined; });
       return hydration;
     },
+    applyCloud: async (expected, profile) => {
+      if (get().profile !== expected || get().saving) return false;
+      const current = ++revision;
+      set({ profile, saving: true });
+      try { await repository.save(profile); return current === revision; }
+      catch { if (current === revision) set({ profile: expected, error: "Your cloud table could not be saved on this device." }); return false; }
+      finally { if (current === revision) set({ saving: false }); }
+    },
     selectBoard: async id => {
       if (!get().hydrated || !getBoard(id)) return;
       const current = ++revision;
-      const profile = { primaryBoardId: id, setupCompleted: false, updatedAt: new Date().toISOString() };
+      const profile = { ...get().profile, cloudDirty: !!get().profile?.cloudUserId, primaryBoardId: id, setupCompleted: false, updatedAt: new Date().toISOString() };
       set({ profile, saving: true, error: null });
       try { await repository.save(profile); }
       catch { if (current === revision) set({ error: "We couldn’t save your board. Please allow browser storage, then select it again." }); }
@@ -36,7 +45,7 @@ export function createProfileStore(repository = profileRepository) {
       const state = get();
       if (!state.profile || !state.hydrated || state.saving || state.error) return false;
       const current = ++revision;
-      const profile = { ...state.profile, setupCompleted: true, updatedAt: new Date().toISOString() };
+      const profile = { ...state.profile, cloudDirty: !!state.profile.cloudUserId, setupCompleted: true, updatedAt: new Date().toISOString() };
       set({ saving: true });
       try {
         await repository.save(profile);

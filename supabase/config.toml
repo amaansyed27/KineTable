@@ -1,4 +1,4 @@
-# Initialized with Supabase CLI 2.116.0. No cloud schema or user data in Slice 02.
+# Local development configuration; hosted project: eajyviksoaveunehuhpl.
 project_id = "kinetable"
 
 [api]
@@ -28,9 +28,15 @@ port = 54323
 api_url = "http://127.0.0.1"
 
 [auth]
-enabled = false
+enabled = true
 site_url = "http://127.0.0.1:5173"
-enable_signup = false
+enable_signup = true
+minimum_password_length = 8
+additional_redirect_urls = ["http://127.0.0.1:5173/auth/callback", "http://localhost:5173/auth/callback"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
 
 [storage]
 enabled = false
