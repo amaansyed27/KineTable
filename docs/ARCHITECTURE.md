@@ -2,42 +2,43 @@
 
 ## 1. Architectural goals
 
-Kinetable must support a visual-first product without coupling product logic to a single UI framework or AI provider.
-
-The architecture should make these layers explicit:
+Kinetable must support a visual-first product without coupling product logic to one UI framework, AI provider, cloud vendor or hardware toolchain.
 
 ```text
 ┌──────────────────────────────────────────────┐
 │                  UI / UX                     │
-│  workbench · parts · projects · learn        │
+│ landing · onboarding · table · parts · learn │
 ├──────────────────────────────────────────────┤
 │             Spatial interaction              │
-│  select · drag · snap · wire · camera        │
+│ select · drag · snap · wire · camera        │
 ├──────────────────────────────────────────────┤
 │           Project / hardware model           │
-│  components · pins · nets · breadboards      │
+│ components · pins · nets · breadboards      │
 ├──────────────────────────────────────────────┤
 │                Simulation                    │
-│  signals · timing · virtual sensor state     │
+│ signals · timing · virtual sensor state     │
 ├──────────────────────────────────────────────┤
 │                 AI layer                     │
-│  intent · planning · explanation · tools     │
+│ intent · planning · explanation · tools     │
+├──────────────────────────────────────────────┤
+│          Persistence / cloud services        │
+│ local DB · Supabase · Vercel APIs           │
 ├──────────────────────────────────────────────┤
 │          Platform / hardware bridge          │
-│ browser now · Tauri/USB/CLI later            │
+│ Web Serial/USB · compile worker · Tauri     │
 └──────────────────────────────────────────────┘
 ```
 
-The electrical/project model is the source of truth. 3D scenes, visual logic, AI, and future camera reconstruction all read or modify that model through controlled interfaces.
+The electrical/project model is the source of truth. 3D scenes, visual logic, AI, persistence and future camera reconstruction all read or modify that model through controlled interfaces.
 
-## 2. Stack
+## 2. Locked stack
 
 ### Frontend
 
 - React
-- TypeScript with `strict` mode
+- TypeScript with strict mode
 - Vite
-- React Router or a similarly small client router
+- React Router
 
 ### 3D
 
@@ -45,20 +46,22 @@ The electrical/project model is the source of truth. 3D scenes, visual logic, AI
 - React Three Fiber
 - Drei
 - GLB/glTF assets
-- optional Draco/Meshopt compression after asset pipeline is stable
 
 ### UI
 
 - Tailwind CSS for tokens/utilities
 - Radix UI for accessible primitives
 - Motion for non-3D interface transitions
-- custom components for all visible product surfaces
+- custom Kinetable visible components
 
-Avoid adopting a pre-styled component system as Kinetable's visual language.
+Avoid adopting a pre-styled component library as the product's visual language.
 
-### State
+### Client state and local persistence
 
-Zustand, separated by domain rather than one global store.
+- Zustand, separated by domain
+- IndexedDB + Dexie
+
+High-frequency workbench interaction must remain local and immediate.
 
 Suggested stores:
 
@@ -70,57 +73,87 @@ simulationStore
 inventoryStore
 uiStore
 aiStore
+profileStore
 ```
 
-Pure hardware/simulation code should not depend on Zustand.
+Pure hardware/simulation code must not depend on Zustand.
 
-### Local persistence
+### Backend / cloud
 
-- IndexedDB
-- Dexie
+- Supabase PostgreSQL
+- Supabase Auth
+- Supabase Storage
+- Supabase Realtime later where useful
+- Vercel Functions for API/AI orchestration
+- Vercel for web hosting and preview deployments
 
-Store locally by default:
-
-- onboarding state;
-- My Parts;
-- projects;
-- table layouts;
-- preferences;
-- local model/cache metadata when relevant.
+Heavy firmware compilation is behind a separate replaceable worker interface rather than running in the database layer.
 
 ### Testing
 
-- Vitest for pure packages and unit tests
+- Vitest for pure packages/unit tests
 - React Testing Library for UI state
-- Playwright for end-to-end flows
-- deterministic simulation tests in `hardware-core` / `simulation`
+- Playwright for end-to-end/browser flows
+- deterministic simulation tests in hardware-core/simulation
+- schema/migration/RLS checks for backend work where practical
 
-### Monorepo
+### Workspace
 
 - pnpm workspaces
-- Turborepo
+- Turborepo when package count justifies it
 
-## 3. Proposed repository structure
+## 3. Runtime topology
+
+```text
+                       VERCEL
+                          │
+                    Kinetable Web
+                          │
+             ┌────────────┴────────────┐
+             │                         │
+          Supabase                Vercel APIs
+      DB/Auth/Storage              AI / server
+             │                         │
+             └────────────┬────────────┘
+                          │
+                IndexedDB + Zustand
+                          │
+                 Web Serial / WebUSB
+                          │
+               ESP32 / Pico / Arduino
+```
+
+Cloud enhances the product but does not sit in the render/input loop for the workbench.
+
+## 4. Repository direction
 
 ```text
 apps/
   web/
     src/
       app/
-      routes/
-      features/
+      landing/
+      onboarding/
+      table/
+      hardware/
+      state/
+      persistence/
+      spatial/
       styles/
-  desktop/                  # later, Tauri host
+  desktop/                  # later Tauri host
 
 packages/
-  ui/                       # Kinetable UI primitives
-  spatial/                  # R3F scene, selection, transforms, wire visuals
-  hardware-core/            # components, pins, nets, validation
-  simulation/               # runtime graph + behaviour drivers
-  visual-logic/             # semantic behaviour graph
-  component-library/        # canonical component definitions
-  ai/                       # provider adapters + tool planner
-  project-format/           # versioned serialization
+  ui/
+  spatial/
+  hardware-core/
+  simulation/
+  visual-logic/
+  component-library/
+  ai/
+  project-format/
+
+supabase/
+  migrations/
 
 assets/
   models/
@@ -129,11 +162,13 @@ assets/
 docs/
 ```
 
-## 4. Package boundaries
+Do not force this exact shape prematurely; package boundaries should appear when they have real ownership.
+
+## 5. Core package boundaries
 
 ### `hardware-core`
 
-Must be framework-agnostic.
+Framework-agnostic source of electrical truth.
 
 Responsibilities:
 
@@ -142,50 +177,50 @@ Responsibilities:
 - electrical capabilities;
 - nets/connections;
 - breadboard topology;
-- compatibility/validation rules;
+- compatibility and validation rules;
 - project mutations;
-- IDs and references.
+- stable IDs.
 
-Must not import React, Three.js, Zustand, or an AI SDK.
+Must not import React, Three.js, Zustand or an AI SDK.
 
 ### `simulation`
 
 Responsibilities:
 
 - runtime state;
-- digital/analog value propagation;
+- digital/analog propagation;
 - timers/events;
 - component simulation drivers;
 - deterministic stepping;
-- observable state for UI.
+- observable simulation state.
 
-Depends on `hardware-core` types.
+Depends on hardware-core types.
 
 ### `spatial`
 
 Responsibilities:
 
-- 3D scene;
-- camera;
-- object transforms;
+- 3D scene and camera;
+- transforms;
 - hit testing;
 - selection;
 - drag/rotate;
-- breadboard placement visualization;
+- placement visualization;
 - wire curves;
 - signal animation;
-- mapping between project entity IDs and 3D objects.
+- mapping project entity IDs to 3D objects.
 
-Should not decide whether a connection is electrically legal. It asks `hardware-core`.
+It does not decide electrical legality; it asks hardware-core.
 
 ### `visual-logic`
 
 Responsibilities:
 
 - semantic WHEN/IF/DO graph;
-- mapping visual behaviour to simulation operations;
-- validation of behaviour graph;
-- serialization.
+- simulation intermediate representation;
+- behaviour validation;
+- serialization;
+- later code-generation mapping.
 
 ### `component-library`
 
@@ -193,22 +228,22 @@ Responsibilities:
 
 - canonical definitions;
 - schemas;
-- model references;
-- metadata;
+- asset/model references;
+- pin/anchor metadata;
 - simulation-driver registration;
-- provenance/license metadata.
+- documentation/provenance/license metadata.
 
 ### `ai`
 
 Responsibilities:
 
-- natural-language intent parsing;
 - provider adapters;
+- natural-language intent parsing;
 - controlled tool calls;
 - explanation generation;
 - structured plan validation.
 
-AI never directly edits DOM, Three.js scene objects, or arbitrary project JSON.
+AI never edits DOM, Three.js objects or arbitrary project JSON directly.
 
 ### `project-format`
 
@@ -220,9 +255,7 @@ Responsibilities:
 - stable IDs;
 - validation.
 
-## 5. Project model
-
-Example high-level project:
+## 6. Project model
 
 ```ts
 interface KinetableProject {
@@ -239,15 +272,11 @@ interface KinetableProject {
 }
 ```
 
-Project logic and layout are related but separate.
+Project logic and spatial layout remain related but separate. Moving an ESP32 changes layout, not its electrical identity.
 
-Moving an ESP32 in 3D changes `layout`, not its electrical identity.
+## 7. Stable entity IDs
 
-## 6. Entity IDs
-
-Every component instance, pin, net, logic node, and meaningful spatial anchor needs a stable ID.
-
-Example:
+Every component instance, pin, net, logic node and meaningful spatial anchor requires a stable ID.
 
 ```text
 component: esp32-main
@@ -256,20 +285,11 @@ net:       net-led-drive
 logic:     event-button-pressed
 ```
 
-Stable IDs are required for:
+Required for persistence, AI tools, undo/redo, visual highlighting, code mappings, collaboration and future camera reconciliation.
 
-- persistence;
-- AI tools;
-- undo/redo;
-- visual highlighting;
-- code mappings;
-- future camera reconciliation.
+## 8. Command-based mutations
 
-## 7. Command-based mutations
-
-Project changes should use commands rather than arbitrary mutation.
-
-Example:
+Project changes use commands rather than arbitrary mutation.
 
 ```ts
 type ProjectCommand =
@@ -284,29 +304,75 @@ type ProjectCommand =
 
 Benefits:
 
-- AI can call the same commands as users;
-- undo/redo becomes straightforward;
+- AI and manual tools share the same mutation path;
 - validation is centralized;
-- actions can be logged/replayed;
+- undo/redo is tractable;
+- operations can be logged/replayed;
 - future collaboration is easier.
 
-## 8. Undo / redo
+## 9. Persistence architecture
 
-Implement command history early for build actions.
+### Local
 
-Minimum:
+IndexedDB/Dexie stores:
 
-- add/remove component;
-- connect/disconnect;
-- move/rotate;
-- property change;
-- logic edit.
+- onboarding/profile state;
+- local inventory;
+- projects;
+- table layouts;
+- preferences;
+- pending cloud-sync metadata.
 
-Do not tie undo to React state snapshots of the entire app.
+UI components should use repositories/stores, not call IndexedDB/localStorage directly.
 
-## 9. Spatial scene
+### Cloud
 
-Suggested scene hierarchy:
+Initial Supabase entities:
+
+```text
+profiles
+projects
+project_versions
+hardware_inventory
+board_catalog
+component_catalog
+```
+
+The complete project graph is initially stored as versioned JSONB. Important searchable metadata stays relational.
+
+Cloud sync occurs at deliberate boundaries rather than on every pointer movement.
+
+## 10. Authentication and authorization
+
+Authentication is optional for first use.
+
+Supabase Auth provides Google/GitHub/email. Guest/local work remains possible.
+
+All user-owned cloud tables require Row Level Security. Service-role credentials and AI provider secrets remain server-only.
+
+When a local/guest user signs in, existing local work must be associated/migrated intentionally rather than silently discarded.
+
+## 11. AI server boundary
+
+```text
+Browser
+  ↓
+Vercel Function
+  ↓
+model provider
+  ↓
+structured Kinetable commands
+  ↓
+hardware-core validation
+  ↓
+apply/reject
+```
+
+The model never returns arbitrary React code or unvalidated full project state as the mutation mechanism.
+
+## 12. Spatial scene
+
+Suggested hierarchy:
 
 ```text
 <KinetableCanvas>
@@ -323,116 +389,99 @@ Suggested scene hierarchy:
 </KinetableCanvas>
 ```
 
-`HardwareObject` should be generic and driven by component definition + instance state.
+`HardwareObject` is generic and driven by definition + instance state.
 
-## 10. 3D asset pipeline
+## 13. 3D asset pipeline
 
 Preferred format: GLB.
 
-Each model should have:
+Each canonical model needs:
 
-- consistent world scale (meters or documented conversion);
-- origin defined intentionally;
-- pin/connection anchor metadata;
-- simplified collision geometry if needed;
+- consistent scale;
+- intentional origin;
+- machine-readable pin/connection anchors;
+- simplified collision geometry where useful;
 - reasonable polygon budget;
-- material names that can be overridden for selection states;
+- overridable materials for interaction states;
 - provenance/license record.
 
-Do not bake product behaviour into Blender node names without a schema layer.
+Canonical assets can live in Supabase Storage once the component-library backend is introduced.
 
-## 11. Pin anchors
+## 14. Wire and breadboard representation
 
-Pin locations should be machine-readable.
-
-Example component metadata:
-
-```json
-{
-  "anchors": {
-    "gpio23": { "position": [0.012, 0.004, -0.021], "normal": [0, 1, 0] },
-    "gnd-1":  { "position": [0.012, 0.004, -0.018], "normal": [0, 1, 0] }
-  }
-}
-```
-
-The spatial layer can transform these local coordinates into world coordinates for wires and overlays.
-
-## 12. Wire representation
-
-A wire is not the electrical connection itself.
+A visible wire is not the electrical connection itself.
 
 Separate:
 
-- **Net** — electrical relationship in `hardware-core`.
+- **Net** — electrical relationship in hardware-core.
 - **Wire visual** — one spatial representation of that relationship.
 
-This distinction is essential for breadboards, where components may be electrically connected without a direct wire between them.
+Breadboards expose hole anchors and internal conductive groups. Lead placement changes project topology through hardware-core rather than through Three.js state.
 
-## 13. Breadboard placement
+## 15. Simulation
 
-A breadboard component exposes hole anchors and internal conductive groups.
-
-When a lead is placed into a hole:
-
-1. spatial layer determines target hole;
-2. `hardware-core` records placement endpoint;
-3. breadboard topology resolves shared node membership;
-4. validation/simulation sees the resulting net.
-
-## 14. Simulation loop
-
-Simulation should be deterministic and testable.
-
-Possible shape:
+Simulation must be deterministic and testable.
 
 ```text
 user input
-→ component driver updates state
-→ events queued
+→ driver state change
+→ logical events
 → graph propagation
-→ output drivers update
-→ UI observes state
+→ output drivers
+→ UI observation
 ```
 
-Avoid tying simulation correctness to animation frame rate.
+Use a logical clock/tick system; animation frame rate does not determine simulation correctness.
 
-Use a logical clock/tick system.
+## 16. Visual Logic and generated code
 
-## 15. Visual Logic synchronization
-
-Visual logic should compile into a small intermediate representation consumed by simulation.
-
-Example:
+Visual logic compiles to a semantic intermediate representation.
 
 ```text
 WHEN button.pressed
 DO oled.text = "BONK!"
 AND led.state = ON
-AND buzzer.beep(count=2, duration=120ms)
+AND buzzer.beep(count=2)
 ```
 
-The same semantic model can later generate firmware code through board/framework adapters.
-
-## 16. Generated code architecture
-
-Do not make source code the source of truth in the early visual workflow.
-
-Preferred direction:
+Preferred generated-code direction:
 
 ```text
 project + visual logic
         ↓
-intermediate behaviour model
+behaviour IR
         ↓
 board/framework adapter
         ↓
 Arduino / ESP-IDF / Pico SDK source
 ```
 
-Advanced users may edit generated code later. Once two-way synchronization is introduced, clearly define which edits are round-trippable and which convert the project into an advanced/custom-code state.
+Code is not the default source of truth in the visual workflow. Advanced two-way editing needs explicit round-trip rules.
 
-## 17. Desktop architecture — later
+## 17. Browser hardware and compilation
+
+Where supported:
+
+```text
+Kinetable Web
+→ Web Serial / WebUSB
+→ connected board
+```
+
+Firmware compilation is abstracted:
+
+```text
+project/source
+→ Vercel orchestration API
+→ isolated compile worker
+→ Arduino CLI / ESP-IDF / Pico SDK
+→ .bin / .uf2
+→ browser flash
+```
+
+The worker is replaceable so Kinetable is not coupled to one compute vendor. Do not use Supabase Edge Functions for heavy toolchain workloads.
+
+## 18. Desktop fallback — later
 
 Tauri host:
 
@@ -444,56 +493,44 @@ Rust commands
 serial / USB / filesystem / compiler adapters
 ```
 
-Potential adapters:
+The browser product remains primary; desktop/native exists for deeper local access, unsupported browsers and advanced workflows.
 
-```text
-arduino-cli
-esptool / ESP-IDF
-Pico SDK / UF2
-serial monitor
-camera access
-local asset/model cache
-```
+## 19. Deployment
 
-Do not let the web UI execute shell commands directly.
+- Vercel preview deployment per branch/PR where appropriate;
+- production on Vercel;
+- Supabase for cloud data/auth/storage;
+- separate development/staging and production data boundaries before real users;
+- `.env.example` documents required configuration;
+- secrets never committed.
 
-## 18. Cloud — later
+See `docs/BACKEND.md` for operational/backend details.
 
-Cloud should enhance, not gate, the local product.
-
-Potential cloud responsibilities:
-
-- account identity;
-- project sync;
-- inventory sync;
-- component metadata updates;
-- AI request proxy where needed;
-- sharing/community;
-- telemetry with consent.
-
-## 19. Performance targets
+## 20. Performance targets
 
 Initial desktop web target:
 
-- smooth interaction at 60 fps on a typical modern laptop for small/medium projects;
-- first useful scene quickly after app load;
-- component selection response under ~100 ms perceived latency;
-- no full-scene rerender caused by minor UI state;
-- lazy-load heavy 3D models;
-- use instancing for repeated simple parts when useful.
+- smooth interaction near 60 fps for small/medium projects;
+- quick first useful scene;
+- selection response under ~100 ms perceived latency;
+- no full-scene rerender for minor UI state;
+- lazy-load heavy models;
+- use instancing for repeated simple parts where appropriate;
+- network/cloud latency must not block spatial manipulation.
 
-## 20. Reliability principle
+## 21. Reliability principle
 
-The user should be able to trust statements such as:
+Users must be able to trust statements such as:
 
 > This pin cannot drive that output.
 
-Those statements must come from deterministic metadata/rules and validated sources, not model improvisation.
+Those claims come from deterministic metadata/rules and validated sources, not model improvisation.
 
-That reliability boundary is one of the most important architectural constraints in Kinetable.
+That boundary is one of Kinetable's core architectural constraints.
 
-## 21. Slice 02 implementation boundary
 
-React Router now supplies `/`, `/start` and `/table`. Canonical board metadata lives under `apps/web/src/hardware`; the local profile store uses Zustand and a repository backed by Dexie. Presentation geometry is shared independently of landing choreography. No future hardware-core package has been scaffolded.
+## 22. Implemented through Slice 03
 
-Supabase is the selected cloud provider and Vercel the deployment provider. Their current configuration and explicit local-only behavior are documented in [BACKEND.md](BACKEND.md); auth and project cloud persistence remain future work.
+React Router supplies `/`, `/start`, `/table`, `/auth` and `/auth/callback`. Canonical board metadata lives in `apps/web/src/hardware`; Zustand profile state persists through a Dexie repository. Presentation geometry is shared independently of landing choreography. No speculative hardware-core package was added.
+
+A single auth boundary owns Supabase sessions. The typed cloud profile repository reconciles guest setup with owner-only hosted profiles, preserving local operation on failures. Only `profiles` is implemented in the cloud; projects, inventory, AI and simulation remain future slices. Operational details and verified limitations are in [BACKEND.md](BACKEND.md) and [SLICE-03.md](SLICE-03.md).
