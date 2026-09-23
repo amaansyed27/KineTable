@@ -144,18 +144,20 @@ Authentication adds cloud value; it does not gate experimentation.
 - session restore/logout;
 - clear local-vs-cloud ownership semantics.
 
-### 04 — My Table / Home + Real Project Persistence
+### 04 — My Table / Home + Real Project Persistence ✅
 
 The main home screen is a personal workbench, not a dashboard.
 
 - selected board already present;
 - prompt: `What do you want to make?`;
 - recent project spatially visible;
-- Table / Projects / Parts / Learn navigation;
+- Table navigation; future destinations remain unavailable;
 - IndexedDB local project state;
 - Supabase project save/sync for signed-in users;
 - versioned JSONB project document;
 - returning-user restore.
+
+Status: implemented and verified on hosted Supabase and a Vercel preview. See [Slice 04](docs/SLICE-04.md).
 
 ### 05 — New Build + Project Creation
 
@@ -467,12 +469,13 @@ KineTable/
 - [Slice 01 implementation](docs/SLICE-01.md)
 - [Slice 02 implementation and QA](docs/SLICE-02.md)
 - [Slice 03 implementation and hosted verification](docs/SLICE-03.md)
+- [Slice 04 My Table and project persistence](docs/SLICE-04.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 
 ## Status
 
-**Slice 03 completed — optional email/password accounts and real Supabase cloud-profile sync. Slice 01 landing and Slice 02 guest onboarding/local table remain intact. Project persistence (Slice 04) remains planned.**
+**Slice 04 completed — My Table uses a validated project document in IndexedDB, with owner-only Supabase sync and fresh-browser restore. Slices 01–03 remain intact.**
 
 Implementation proceeds page-by-page and feature-by-feature, with each completed slice visually finished, tested, and backed by the real persistence/server functionality it requires.
 
@@ -493,7 +496,7 @@ pnpm test
 pnpm build
 ```
 
-The web app lives in `apps/web`. `/start` selects ESP32, Pico or Uno, and `/table` restores the board from IndexedDB without an account. Optional `/auth` sign-in syncs the profile to Supabase. Project creation remains deferred.
+The web app lives in `apps/web`. `/start` selects ESP32, Pico or Uno. `/table` creates one starter project and restores its board and layout from IndexedDB, including offline. Optional `/auth` sign-in syncs the profile and project to Supabase. Intent-driven New Build remains Slice 05.
 
 Copy `.env.example` to `apps/web/.env.local` for cloud development; missing configuration preserves guest mode. See [BACKEND.md](docs/BACKEND.md). Vercel uses the root `vercel.json` for the build and direct SPA routes.
 
@@ -504,7 +507,7 @@ pnpm --filter @kinetable/web exec playwright install chromium
 pnpm test:e2e
 ```
 
-For system Chrome on Windows set `PLAYWRIGHT_CHANNEL=chrome`. Hosted dummy-account checks are documented in [Slice 03](docs/SLICE-03.md).
+For system Chrome on Windows set `PLAYWRIGHT_CHANNEL=chrome`. Hosted dummy-account checks are documented in [Slice 04](docs/SLICE-04.md).
 
 ## License
 

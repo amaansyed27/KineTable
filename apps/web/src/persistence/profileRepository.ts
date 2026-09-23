@@ -1,8 +1,9 @@
 import Dexie, { type Table } from "dexie";
 import { getBoard, type BoardId } from "../hardware/boards";
 export type HardwareProfile = { primaryBoardId: BoardId; setupCompleted: boolean; updatedAt: string; cloudUserId?: string; cloudDirty?: boolean };
-const db = new Dexie("kinetable");
+export const db = new Dexie("kinetable");
 db.version(1).stores({ profiles: "id" });
+db.version(2).stores({ profiles: "id", projects: "id, cloudUserId, updatedAt" });
 const profiles: Table<HardwareProfile & { id: string }> = db.table("profiles");
 export function isProfile(value: unknown): value is HardwareProfile {
   if (!value || typeof value !== "object") return false;

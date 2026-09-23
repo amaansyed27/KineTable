@@ -79,11 +79,11 @@ Example project document:
 {
   "schemaVersion": 1,
   "boardIds": ["esp32-dev-module"],
-  "components": [],
+  "components": [{"id": "board-main", "kind": "board", "definitionId": "esp32-dev-module"}],
   "connections": [],
   "logic": [],
-  "layout": {},
-  "simulation": {}
+  "layout": {"entities": {"board-main": {"position": [0, 0.15, 0], "rotation": [0.94, -0.3, 0.07], "scale": [1.5, 1.5, 1.5]}}},
+  "metadata": {"createdAt": "2026-09-23T00:00:00.000Z", "updatedAt": "2026-09-23T00:00:00.000Z"}
 }
 ```
 
@@ -199,13 +199,13 @@ Every product slice owns the backend it needs:
 Do not postpone all backend work until after the UI is finished, and do not build unused backend infrastructure far ahead of the product slice that needs it.
 
 
-# Implemented through Slice 03
+# Implemented through Slice 04
 
 ## Local-first application
 
 Guest onboarding and `/table` use Zustand and the IndexedDB profile repository. They do not require an account. A single auth boundary owns session resolution, persisted Supabase sessions, token refresh and auth events. UI components use auth actions and repositories rather than issuing database queries.
 
-Hosted Supabase: **Kinetable**, reference `eajyviksoaveunehuhpl`, Mumbai (`ap-south-1`), in `amaansyed27's Org`. The Supabase integration provisioned this project and applied the committed `cloud_profiles` migration.
+Hosted Supabase: **Kinetable**, reference `eajyviksoaveunehuhpl`, Mumbai (`ap-south-1`), in `amaansyed27's Org`. The committed `cloud_profiles` and `local_first_projects` migrations are applied there.
 
 ## Configuration
 
@@ -221,16 +221,20 @@ Google and GitHub are optional, disabled by default. To activate either, create 
 
 ## Cloud data and access
 
-Only `public.profiles` is created. Its `id` defaults to `auth.uid()` and references `auth.users`. An internal auth-user trigger creates the profile; an update trigger sets the server timestamp. Clients cannot assign identity or timestamps: INSERT/UPDATE grants cover only editable profile columns. RLS limits every operation to the authenticated owner's ID. DELETE has a policy but no grant or product flow yet. Both trigger functions are in a non-exposed private schema, with fixed search paths and public execution revoked.
+`public.profiles` has an auth-owned ID and a private trigger that creates the profile. Clients cannot assign identity or timestamps: INSERT/UPDATE grants cover only editable profile columns. RLS limits every operation to the authenticated owner's ID. DELETE has a policy but no grant or product flow yet. Both trigger functions are in a non-exposed private schema, with fixed search paths and public execution revoked.
+
+`public.projects` stores a client-generated UUID, an auth-owned `owner_id`, searchable name and primary board, schema version, JSONB document, archive flag, and server timestamps. RLS restricts SELECT/INSERT/UPDATE/DELETE to the owner. Column grants prevent clients from updating `owner_id`, `id`, or timestamps. A database trigger sets `updated_at`; the validated server timestamp is saved locally after a successful write. No service-role key is sent to the browser.
 
 ## Reconciliation
 
 On initial sign-in, prefer an existing cloud board, otherwise the meaningful local board. Setup is completed if either valid source is completed and a valid board exists. After a successful write, persist the server timestamp and cloud owner locally. A profile associated with another account is not silently uploaded to a new identity.
 
-Later deliberate local edits are saved first and synced to the active account. Pending same-account changes survive refresh using local dirty metadata. Requests capture the session token so changing accounts cannot retarget an in-flight write. Local revisions prevent a late cloud response from overwriting a newer local choice. Sync retries on browser `online` or the account menu's Retry action; there is no project sync engine. Sign-out preserves the local table.
+Later deliberate profile edits are saved first and synced to the active account. Pending same-account changes survive refresh using local dirty metadata. Requests capture the session token so changing accounts cannot retarget an in-flight write. Local revisions prevent a late cloud response from overwriting a newer local profile choice. Sign-out preserves IndexedDB.
 
-Cloud errors leave local state intact and display a restrained status in the account menu. Requests have a bounded timeout. Another authenticated browser with empty IndexedDB restores the cloud board before the table's setup redirect.
+The project store loads IndexedDB before cloud reconciliation. A guest project is adopted by the first connected account using the same UUID. A project owned by another account stays local and is excluded from the new account's project selection. Project writes occur after starter creation or an explicit board change, never per 3D frame. Cloud failures leave the local document dirty and retry on reconnect or through Account. A fresh authenticated browser restores the owner project. Simultaneous multi-device editing is not conflict-safe yet: the last successful cloud write wins; Slice 15 owns versions and conflict handling.
+
+Cloud errors leave local state intact and display a restrained status in the account menu. Requests have a bounded timeout. Another authenticated browser with empty IndexedDB restores the cloud board and project.
 
 ## Local database development
 
-`supabase/config.toml` enables local PostgreSQL 17, API, Auth and Studio. Docker is required for `supabase start`. Storage, Realtime, Edge Runtime and analytics are not part of this slice. Migrations under `supabase/migrations/` are the schema source of truth; the checked-in migration version matches hosted history. See [Slice 03](SLICE-03.md) for current verification and limitations.
+`supabase/config.toml` enables local PostgreSQL 17, API, Auth and Studio. Docker is required for `supabase start`. Storage, Realtime, Edge Runtime and analytics are not part of this slice. Migrations under `supabase/migrations/` are the schema source of truth; checked-in versions match hosted history. See [Slice 04](SLICE-04.md) for verification and limitations.

@@ -108,15 +108,17 @@ Exit criteria:
 
 # Slice 04 — My Table / Home + Real Project Persistence
 
+Status: complete; see [Slice 04](SLICE-04.md).
+
 Goal: make the first real Kinetable home/workbench usable and persistent.
 
 Frontend:
 
 - selected board already present;
-- `What do you want to make?` prompt;
-- lightweight Table / Projects / Parts / Learn navigation;
+- `What do you want to make?` editorial heading; no submit action yet;
+- working Table navigation; unavailable destinations omitted;
 - returning-user table restore;
-- recent project spatial preview.
+- current project represented by the board on its saved work surface.
 
 Backend/data:
 

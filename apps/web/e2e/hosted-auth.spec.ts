@@ -10,6 +10,7 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
  expect(response.ok).toBe(true); const session = await response.json();
  const reset = await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${account.id}`,{method:"PATCH",headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({primary_board_id:"esp32-dev-module",setup_completed:true})});
  expect(reset.ok).toBe(true);
+ const resetProjects=await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/projects?owner_id=eq.${account.id}`,{method:"DELETE",headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`}}); expect(resetProjects.ok).toBe(true);
  const errors: string[]=[]; page.on("pageerror", error => errors.push(error.message));
  await page.goto("/auth");
  await expect(page.locator('[data-cloud-configured="true"]')).toBeVisible();
@@ -17,6 +18,7 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
  await page.getByLabel("Password", { exact: true }).fill(account.password);
  await page.getByRole("button", { name: "Sign in", exact: true }).click();
  await expect(page.locator('[data-board-id="esp32-dev-module"]')).toBeVisible({timeout:20000});
+ const projectId=await page.locator('[data-project-id]').getAttribute('data-project-id'); expect(projectId).toBeTruthy();
  await page.reload(); await expect(page.locator('[data-board-id="esp32-dev-module"]')).toBeVisible();
  await page.getByRole("link", {name:/Change board/}).click();
  await page.getByRole("radio", { name: "Raspberry Pi Pico", exact:true }).check();
@@ -24,6 +26,7 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
  await page.getByRole("button",{name:"Set up my table"}).click();
  await expect(page.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
  await page.locator("summary").click(); await expect(page.getByRole("status")).toHaveText("Your table is synced.",{timeout:20000});
+ await expect.poll(async()=>{const r=await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/projects?id=eq.${projectId}&select=*`,{headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`}});const rows=await r.json();return rows[0]?.document?.boardIds?.[0];}).toBe('raspberry-pi-pico');
  await page.getByRole("button",{name:"Sign out",exact:true}).click();
  await expect(page.getByRole("link",{name:"Sign in",exact:true})).toBeVisible();
  await expect(page.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
@@ -33,8 +36,14 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
  await fresh.getByLabel("Your email").fill(account.email); await fresh.getByLabel("Password",{exact:true}).fill(account.password);
  await fresh.getByRole("button",{name:"Sign in",exact:true}).click();
  await expect(fresh.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible({timeout:20000});
+ await expect(fresh.locator('[data-project-id]')).toHaveAttribute('data-project-id',projectId!);
  await fresh.route('https://*.supabase.co/**', route=>route.abort());
  await fresh.reload(); await expect(fresh.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
+ await fresh.getByRole("link",{name:/Change board/}).click();
+ await fresh.getByRole("radio",{name:"Arduino Uno",exact:true}).check();
+ await fresh.getByRole("button",{name:"Set up my table"}).click();
+ await expect(fresh.locator('[data-board-id="arduino-uno"]')).toBeVisible();
+ await fresh.reload(); await expect(fresh.locator('[data-board-id="arduino-uno"]')).toBeVisible();
  await context.close(); expect(errors).toEqual([]);
 });
 
@@ -43,13 +52,16 @@ test("guest setup survives real password signup and is restored from cloud", asy
  const email=`kinetable-qa-${randomUUID()}@gmail.com`, password=randomBytes(24).toString("base64url");
  await page.goto("/start"); await page.getByRole("radio",{name:"Arduino Uno",exact:true}).check();
  await page.getByRole("button",{name:"Set up my table"}).click(); await expect(page.locator('[data-board-id="arduino-uno"]')).toBeVisible();
+ const guestProjectId=await page.locator('[data-project-id]').getAttribute('data-project-id'); expect(guestProjectId).toBeTruthy();
  await page.getByRole("link",{name:"Sign in",exact:true}).click(); await page.getByRole("button",{name:"New here? Create an account"}).click();
  await page.getByLabel("Your email").fill(email); await page.getByLabel("Password",{exact:true}).fill(password);
  await page.getByRole("button",{name:"Create account",exact:true}).click();
  await expect(page.locator('[data-board-id="arduino-uno"]')).toBeVisible({timeout:20000});
+ await expect(page.locator('[data-project-id]')).toHaveAttribute('data-project-id',guestProjectId!);
  writeFileSync("../../output/hosted-ui-account.json",JSON.stringify({email,password}));
  const context=await browser.newContext({storageState:process.env.E2E_STORAGE_STATE}); const fresh=await context.newPage();
  await fresh.goto(new URL('/auth',page.url()).toString()); await fresh.getByLabel("Your email").fill(email); await fresh.getByLabel("Password",{exact:true}).fill(password);
  await fresh.getByRole("button",{name:"Sign in",exact:true}).click(); await expect(fresh.locator('[data-board-id="arduino-uno"]')).toBeVisible({timeout:20000});
+ await expect(fresh.locator('[data-project-id]')).toHaveAttribute('data-project-id',guestProjectId!);
  await context.close();
 });

@@ -259,20 +259,19 @@ Responsibilities:
 
 ```ts
 interface KinetableProject {
-  schemaVersion: number
+  schemaVersion: 1
   id: string
   name: string
   boardIds: string[]
   components: ComponentInstance[]
-  nets: Net[]
-  behaviours: BehaviourGraph
+  connections: []
+  logic: []
   layout: WorkbenchLayout
-  simulation?: SimulationSettings
   metadata: ProjectMetadata
 }
 ```
 
-Project logic and spatial layout remain related but separate. Moving an ESP32 changes layout, not its electrical identity.
+Slice 04 v1 contains board instances only. Its layout maps stable instance IDs to serializable position, rotation and scale. Moving a board changes layout, not its hardware definition. Future electrical graphs require an explicit schema migration.
 
 ## 7. Stable entity IDs
 
@@ -529,8 +528,8 @@ Those claims come from deterministic metadata/rules and validated sources, not m
 That boundary is one of Kinetable's core architectural constraints.
 
 
-## 22. Implemented through Slice 03
+## 22. Implemented through Slice 04
 
 React Router supplies `/`, `/start`, `/table`, `/auth` and `/auth/callback`. Canonical board metadata lives in `apps/web/src/hardware`; Zustand profile state persists through a Dexie repository. Presentation geometry is shared independently of landing choreography. No speculative hardware-core package was added.
 
-A single auth boundary owns Supabase sessions. The typed cloud profile repository reconciles guest setup with owner-only hosted profiles, preserving local operation on failures. Only `profiles` is implemented in the cloud; projects, inventory, AI and simulation remain future slices. Operational details and verified limitations are in [BACKEND.md](BACKEND.md) and [SLICE-03.md](SLICE-03.md).
+A single auth boundary owns Supabase sessions. The typed cloud profile repository reconciles guest setup with owner-only hosted profiles. A separate project store and local/cloud repositories persist validated v1 documents in the existing Dexie database and `public.projects`. The board scene receives its transform from project layout; UI does not store a Three.js scene as project state. Guest adoption, offline restore and owner-only cloud restore are verified. Inventory, AI and simulation remain future slices. Operational details are in [BACKEND.md](BACKEND.md) and [SLICE-04.md](SLICE-04.md).

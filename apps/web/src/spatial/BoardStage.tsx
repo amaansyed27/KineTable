@@ -7,8 +7,9 @@ import { boards, getBoard, type BoardId, type BoardDefinition } from "../hardwar
 import { BoardModel } from "./Models";
 import { UnoModel } from "./UnoModel";
 import { makeShadow } from "./SoftShadow";
-function BoardObject({ board, x, y, selected, quiet, hovered, reduced, single }: {
-  board: BoardDefinition; x: number; y: number; selected: boolean; quiet: boolean; hovered: boolean; reduced: boolean; single: boolean;
+import type { Transform } from "../projects/schema";
+function BoardObject({ board, x, y, selected, quiet, hovered, reduced, single, transform }: {
+  board: BoardDefinition; x: number; y: number; selected: boolean; quiet: boolean; hovered: boolean; reduced: boolean; single: boolean; transform?: Transform;
 }) {
   const object = useRef<Group>(null);
   const shade = useRef<MeshBasicMaterial>(null);
@@ -18,25 +19,28 @@ function BoardObject({ board, x, y, selected, quiet, hovered, reduced, single }:
   useEffect(() => () => shadow.dispose(), [shadow]);
   useFrame((_, delta) => {
     if (!object.current) return;
-    const targetScale = (single ? 1.5 : selected ? 1.08 : quiet ? .88 : 1) * (board.visualId === "uno" ? .82 : 1);
-    const targetAngle = hovered ? -.12 : .07;
-    const targetLift = hovered || selected ? .12 : 0;
+    const defaultScale = single ? 1.5 : selected ? 1.08 : quiet ? .88 : 1;
+    const baseScale = transform?.scale ?? [defaultScale, defaultScale, defaultScale];
+    const visualScale = board.visualId === "uno" ? .82 : 1;
+    const targetScale = baseScale.map(value => value * visualScale);
+    const targetAngle = transform?.rotation[2] ?? (hovered ? -.12 : .07);
+    const targetLift = transform ? 0 : hovered || selected ? .12 : 0;
     const amount = reduced ? 1 : 1 - Math.exp(-Math.min(delta,.06) * 13);
     const o = object.current;
-    o.scale.setScalar(MathUtils.lerp(o.scale.x, targetScale, amount));
+    o.scale.set(MathUtils.lerp(o.scale.x, targetScale[0], amount), MathUtils.lerp(o.scale.y, targetScale[1], amount), MathUtils.lerp(o.scale.z, targetScale[2], amount));
     o.rotation.z = MathUtils.lerp(o.rotation.z, targetAngle, amount);
     o.position.y = MathUtils.lerp(o.position.y, targetLift, amount);
     if (shade.current) shade.current.opacity = hovered || selected ? .85 : .55;
-    if (Math.abs(o.scale.x-targetScale) + Math.abs(o.rotation.z-targetAngle) + Math.abs(o.position.y-targetLift) > .001) invalidate();
+    if (Math.abs(o.scale.x-targetScale[0]) + Math.abs(o.scale.y-targetScale[1]) + Math.abs(o.scale.z-targetScale[2]) + Math.abs(o.rotation.z-targetAngle) + Math.abs(o.position.y-targetLift) > .001) invalidate();
   });
-  return <group position={[x,y,0]}>
+  return <group position={transform?.position ?? [x,y,0]}>
     <mesh position={[0,-.5,-1]} scale={single ? [4.8,2.9,1] : [3.3,1.65,1]}><planeGeometry /><meshBasicMaterial ref={shade} map={shadow} transparent depthWrite={false} opacity={.55} /></mesh>
-    <group ref={object} rotation={[.94,-.3,.07]}>
+    <group ref={object} rotation={transform?.rotation ?? [.94,-.3,.07]}>
       {board.visualId === "uno" ? <UnoModel /> : <BoardModel pico={board.visualId === "pico"} />}
     </group>
   </group>;
 }
-function BoardWorld({ selected, hovered, single, reduced }: { selected?: BoardId; hovered?: BoardId | null; single: boolean; reduced: boolean }) {
+function BoardWorld({ selected, hovered, single, reduced, transform }: { selected?: BoardId; hovered?: BoardId | null; single: boolean; reduced: boolean; transform?: Transform }) {
   const { size, camera, invalidate } = useThree();
   const mobile = size.width < 560 && !single;
   const zoom = single ? Math.min(125,size.width/4.8,size.height/3.5) : mobile ? 64 : Math.min(102,size.width/10.5,size.height/3.3);
@@ -48,7 +52,7 @@ function BoardWorld({ selected, hovered, single, reduced }: { selected?: BoardId
     {displayed.map((board,i) => <BoardObject key={board.id} board={board}
       x={single || mobile ? 0 : (i-1)*size.width/3/zoom}
       y={single ? .15 : mobile ? ((1-i)*size.height/3 + 25)/zoom : 25/zoom}
-      selected={selected === board.id} quiet={!!selected && selected !== board.id} hovered={hovered === board.id} reduced={reduced} single={single} />)}
+      selected={selected === board.id} quiet={!!selected && selected !== board.id} hovered={hovered === board.id} reduced={reduced} single={single} transform={single ? transform : undefined} />)}
   </>;
 }
 class StageBoundary extends Component<{ children: ReactNode; single: boolean; selected?: BoardId }, { failed: boolean }> {
@@ -56,10 +60,10 @@ class StageBoundary extends Component<{ children: ReactNode; single: boolean; se
   static getDerivedStateFromError() { return { failed: true }; }
   render() { return this.state.failed ? <p className="scene-fallback">{this.props.single ? `${getBoard(this.props.selected)?.name ?? "Your board"} is on your table.` : "3D previews are unavailable. Choose a board by its name below."}</p> : this.props.children; }
 }
-export default function BoardStage({ selected, hovered, single = false }: { selected?: BoardId; hovered?: BoardId | null; single?: boolean }) {
+export default function BoardStage({ selected, hovered, single = false, transform }: { selected?: BoardId; hovered?: BoardId | null; single?: boolean; transform?: Transform }) {
   const reduced = !!useReducedMotion();
   return <StageBoundary selected={selected} single={single}><Canvas orthographic frameloop="demand" camera={{ position: [0,0,12], near: .1, far: 100, zoom: 90 }} dpr={[1,1.5]} gl={{ antialias: true, alpha: true }} aria-hidden="true"
     fallback={<p className="scene-fallback">3D previews are unavailable. Board selection still works.</p>}>
-    <Suspense fallback={null}><BoardWorld selected={selected} hovered={hovered} single={single} reduced={reduced} /></Suspense>
+    <Suspense fallback={null}><BoardWorld selected={selected} hovered={hovered} single={single} reduced={reduced} transform={transform} /></Suspense>
   </Canvas></StageBoundary>;
 }
