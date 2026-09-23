@@ -1,4 +1,3 @@
-import { Link } from "react-router";
 import { lazy, Suspense, useRef } from "react";
 import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
 const LandingScene = lazy(() => import("../spatial/LandingScene"));
@@ -22,9 +21,9 @@ export function FinalCTA() {
           become real things.
         </motion.h2>
         <p className="wordmark">Kinetable</p>
-        <Link className="button" to="/start">
+        <a className="button" href="/start">
           Open Kinetable <span>→</span>
-        </Link>
+        </a>
       </section>
       <footer>
         <a className="wordmark" href="#">

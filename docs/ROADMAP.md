@@ -133,18 +133,20 @@ Backend/data:
 
 # Slice 05 — New Build + Real Project Creation
 
+Status: complete; see [Slice 05](SLICE-05.md).
+
 Goal: create a real project from intent.
 
 Build:
 
-- prompt entry;
-- generated editable project name;
-- create local/cloud project document;
-- owned-part awareness where available;
-- `Show me first` preview;
-- autosave/checkpoint boundary.
+- `/table` New Build entry and direct `/new` route;
+- validated natural-language intent and deterministic editable name;
+- factual `Show me first` preview with the selected board;
+- pristine starter promotion, then independent project IDs;
+- local IndexedDB save before authenticated Supabase checkpoint;
+- offline dirty state and retry, with owner-only RLS.
 
-AI planning may still be mocked in this slice; project persistence may not be mocked.
+No AI planning, inventory claim, generated part, wiring or logic is present. Slice 06 owns hardware planning and assembly.
 
 ---
 

@@ -60,7 +60,7 @@ These update local state immediately and persist to IndexedDB. Cloud sync happen
 
 ## Cloud data model
 
-Planned relational entities (only `profiles` exists through Slice 03):
+Relational entities (`profiles` and `projects` are implemented; the rest are planned):
 
 ```text
 profiles
@@ -78,6 +78,7 @@ Example project document:
 ```json
 {
   "schemaVersion": 1,
+  "intent": {"text": "Make a motion alarm"},
   "boardIds": ["esp32-dev-module"],
   "components": [{"id": "board-main", "kind": "board", "definitionId": "esp32-dev-module"}],
   "connections": [],
@@ -199,7 +200,7 @@ Every product slice owns the backend it needs:
 Do not postpone all backend work until after the UI is finished, and do not build unused backend infrastructure far ahead of the product slice that needs it.
 
 
-# Implemented through Slice 04
+# Implemented through Slice 05
 
 ## Local-first application
 
@@ -231,10 +232,10 @@ On initial sign-in, prefer an existing cloud board, otherwise the meaningful loc
 
 Later deliberate profile edits are saved first and synced to the active account. Pending same-account changes survive refresh using local dirty metadata. Requests capture the session token so changing accounts cannot retarget an in-flight write. Local revisions prevent a late cloud response from overwriting a newer local profile choice. Sign-out preserves IndexedDB.
 
-The project store loads IndexedDB before cloud reconciliation. A guest project is adopted by the first connected account using the same UUID. A project owned by another account stays local and is excluded from the new account's project selection. Project writes occur after starter creation or an explicit board change, never per 3D frame. Cloud failures leave the local document dirty and retry on reconnect or through Account. A fresh authenticated browser restores the owner project. Simultaneous multi-device editing is not conflict-safe yet: the last successful cloud write wins; Slice 15 owns versions and conflict handling.
+The project store loads IndexedDB before cloud reconciliation. A guest project is adopted by the first connected account using the same UUID. A project owned by another account stays local and is excluded from the new account's project selection. `/new` creates or promotes a validated document through `projectStore.createBuild`: the IndexedDB write completes before navigation, then an authenticated checkpoint starts in the background. Reconciliation uploads every eligible unsynced local project, including multiple guest builds after sign-in. Cloud failures leave documents dirty and retry on reconnect or through Account. A fresh authenticated browser restores the most recent owner project. Project writes occur at meaningful checkpoints, never per 3D frame. Simultaneous multi-device editing is not conflict-safe yet: the last successful cloud write wins; Slice 15 owns versions and conflict handling.
 
 Cloud errors leave local state intact and display a restrained status in the account menu. Requests have a bounded timeout. Another authenticated browser with empty IndexedDB restores the cloud board and project.
 
 ## Local database development
 
-`supabase/config.toml` enables local PostgreSQL 17, API, Auth and Studio. Docker is required for `supabase start`. Storage, Realtime, Edge Runtime and analytics are not part of this slice. Migrations under `supabase/migrations/` are the schema source of truth; checked-in versions match hosted history. See [Slice 04](SLICE-04.md) for verification and limitations.
+`supabase/config.toml` enables local PostgreSQL 17, API, Auth and Studio. Docker is required for `supabase start`. Storage, Realtime, Edge Runtime and analytics are not part of this slice. Migrations under `supabase/migrations/` are the schema source of truth; checked-in versions match hosted history. Slice 05 adds validated `intent.text` inside JSONB and needs no SQL migration. See [Slice 05](SLICE-05.md) for verification and limitations.

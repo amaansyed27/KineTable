@@ -1,4 +1,3 @@
-import { Link } from "react-router";
 import { ScrollStory } from "./ScrollStory";
 import { LearningTeaser } from "./LearningTeaser";
 import { FinalCTA } from "./FinalCTA";
@@ -19,10 +18,10 @@ export function LandingPage() {
           <a href="#parts">Parts</a>
         </nav>
         <div className="nav-actions">
-          <Link to="/auth">Sign in</Link>
-          <Link className="button small" to="/start">
+          <a href="/auth">Sign in</a>
+          <a className="button small" href="/start">
             Open Kinetable <span>↗</span>
-          </Link>
+          </a>
         </div>
       </header>
       <main>

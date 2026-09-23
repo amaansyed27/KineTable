@@ -1,4 +1,3 @@
-import { Link } from "react-router";
 import { lazy, Suspense } from "react";
 import {
   motion,
@@ -34,9 +33,9 @@ export function Hero({
         <p className="subcopy">
           Describe an idea. Watch it become something real.
         </p>
-        <Link className="button" to="/start">
+        <a className="button" href="/start">
           Open Kinetable <span>↗</span>
-        </Link>
+        </a>
       </motion.div>
       <div className="hero-scene">
         <Suspense

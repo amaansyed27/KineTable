@@ -2,3 +2,5 @@ packages:
   - apps/*
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - '@react-three/fiber@9.8.0'

@@ -28,14 +28,14 @@ function ReadyTable() {
   const boardInstance = project.document.components.find(c => c.kind === "board" && c.definitionId === activeBoard.id);
   const transform = boardInstance && project.document.layout.entities[boardInstance.id];
   return <main id="app-main" className="my-table" data-board-id={activeBoard.id} data-project-id={project.id}>
-    <div className="my-table-heading"><p className="eyebrow">YOUR TABLE <span aria-hidden="true">/</span> A PLACE TO BEGIN</p><h1>What do you want to make?</h1><p>Your board is here whenever you’re ready.</p></div>
+    <div className="my-table-heading"><p className="eyebrow">YOUR TABLE <span aria-hidden="true">/</span> A PLACE TO BEGIN</p><h1>What do you want to make?</h1><p>Your board is here whenever you’re ready.</p><Link className="table-new-build button" to="/new">New Build <span aria-hidden="true">↗</span></Link></div>
     <section className="work-surface" aria-label="Your saved workbench">
       <div className="surface-coordinate surface-coordinate-top" aria-hidden="true">01 — YOUR WORKSPACE</div>
       <div className="surface-board" role="img" aria-label={`${activeBoard.name} on your table`}><Suspense fallback={<p className="scene-fallback">Placing your board…</p>}><BoardStage selected={activeBoard.id} single transform={transform} /></Suspense></div>
       <div className="surface-board-label"><span className="surface-label-dot" aria-hidden="true" /><span>{activeBoard.name}<small>ON YOUR TABLE</small></span></div>
       <div className="surface-coordinate surface-coordinate-bottom" aria-hidden="true">KINETABLE / 001</div>
     </section>
-    <div className="table-foot"><div className="project-identity"><span className="project-identity-mark" aria-hidden="true" /><div><span className="project-overline">CURRENT PROJECT</span><strong>{project.name}</strong><span className="project-meta">Saved {new Date(project.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {projectSync === "synced" ? "On this device and your account" : projectSync === "offline" ? "On this device · cloud unavailable" : "On this device"}</span></div></div><Link className="change-board-link" to="/start">Change board <span aria-hidden="true">↗</span></Link></div>
+    <div className="table-foot"><div className="project-identity"><span className="project-identity-mark" aria-hidden="true" /><div><span className="project-overline">CURRENT PROJECT</span><strong>{project.name}</strong>{project.document.intent && <span className="project-intent">“{project.document.intent.text}”</span>}<span className="project-meta">Saved {new Date(project.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {projectSync === "synced" ? "On this device and your account" : projectSync === "offline" ? "On this device · cloud unavailable" : "On this device"}</span></div></div><Link className="change-board-link" to="/start">Change board <span aria-hidden="true">↗</span></Link></div>
   </main>;
 }
 export default function TablePage() { return <AppShell title="Your table" tableNav><ProfileGate><ReadyTable /></ProfileGate></AppShell>; }

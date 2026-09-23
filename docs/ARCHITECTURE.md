@@ -262,6 +262,7 @@ interface KinetableProject {
   schemaVersion: 1
   id: string
   name: string
+  intent?: { text: string }
   boardIds: string[]
   components: ComponentInstance[]
   connections: []
@@ -271,7 +272,9 @@ interface KinetableProject {
 }
 ```
 
-Slice 04 v1 contains board instances only. Its layout maps stable instance IDs to serializable position, rotation and scale. Moving a board changes layout, not its hardware definition. Future electrical graphs require an explicit schema migration.
+Slice 05 keeps schema version 1. Older documents without `intent` still parse; new documents validate a trimmed request of 1–500 characters inside JSONB. V1 still permits exactly one board instance and empty connections and logic. Its layout maps stable instance IDs to serializable position, rotation and scale. Future electrical graphs require an explicit schema migration.
+
+`/new` calls `projectStore.createBuild`, not Dexie or Supabase. The domain builder validates intent and name, promotes a structurally pristine starter or creates a new UUID, then the store saves locally and starts an authenticated cloud checkpoint. The `projects` IndexedDB store holds multiple documents; most recent update selects the current project. The cloud repository validates the complete document and matching relational ID, name, board and schema version on read.
 
 ## 7. Stable entity IDs
 

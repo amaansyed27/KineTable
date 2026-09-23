@@ -43,7 +43,7 @@ function BoardObject({ board, x, y, selected, quiet, hovered, reduced, single, t
 function BoardWorld({ selected, hovered, single, reduced, transform }: { selected?: BoardId; hovered?: BoardId | null; single: boolean; reduced: boolean; transform?: Transform }) {
   const { size, camera, invalidate } = useThree();
   const mobile = size.width < 560 && !single;
-  const zoom = single ? Math.min(125,size.width/4.8,size.height/3.5) : mobile ? 64 : Math.min(102,size.width/10.5,size.height/3.3);
+  const zoom = single ? Math.min(125,size.width/3.8,size.height/3.5) : mobile ? 64 : Math.min(102,size.width/10.5,size.height/3.3);
   useLayoutEffect(() => { camera.zoom = zoom; camera.updateProjectionMatrix(); invalidate(); }, [camera, zoom, invalidate]);
   const displayed = single ? boards.filter(b => b.id === selected) : boards;
   return <>

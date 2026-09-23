@@ -1,11 +1,12 @@
 import { useEffect, type ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { AccountControl } from "../auth/AccountControl";
 import { useProfileStore } from "../state/profileStore";
 export function AppShell({ children, title, tableNav = false }: { children: ReactNode; title: string; tableNav?: boolean }) {
+  const atTable = useLocation().pathname === "/table";
   useEffect(() => { document.title = `${title} · Kinetable`; }, [title]);
-  return <div className="product-app"><a className="skip-link" href="#app-main">Skip to your table</a>
-    <header className="app-header"><Link className="wordmark" to="/" aria-label="Kinetable home">kinetable<span className="brand-dot" /></Link>{tableNav && <nav aria-label="Application"><Link className="table-nav-current" to="/table" aria-current="page">Table</Link></nav>}<AccountControl /></header>
+  return <div className="product-app"><a className="skip-link" href="#app-main">Skip to main content</a>
+    <header className="app-header"><Link className="wordmark" to="/" aria-label="Kinetable home">kinetable<span className="brand-dot" /></Link>{tableNav && <nav aria-label="Application"><Link className={atTable ? "table-nav-current" : undefined} to="/table" aria-current={atTable ? "page" : undefined}>Table</Link></nav>}<AccountControl /></header>
     {children}
   </div>;
 }
