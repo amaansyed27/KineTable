@@ -7,6 +7,9 @@ import { localProjectRepository } from "../persistence/localProjectRepository";
 import { createProjectStore } from "../state/projectStore";
 import { useAuthStore } from "../auth/authStore";
 import { validateCloudProject, type CloudProject } from "../persistence/cloudProjectRepository";
+import { isProjectV2 } from "./v2";
+import { changeBoard, starterRow } from "./projectCreation";
+import { executeCommands } from "../hardware-core/commands";
 
 const user = (id: string) => ({ user: { id }, access_token: `${id}-token` } as Session);
 beforeEach(async () => { await db.table("projects").clear(); useAuthStore.setState({ session: null }); });
@@ -35,7 +38,7 @@ it("validates intent and names without breaking existing v1 documents", () => {
 });
 it("generates readable deterministic local names", () => {
   expect(titleFromIntent("Make a motion alarm.")).toBe("Motion Alarm");
-  expect(titleFromIntent("Show temperature on an OLED")).toBe("OLED Temperature");
+  expect(titleFromIntent("Show temperature on an OLED")).toBe("Temperature on an OLED");
   expect(titleFromIntent("Make an LED blink")).toBe("LED Blink");
   expect(titleFromIntent("Create " + "long ".repeat(40)).length).toBeLessThanOrEqual(60);
 });
@@ -71,7 +74,7 @@ it("keeps earlier projects and opens the newest build", async () => {
   expect(store.getState().project!.id).not.toBe(starterId);
   expect((await localProjectRepository.list()).map(row => row.id)).toContain(starterId);
   expect(await localProjectRepository.list()).toHaveLength(2);
-  expect(isProject(store.getState().project!.document)).toBe(true);
+  expect(isProjectV2(store.getState().project!.document)).toBe(true);
   const restored = createProjectStore(); await restored.getState().open("esp32-dev-module", null);
   expect(restored.getState().project?.id).toBe(store.getState().project?.id);
 });
@@ -84,6 +87,21 @@ it("creates one local starter and restores its board and transform after reload"
   expect(second.getState().project?.document.boardIds).toEqual(["raspberry-pi-pico"]);
   expect(second.getState().project?.document.layout.entities["board-main"]).toEqual(transform);
   expect(await localProjectRepository.list()).toHaveLength(1);
+});
+it("keeps an assembled project intact when another board is selected", () => {
+  const row = starterRow("esp32-dev-module");
+  const assembled = executeCommands(row.document as import("./v2").KinetableProjectV2, [
+    { type: "component.add", instanceId: "led-main", definitionId: "led-5mm" },
+    { type: "component.add", instanceId: "resistor-main", definitionId: "resistor-220r" },
+    { type: "connection.create", id: "led-ground", from: { componentId: "led-main", pinId: "cathode" }, to: { componentId: "board-main", pinId: "gnd" } },
+    { type: "connection.create", id: "led-resistor", from: { componentId: "led-main", pinId: "anode" }, to: { componentId: "resistor-main", pinId: "a" } },
+    { type: "connection.create", id: "resistor-drive", from: { componentId: "resistor-main", pinId: "b" }, to: { componentId: "board-main", pinId: "gpio23" } },
+  ]);
+  const next = changeBoard({ ...row, document: assembled, updatedAt: assembled.metadata.updatedAt }, "raspberry-pi-pico");
+  expect(next.id).not.toBe(row.id);
+  expect(next.document.boardIds).toEqual(["raspberry-pi-pico"]);
+  expect(next.document.components).toHaveLength(1);
+  expect(assembled.components).toHaveLength(3);
 });
 it("adopts a guest project, retries failed cloud writes, and never transfers another owner's row", async () => {
   const cloud = { list: vi.fn(async () => [] as CloudProject[]), save: vi.fn() };

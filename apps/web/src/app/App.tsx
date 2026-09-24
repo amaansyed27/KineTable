@@ -8,6 +8,7 @@ const AuthCallback = lazy(() => import("../auth/AuthCallback"));
 const OnboardingPage = lazy(() => import("../onboarding/OnboardingPage"));
 const TablePage = lazy(() => import("../table/TablePage"));
 const NewBuildPage = lazy(() => import("../new/NewBuildPage"));
+const ProviderSettingsPage = lazy(() => import("../ai/ProviderSettingsPage"));
 function RoutePosition() {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); if (pathname === "/") document.title = "Kinetable — Small ideas, real things."; }, [pathname]);
@@ -22,6 +23,7 @@ export function App() {
       <Route path="/start" element={<OnboardingPage />} />
       <Route path="/table" element={<TablePage />} />
       <Route path="/new" element={<NewBuildPage />} />
+      <Route path="/settings/providers" element={<ProviderSettingsPage />} />
       <Route path="*" element={<main className="route-loading"><h1>This table isn’t here.</h1><Link to="/">Back to Kinetable</Link></main>} />
     </Routes>
   </Suspense></AuthBoundary></BrowserRouter>;

@@ -152,20 +152,24 @@ No AI planning, inventory claim, generated part, wiring or logic is present. Sli
 
 # Slice 06 — AI Assembly + Real AI Backend
 
+Status: implemented and verified with real Codex CLI planning, hosted Supabase, a guest Local Bridge browser build and a deployed Vercel Preview. Kinetable-managed inference is deferred. See [Slice 06](SLICE-06.md).
+
 Goal: turn a natural-language idea into validated Kinetable project commands.
 
 Build:
 
-- Vercel Function AI endpoint;
-- provider adapter;
+- BYOK Vercel Function and optional Local Bridge;
+- ordered provider/key router with remote, custom, local HTTP and CLI adapters;
 - structured tool/command responses only;
-- server-side secret handling;
-- inventory/project context input;
+- request-scoped BYOK handling and device-local vault;
+- owner-verified cloud project or validated guest project, board and intent input (inventory comes later);
 - hardware-core validation;
 - spatial assembly/loading choreography;
 - clear unsupported-request behaviour.
 
 AI must never mutate DOM/Three.js directly or bypass deterministic product rules.
+
+The implemented subset creates direct electrical connection data and places canonical parts. Firmware, behavior logic, simulated function, and breadboard topology remain later work.
 
 ---
 

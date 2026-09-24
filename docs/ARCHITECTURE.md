@@ -258,21 +258,21 @@ Responsibilities:
 ## 6. Project model
 
 ```ts
-interface KinetableProject {
-  schemaVersion: 1
+interface KinetableProjectV2 {
+  schemaVersion: 2
   id: string
   name: string
   intent?: { text: string }
   boardIds: string[]
-  components: ComponentInstance[]
-  connections: []
+  components: ComponentInstanceV2[]
+  connections: Connection[]
   logic: []
   layout: WorkbenchLayout
   metadata: ProjectMetadata
 }
 ```
 
-Slice 05 keeps schema version 1. Older documents without `intent` still parse; new documents validate a trimmed request of 1–500 characters inside JSONB. V1 still permits exactly one board instance and empty connections and logic. Its layout maps stable instance IDs to serializable position, rotation and scale. Future electrical graphs require an explicit schema migration.
+Schema version 1 remains the original one-board, empty-connection format. Slice 06 introduces version 2 with canonical board/component instances and electrical endpoint connections. On load, v1 migrates deterministically in memory; an intentional checkpoint stores v2. Logic remains empty. Layout maps stable instance IDs to serializable position, rotation and scale.
 
 `/new` calls `projectStore.createBuild`, not Dexie or Supabase. The domain builder validates intent and name, promotes a structurally pristine starter or creates a new UUID, then the store saves locally and starts an authenticated cloud checkpoint. The `projects` IndexedDB store holds multiple documents; most recent update selects the current project. The cloud repository validates the complete document and matching relational ID, name, board and schema version on read.
 
@@ -295,12 +295,10 @@ Project changes use commands rather than arbitrary mutation.
 
 ```ts
 type ProjectCommand =
-  | { type: 'component.add'; componentId: string; definitionId: string }
-  | { type: 'component.remove'; componentId: string }
-  | { type: 'connection.create'; from: EndpointRef; to: EndpointRef }
-  | { type: 'connection.remove'; netId: string }
-  | { type: 'component.setProperty'; componentId: string; key: string; value: unknown }
-  | { type: 'logic.update'; graph: BehaviourGraph }
+  | { type: 'component.add'; instanceId: string; definitionId: string }
+  | { type: 'component.remove'; instanceId: string }
+  | { type: 'connection.create'; id: string; from: EndpointRef; to: EndpointRef }
+  | { type: 'connection.remove'; id: string }
   | { type: 'layout.move'; entityId: string; transform: Transform }
 ```
 
@@ -350,7 +348,7 @@ Authentication is optional for first use.
 
 Supabase Auth provides Google/GitHub/email. Guest/local work remains possible.
 
-All user-owned cloud tables require Row Level Security. Service-role credentials and AI provider secrets remain server-only.
+All user-owned cloud tables require Row Level Security. Service-role credentials remain server-only. BYOK credentials reside on the user's device and are sent to the Vercel proxy only for the selected request; the server neither persists nor logs them.
 
 When a local/guest user signs in, existing local work must be associated/migrated intentionally rather than silently discarded.
 
@@ -531,8 +529,8 @@ Those claims come from deterministic metadata/rules and validated sources, not m
 That boundary is one of Kinetable's core architectural constraints.
 
 
-## 22. Implemented through Slice 04
+## 22. Implemented through Slice 06
 
-React Router supplies `/`, `/start`, `/table`, `/auth` and `/auth/callback`. Canonical board metadata lives in `apps/web/src/hardware`; Zustand profile state persists through a Dexie repository. Presentation geometry is shared independently of landing choreography. No speculative hardware-core package was added.
+React Router supplies `/`, `/start`, `/table`, `/new`, `/auth` and `/auth/callback`. Canonical board and part definitions live in `apps/web/src/component-library`; Zustand profile state persists through a Dexie repository. Presentation geometry is shared independently of landing choreography.
 
-A single auth boundary owns Supabase sessions. The typed cloud profile repository reconciles guest setup with owner-only hosted profiles. A separate project store and local/cloud repositories persist validated v1 documents in the existing Dexie database and `public.projects`. The board scene receives its transform from project layout; UI does not store a Three.js scene as project state. Guest adoption, offline restore and owner-only cloud restore are verified. Inventory, AI and simulation remain future slices. Operational details are in [BACKEND.md](BACKEND.md) and [SLICE-04.md](SLICE-04.md).
+A single auth boundary owns Supabase sessions. The typed cloud profile repository reconciles guest setup with owner-only hosted profiles. Project creation and sync are separate services; the project store coordinates observable state. Local/cloud repositories persist validated v1/v2 documents in Dexie and `public.projects`. Pure `hardware-core` executes strict commands atomically and validates the graph. The provider-independent planner routes through remote BYOK, custom compatible, local HTTP or local CLI transports. The Vercel endpoint validates remote plans; the optional Local Bridge validates local plans. The client revalidates against its current revision before saving. Guest assembly is allowed; cloud sync still uses Supabase Auth. The spatial scene reads persisted layout and instances. Real Codex CLI plans passed the four initial intents and unsupported case. Inventory, simulation, firmware and editable wiring remain future slices. Operational details are in [BACKEND.md](BACKEND.md), [SLICE-06.md](SLICE-06.md) and [LOCAL-BRIDGE.md](LOCAL-BRIDGE.md).

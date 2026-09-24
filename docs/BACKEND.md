@@ -73,7 +73,7 @@ board_catalog
 
 The full workbench/project graph should initially be stored as a versioned JSONB document rather than being prematurely normalized into dozens of tables.
 
-Example project document:
+Illustrative Slice 05 v1 project fragment (the stored document also requires `id` and `name`); Slice 06 migrates it to v2 on load:
 
 ```json
 {
@@ -121,7 +121,7 @@ The browser sends intent and relevant project context to a Vercel Function.
 ```text
 Browser
   ↓
-/api/ai/build
+/api/ai/plan
   ↓
 model provider
   ↓
@@ -139,8 +139,6 @@ component.add
 component.remove
 connection.create
 connection.remove
-component.setProperty
-logic.update
 layout.move
 ```
 
@@ -239,3 +237,9 @@ Cloud errors leave local state intact and display a restrained status in the acc
 ## Local database development
 
 `supabase/config.toml` enables local PostgreSQL 17, API, Auth and Studio. Docker is required for `supabase start`. Storage, Realtime, Edge Runtime and analytics are not part of this slice. Migrations under `supabase/migrations/` are the schema source of truth; checked-in versions match hosted history. Slice 05 adds validated `intent.text` inside JSONB and needs no SQL migration. See [Slice 05](SLICE-05.md) for verification and limitations.
+
+## Slice 06 provider-independent assembly
+
+The hosted `project_v2` migration permits schema versions 1 and 2 without changing owner RLS. The client migrates v1 on load and persists v2 at an intentional checkpoint. `POST /api/ai/plan` verifies an optional Supabase bearer token and reads that user's project with RLS, or accepts a validated guest project. It checks revision, intent and board, accepts no client hardware definitions, validates structured commands with hardware-core, and sends only a validated plan. The browser validates again, writes one IndexedDB document, then checkpoints through sync when signed in. A failed cloud write leaves local work dirty for retry.
+
+The Vercel API receives a selected BYOK credential over TLS, uses it only in memory for the current request, and never stores it in Supabase. The optional loopback bridge handles local models and authenticated CLIs without a Kinetable-paid provider. Remote custom endpoints use public HTTPS address checks and DNS pinning. There is no shared distributed rate limiter yet. See [Slice 06](SLICE-06.md), [Providers](PROVIDERS.md) and [Local Bridge](LOCAL-BRIDGE.md).

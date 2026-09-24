@@ -31,7 +31,7 @@ Kinetable is not another Arduino IDE, generic circuit simulator, or chatbot arou
 6. **Progressive disclosure.** Beginner-friendly on the surface, serious engineering detail underneath.
 7. **Fun through interaction, not clutter.** Tactile objects, motion, feedback, and satisfying cause/effect.
 8. **Browser first.** Normal use should require no installation.
-9. **Local first, cloud backed.** Fast workbench interactions stay local; accounts provide sync, sharing, AI and storage.
+9. **Local first, cloud backed.** Fast workbench interactions stay local; accounts provide sync and storage. AI assembly can use a guest's own provider.
 10. **Full-stack slices.** A feature is not complete if its required backend is still fake.
 
 ## Browser-first architecture
@@ -178,11 +178,13 @@ The build itself becomes the loading state.
 
 - components enter spatially;
 - auto-placement and structured auto-wiring;
-- server-side AI orchestration through Vercel Functions;
-- provider secrets remain server-side;
+- device-local BYOK or optional Local Bridge inference, with Vercel proxying remote keys only for a request;
+- ordered provider and credential fallback;
 - model returns structured Kinetable commands only;
 - deterministic hardware validation before commands are applied;
 - unsupported requests fail clearly rather than hallucinating hardware.
+
+Real authenticated Codex CLI calls have generated and validated the four initial builds and rejected an unsupported drone request. Kinetable does not require its own paid model account. See [Slice 06](docs/SLICE-06.md), [Providers](docs/PROVIDERS.md) and [Local Bridge](docs/LOCAL-BRIDGE.md) for the supported paths and verification.
 
 ### 07 — Core 3D Workbench
 
@@ -471,12 +473,13 @@ KineTable/
 - [Slice 03 implementation and hosted verification](docs/SLICE-03.md)
 - [Slice 04 My Table and project persistence](docs/SLICE-04.md)
 - [Slice 05 New Build and real project creation](docs/SLICE-05.md)
+- [Slice 06 AI assembly implementation and verification](docs/SLICE-06.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 
 ## Status
 
-**Slice 05 completed — New Build stores the user's original intent in a validated local project, promotes a pristine starter on first use, and syncs authenticated builds to owner-only Supabase rows. Slices 01–04 remain intact.**
+**Slices 01–06 implemented and verified. Slice 07 has not begun.**
 
 Implementation proceeds page-by-page and feature-by-feature, with each completed slice visually finished, tested, and backed by the real persistence/server functionality it requires.
 
@@ -497,7 +500,7 @@ pnpm test
 pnpm build
 ```
 
-The web app lives in `apps/web`. `/start` selects ESP32, Pico or Uno. `/table` restores the current project from IndexedDB; `/new` captures intent and creates a real build, including offline. Optional `/auth` sign-in syncs the profile and projects to Supabase.
+The web app lives in `apps/web`. `/start` selects ESP32, Pico or Uno. `/table` restores the current project from IndexedDB; `/new` captures intent and creates a real build, including offline. `/settings/providers` configures local models, CLI inference or BYOK remote APIs. Guest AI assembly works with user-supplied compute; `/auth` sign-in is needed only for Supabase sync. Run `pnpm bridge` for optional localhost inference. No Kinetable-managed model credential is required.
 
 Copy `.env.example` to `apps/web/.env.local` for cloud development; missing configuration preserves guest mode. See [BACKEND.md](docs/BACKEND.md). Vercel uses the root `vercel.json` for the build and direct SPA routes.
 

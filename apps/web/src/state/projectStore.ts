@@ -1,14 +1,17 @@
 import { create } from "zustand";
 import type { Session } from "@supabase/supabase-js";
-import { type BoardId } from "../hardware/boards";
-import { projectFromIntent, starterProject, validateBuildInput, withPrimaryBoard, type KinetableProject } from "../projects/schema";
+import type { BoardId } from "../hardware/boards";
+import { createBuildRow, changeBoard, starterRow } from "../projects/projectCreation";
+import { migrateProject, type KinetableProjectV2 } from "../projects/v2";
 import { localProjectRepository, type LocalProject } from "../persistence/localProjectRepository";
 import { cloudProjectRepository } from "../persistence/cloudProjectRepository";
+import { reconcileProjects } from "../sync/projectSyncService";
 import { useAuthStore } from "../auth/authStore";
 
 type ProjectState = { project: LocalProject | null; ready: boolean; status: "local" | "syncing" | "synced" | "offline"; error: string | null;
   open: (board: BoardId, session: Session | null) => Promise<void>; setBoard: (board: BoardId, session: Session | null) => Promise<void>;
-  createBuild: (board: BoardId, intent: string, name: string) => Promise<KinetableProject>; sync: () => Promise<void> };
+  createBuild: (board: BoardId, intent: string, name: string) => Promise<KinetableProjectV2>;
+  saveDocument: (document: KinetableProjectV2, expectedRevision: string) => Promise<void>; sync: () => Promise<void> };
 export function createProjectStore(local = localProjectRepository, cloud = cloudProjectRepository) {
   let generation = 0;
   let syncing: Promise<void> | undefined;
@@ -28,11 +31,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
         if (current !== generation) return;
         const eligible = rows.filter(row => !ownerId || !row.cloudUserId || row.cloudUserId === ownerId).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
         let project = eligible[0] ?? null;
-        if (!project && !session) {
-          const document = starterProject(board);
-          project = { id: document.id, name: document.name, schemaVersion: 1, document, createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt, cloudDirty: false };
-          await local.save(project);
-        }
+        if (!project && !session) { project = starterRow(board); await local.save(project); }
         if (current !== generation) return;
         set({ project, ready: !!project });
         if (session) { if (syncing) syncAgain = true; else await get().sync(); }
@@ -45,31 +44,34 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       boardForStarter = board;
       const ownerId = session?.user.id;
       const rows = await local.list();
-      let project = rows.filter(row => !ownerId || !row.cloudUserId || row.cloudUserId === ownerId).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0];
-      if (!project) { const document = starterProject(board); project = { id: document.id, name: document.name, schemaVersion: 1, document, createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt, cloudDirty: !!session, cloudUserId: ownerId }; }
-      else { const document = withPrimaryBoard(project.document, board); project = { ...project, document, updatedAt: document.metadata.updatedAt, cloudDirty: project.cloudDirty || !!project.cloudUserId || !!session }; }
+      const current = rows.filter(row => !ownerId || !row.cloudUserId || row.cloudUserId === ownerId).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+      const project = current ? changeBoard(current, board, ownerId) : starterRow(board, ownerId);
       await local.save(project);
       set({ project, ready: true, status: "local", error: null });
       if (session) { if (syncing) syncAgain = true; else void get().sync(); }
     },
     createBuild: async (board, intent, name) => {
-      validateBuildInput(intent, name);
       generation++;
       const ownerId = useAuthStore.getState().session?.user.id;
       const rows = await local.list();
       const selected = get().project;
       if (!selected || (selected.cloudUserId && selected.cloudUserId !== ownerId && ownerId)) throw new Error("Open your table before starting a build.");
-      const latestTime = rows.reduce((time, row) => Math.max(time, Date.parse(row.updatedAt) + 1), Date.now());
-      const current = !selected.cloudUserId || selected.cloudUserId === ownerId ? selected.document : null;
-      const document = projectFromIntent(current, board, intent, name, new Date(latestTime).toISOString());
-      const promoted = document.id === selected.id;
-      const project: LocalProject = { id: document.id, name: document.name, schemaVersion: 1, document,
-        createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt,
-        cloudUserId: ownerId ?? (promoted ? selected.cloudUserId : undefined), cloudDirty: !!ownerId };
+      const project = createBuildRow(selected, rows, board, intent, name, ownerId);
       await local.save(project);
       set({ project, ready: true, status: "local", error: null });
       if (ownerId) { if (syncing) syncAgain = true; else void get().sync(); }
-      return document;
+      return migrateProject(project.document);
+    },
+    saveDocument: async (document, expectedRevision) => {
+      const current = get().project;
+      if (!current || current.id !== document.id || current.document.metadata.updatedAt !== expectedRevision) throw new Error("STALE_PROJECT");
+      const ownerId = useAuthStore.getState().session?.user.id;
+      if (current.cloudUserId && current.cloudUserId !== ownerId) throw new Error("AUTH_REQUIRED");
+      const project: LocalProject = { ...current, document, schemaVersion: 2, updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: !!ownerId };
+      generation++;
+      await local.save(project);
+      set({ project, ready: true, status: "local", error: null });
+      if (ownerId) { if (syncing) syncAgain = true; else void get().sync(); }
     },
     sync: () => {
       if (syncing) return syncing;
@@ -80,65 +82,17 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       syncing = (async () => {
         set({ status: "syncing", error: null });
         try {
-          const remote = await cloud.list(session.access_token, ownerId);
-          if (useAuthStore.getState().session?.user.id !== ownerId) return;
-          const rows = await local.list();
-          for (const row of remote) {
-            if (startedAt !== generation) { syncAgain = true; return; }
-            const existing = rows.find(localRow => localRow.id === row.id);
-            if (existing?.cloudDirty || (existing?.cloudUserId && existing.cloudUserId !== ownerId)) continue;
-            await local.save({ id: row.id, name: row.name, schemaVersion: 1, document: row.document,
-              createdAt: row.document.metadata.createdAt, updatedAt: row.updated_at, cloudUserId: ownerId, cloudDirty: false });
-          }
-          let project = get().project;
-          if (!project) {
-            const restored = remote[0];
-            if (restored) project = { id: restored.id, name: restored.name, schemaVersion: 1, document: restored.document,
-              createdAt: restored.document.metadata.createdAt, updatedAt: restored.updated_at, cloudUserId: ownerId, cloudDirty: false };
-            else {
-              const board = boardForStarter;
-              if (!board) throw new Error("Board not ready");
-              const document = starterProject(board);
-              project = { id: document.id, name: document.name, schemaVersion: 1, document, createdAt: document.metadata.createdAt,
-                updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: true };
-              await local.save(project);
-            }
-          } else if (project.cloudUserId === ownerId && !project.cloudDirty) {
-            const counterpart = remote.find(row => row.id === project?.id);
-            if (counterpart && counterpart.updated_at > project.updatedAt) project = { ...project, document: counterpart.document, updatedAt: counterpart.updated_at };
-          }
-          if (!project.cloudUserId) { project = { ...project, cloudUserId: ownerId, cloudDirty: true }; await local.save(project); }
-          if (project.cloudUserId !== ownerId) return;
-          if (!remote.some(row => row.id === project?.id) && !project.cloudDirty) { project = { ...project, cloudDirty: true }; await local.save(project); }
-          if (startedAt === generation) set({ project, ready: true });
-          if (project.cloudDirty) {
-            const saved = await cloud.save(project.document, session.access_token, ownerId, remote.some(row => row.id === project?.id));
-            if (useAuthStore.getState().session?.user.id !== ownerId) return;
-            const latest = (await local.list()).find(row => row.id === project?.id);
-            if (latest?.document.metadata.updatedAt === project.document.metadata.updatedAt) {
-              project = { ...project, updatedAt: saved.updated_at, cloudDirty: false };
-              await local.save(project);
-            } else if (latest) project = latest;
-          }
-          for (let row of await local.list()) {
-            if (startedAt !== generation) { syncAgain = true; return; }
-            if (row.id === project.id || (row.cloudUserId && row.cloudUserId !== ownerId)) continue;
-            const exists = remote.some(cloudRow => cloudRow.id === row.id);
-            if (!row.cloudDirty && row.cloudUserId === ownerId && exists) continue;
-            row = { ...row, cloudUserId: ownerId, cloudDirty: true };
-            await local.save(row);
-            const saved = await cloud.save(row.document, session.access_token, ownerId, exists);
-            if (useAuthStore.getState().session?.user.id !== ownerId) return;
-            const latest = (await local.list()).find(localRow => localRow.id === row.id);
-            if (latest?.document.metadata.updatedAt === row.document.metadata.updatedAt) await local.save({ ...row, updatedAt: saved.updated_at, cloudDirty: false });
-          }
-          if (useAuthStore.getState().session?.user.id === ownerId && startedAt === generation) set({ project, ready: true, status: project.cloudDirty ? "local" : "synced" });
+          await reconcileProjects(local, cloud, session, boardForStarter, {
+            activeOwner: () => useAuthStore.getState().session?.user.id,
+            changed: () => startedAt !== generation,
+            current: () => get().project,
+            publish: project => set({ project, ready: true, status: project.cloudDirty ? "local" : "synced" }),
+            retry: () => { syncAgain = true; },
+          });
         } catch {
           if (useAuthStore.getState().session?.user.id === ownerId) {
             if (!get().project && boardForStarter) {
-              const document = starterProject(boardForStarter);
-              const offline = { id: document.id, name: document.name, schemaVersion: 1 as const, document,
-                createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: true };
+              const offline = starterRow(boardForStarter, ownerId);
               try { await local.save(offline); set({ project: offline }); } catch { set({ error: "We couldn’t save your project on this device." }); return; }
             }
             set({ status: "offline", ready: true, error: "Saved on this device. Cloud sync will retry when you’re online." });

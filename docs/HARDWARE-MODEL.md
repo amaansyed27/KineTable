@@ -465,3 +465,7 @@ observed breadboard hole
 Vision should not create a second incompatible circuit representation.
 
 The same graph powers simulation, explanation, AI, deployment, and the eventual real-workbench digital twin.
+
+## Slice 06 implemented subset
+
+The v2 project format stores one board instance, canonical component instances, and electrical connections with stable `{componentId, pinId}` endpoints. It does not yet store generalized multi-endpoint nets, breadboards, signal propagation or simulation drivers. The pure command executor applies a complete command list to a project copy, fills deterministic part layout slots and validates the final graph before returning it. Unknown parts or pins, missing component pin connections, mismatched supply, rail shorts, output conflict, GPIO conflict, unsupported I²C pins and LED-without-resistor topology are hard errors. These rules are intentionally narrow; an unproven circuit is rejected. See [Slice 06](SLICE-06.md) and the canonical definitions in `apps/web/src/component-library/catalog.ts`.

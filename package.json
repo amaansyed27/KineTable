@@ -1,12 +1,22 @@
 {
   "name": "kinetable",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@11.19.0",
   "scripts": {
     "dev": "pnpm --filter @kinetable/web dev",
     "build": "pnpm --filter @kinetable/web build",
     "lint": "pnpm --filter @kinetable/web lint",
     "test": "pnpm --filter @kinetable/web test",
-    "test:e2e": "pnpm --filter @kinetable/web test:e2e"
+    "test:e2e": "pnpm --filter @kinetable/web test:e2e",
+    "bridge": "tsx server/startBridge.ts"
+  },
+  "dependencies": {
+    "ipaddr.js": "^2.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3"
   }
 }

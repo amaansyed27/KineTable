@@ -1,4 +1,4 @@
-import { getBoard, type BoardId } from "../hardware/boards";
+import { getBoard, type BoardId } from "../hardware/boards.js";
 
 export type Transform = { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] };
 export type ComponentInstance = { id: string; kind: "board"; definitionId: BoardId };
@@ -61,8 +61,7 @@ export function titleFromIntent(text: string): string {
   const first = text.trim().split(/[\n.!?]/, 1)[0]
     .replace(/^(?:make|build|create|show|display)\s+/i, "").replace(/^(?:a|an|the)\s+/i, "")
     .replace(/\s+/g, " ").trim();
-  const words = /^temperature on an? oled$/i.test(first) ? "OLED temperature" : first;
-  const title = words.split(" ").map(word => /^(led|oled|esp32|gpio|i2c)$/i.test(word) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
+  const title = first.split(" ").map((word, index) => /^(led|oled|esp32|gpio|i2c)$/i.test(word) ? word.toUpperCase() : index > 0 && /^(a|an|the|on|in|with|for|to)$/i.test(word) ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
   return (title || "New build").slice(0, 60).trim();
 }
 export function validateBuildInput(text: string, name: string) {

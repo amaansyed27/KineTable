@@ -1,12 +1,19 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router";
 import { AppShell, ProfileGate } from "../app/AppShell";
 import { getBoard } from "../hardware/boards";
 import { useProfileStore } from "../state/profileStore";
 import { useAuthStore } from "../auth/authStore";
 import { useProjectStore } from "../state/projectStore";
+import { assembleProject, assemblyError, type AssemblyPhase } from "../ai/assembleProject";
+import { migrateProject } from "../projects/v2";
+import { getDefinition } from "../component-library/catalog";
 const BoardStage = lazy(() => import("../spatial/BoardStage"));
 function ReadyTable() {
+  const [phase, setPhase] = useState<AssemblyPhase | null>(null);
+  const [assemblyMessage, setAssemblyMessage] = useState<string | null>(null);
+  const [unsupported, setUnsupported] = useState(false);
+  const [routeLabel, setRouteLabel] = useState<string | null>(null);
   const profile = useProfileStore(s => s.profile);
   const resolved = useAuthStore(s => s.resolved);
   const syncStatus = useAuthStore(s => s.syncStatus);
@@ -27,15 +34,30 @@ function ReadyTable() {
   const activeBoard = getBoard(project.document.boardIds[0]) ?? board;
   const boardInstance = project.document.components.find(c => c.kind === "board" && c.definitionId === activeBoard.id);
   const transform = boardInstance && project.document.layout.entities[boardInstance.id];
+  const document = migrateProject(project.document);
+  const assembled = document.components.length > 1;
+  async function build() {
+    if (phase) return;
+    setAssemblyMessage(null); setUnsupported(false);
+    try {
+      const plan = await assembleProject(setPhase);
+      setRouteLabel(plan.routeLabel);
+      if (plan.status === "unsupported") { setUnsupported(true); setAssemblyMessage(`Kinetable can’t build that reliably yet. ${plan.unsupportedReason}`); }
+    } catch (failure) { setAssemblyMessage(assemblyError(failure)); }
+    finally { setPhase(null); }
+  }
   return <main id="app-main" className="my-table" data-board-id={activeBoard.id} data-project-id={project.id}>
-    <div className="my-table-heading"><p className="eyebrow">YOUR TABLE <span aria-hidden="true">/</span> A PLACE TO BEGIN</p><h1>What do you want to make?</h1><p>Your board is here whenever you’re ready.</p><Link className="table-new-build button" to="/new">New Build <span aria-hidden="true">↗</span></Link></div>
+    <div className="my-table-heading"><p className="eyebrow">YOUR TABLE <span aria-hidden="true">/</span> A PLACE TO BEGIN</p><h1>{assembled ? "Your build is on the table." : "What do you want to make?"}</h1><p>{assembled ? `${document.components.length - 1} parts · ${document.connections.length} validated connections. Behavior and firmware come later.` : "Your board is here whenever you’re ready."}</p><Link className="table-new-build button" to="/new">New Build <span aria-hidden="true">↗</span></Link>
+      {document.intent && !assembled && <div className="table-assembly"><button className="button" disabled={!!phase} onClick={() => void build()}>{phase ? "Building…" : "Build with Kinetable"}</button><Link className="table-provider-link" to="/settings/providers">Provider settings ↗</Link>
+        <p role={assemblyMessage ? "alert" : "status"} className={unsupported ? "assembly-message unsupported" : "assembly-message"}>{phase === "planning" ? "Planning your build…" : phase === "checking" ? "Checking the connections…" : phase === "placing" ? "Putting it on the table…" : assemblyMessage}</p></div>}
+    </div>
     <section className="work-surface" aria-label="Your saved workbench">
       <div className="surface-coordinate surface-coordinate-top" aria-hidden="true">01 — YOUR WORKSPACE</div>
-      <div className="surface-board" role="img" aria-label={`${activeBoard.name} on your table`}><Suspense fallback={<p className="scene-fallback">Placing your board…</p>}><BoardStage selected={activeBoard.id} single transform={transform} /></Suspense></div>
+      <div className={`surface-board${assembled ? " assembled" : ""}`} role="img" aria-label={assembled ? `${activeBoard.name} and ${document.components.length - 1} assembled parts on your table` : `${activeBoard.name} on your table`}><Suspense fallback={<p className="scene-fallback">Placing your board…</p>}><BoardStage selected={activeBoard.id} single transform={transform} project={document} /></Suspense></div>
       <div className="surface-board-label"><span className="surface-label-dot" aria-hidden="true" /><span>{activeBoard.name}<small>ON YOUR TABLE</small></span></div>
       <div className="surface-coordinate surface-coordinate-bottom" aria-hidden="true">KINETABLE / 001</div>
     </section>
-    <div className="table-foot"><div className="project-identity"><span className="project-identity-mark" aria-hidden="true" /><div><span className="project-overline">CURRENT PROJECT</span><strong>{project.name}</strong>{project.document.intent && <span className="project-intent">“{project.document.intent.text}”</span>}<span className="project-meta">Saved {new Date(project.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {projectSync === "synced" ? "On this device and your account" : projectSync === "offline" ? "On this device · cloud unavailable" : "On this device"}</span></div></div><Link className="change-board-link" to="/start">Change board <span aria-hidden="true">↗</span></Link></div>
+    <div className="table-foot"><div className="project-identity"><span className="project-identity-mark" aria-hidden="true" /><div><span className="project-overline">CURRENT PROJECT</span><strong>{project.name}</strong>{document.intent && <span className="project-intent">“{document.intent.text}”</span>}{assembled && <span className="project-parts">{document.components.filter(c => c.kind === "component").map(c => getDefinition(c.definitionId)!.name).join(" · ")}</span>}{routeLabel && <span className="project-meta">Built with {routeLabel}</span>}<span className="project-meta">Saved {new Date(project.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {projectSync === "synced" ? "On this device and your account" : projectSync === "offline" ? "On this device · cloud unavailable" : "On this device"}</span></div></div><Link className="change-board-link" to="/start">Change board <span aria-hidden="true">↗</span></Link></div>
   </main>;
 }
 export default function TablePage() { return <AppShell title="Your table" tableNav><ProfileGate><ReadyTable /></ProfileGate></AppShell>; }

@@ -69,7 +69,7 @@ But the model should label uncertainty rather than asserting unverified physical
 
 ## 4. Initial tool surface
 
-Recommended tool contracts:
+Future full-product tool contracts; Slice 06 implements only the ProjectCommand subset documented in [Slice 06](SLICE-06.md):
 
 ```ts
 addComponent(definitionId, preferredPlacement?)
@@ -107,7 +107,7 @@ User:
 
 > Make a motion alarm using what I already own.
 
-AI first queries inventory and board context.
+In a later inventory-aware slice, AI first queries inventory and board context. The following is a future behavior-planning sketch, not the implemented Slice 06 response contract.
 
 Potential plan:
 
@@ -324,15 +324,15 @@ Potential checks:
 
 ## 16. AI feature rollout
 
-### Stage A — mocked planner
+### Stage A — constrained planner implementation
 
-Use deterministic fixture responses for BONK and Motion Alarm.
-
-Goal: prove UI and tool architecture without depending on model variability.
+Slice 06 implements strict structured output, shared command validation, and a provider router across BYOK remote APIs and the optional Local Bridge. Real Codex CLI output passed four supported intents and one unsupported intent through the same hardware validator; mocks appear only in unit/browser failure tests. Kinetable-managed paid inference is deferred.
 
 ### Stage B — constrained real planner
 
 Allow natural-language requests that map to supported components and behaviours.
+
+The current contract covers component selection and electrical connections, not executable behavior logic. The remote BYOK endpoint checks an authenticated owner's cloud project or a validated guest document; the bridge checks a validated local document. Both check intent, board and revision. The model sees the canonical catalog and returns only commands or an unsupported result. Hardware-core executes against a copy at the inference boundary and again in the browser. Only a fully validated document is saved. The browser cannot inject definitions or identity. A custom remote URL is allowed only after public HTTPS SSRF checks; local URLs stay behind the loopback bridge. See [Slice 06](SLICE-06.md).
 
 ### Stage C — explanation/debugging
 

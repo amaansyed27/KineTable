@@ -281,3 +281,7 @@ The UI must not present incomplete community data as equally trustworthy to veri
 13. remaining Tier 1
 
 Do not block early interaction work waiting for the entire catalog.
+
+## Slice 06 canonical subset
+
+`apps/web/src/component-library/catalog.ts` is the implemented source for the current planner, validator and spatial component IDs. It includes ESP32 Dev Module, Raspberry Pi Pico, Arduino Uno, LED, 220 Ω resistor, push button, [Grove Buzzer V1.1](https://wiki.seeedstudio.com/Grove-Buzzer/), HC-SR501 PIR, 3.3 V SSD1306 I²C OLED and DHT11 module. Each record has a stable definition ID, category, visual ID and supported pin IDs/roles; selected parts have a defined supply voltage. It is a restricted planning catalog, not the future complete library described above. It has no GLB pin anchors, simulation drivers, full provenance records or breadboard topology yet. The UI must not imply those capabilities exist. See [Slice 06](SLICE-06.md).
