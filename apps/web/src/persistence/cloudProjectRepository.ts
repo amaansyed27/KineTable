@@ -1,13 +1,13 @@
 import type { Database, Json } from "../backend/database.types";
 import { getSupabaseClient } from "../backend/supabaseClient";
 import { migrateProject, type ProjectDocument } from "../projects/v2";
-import { validateHardware } from "../hardware-core/commands";
+import { validateElectricalSafety } from "../hardware-core/commands";
 
 export type CloudProject = Database["public"]["Tables"]["projects"]["Row"] & { document: ProjectDocument };
 export function validateCloudProject(value: unknown, ownerId: string): CloudProject {
   const row = value as Partial<CloudProject> | null;
   const document = migrateProject(row?.document);
-  validateHardware(document);
+  validateElectricalSafety(document);
   if (!row || row.owner_id !== ownerId || row.id !== document.id || row.name !== document.name ||
     row.schema_version !== (row.document as ProjectDocument).schemaVersion || row.primary_board_id !== document.boardIds[0] || row.archived !== false ||
     typeof row.created_at !== "string" || typeof row.updated_at !== "string" ||

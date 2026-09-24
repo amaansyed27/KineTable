@@ -1,8 +1,9 @@
 import { expect, it } from "vitest";
 import { starterProject } from "../projects/schema";
 import { isProjectV2, migrateProject, parseProjectV2 } from "../projects/v2";
-import { executeCommands, parseCommands, validateHardware, type ProjectCommand } from "./commands";
+import { analyzeCircuit, executeCommands, parseCommands, validateElectricalSafety, validateHardware, type ProjectCommand } from "./commands";
 import { layoutComponents } from "./layout";
+import { getDefinition } from "../component-library/catalog";
 
 const e = (componentId: string, pinId: string) => ({ componentId, pinId });
 const add = (instanceId: string, definitionId: string): ProjectCommand => ({ type: "component.add", instanceId, definitionId });
@@ -68,4 +69,44 @@ it("rejects pin conflicts and leaves an invalid plan unapplied", () => {
 it("uses stable placement for the same ordered components", () => {
   const project = executeCommands(base(), led);
   expect(layoutComponents(project.components, { "board-main": project.layout.entities["board-main"] })).toEqual(project.layout.entities);
+});
+it("keeps incomplete manual parts editable while rejecting unsafe graphs", () => {
+  const draft = executeCommands(base(), [add("led-1", "led-5mm")], undefined, "editor");
+  expect(() => validateElectricalSafety(draft)).not.toThrow();
+  expect(analyzeCircuit(draft).map(d => d.code)).toContain("UNCONNECTED_PIN");
+  expect(() => validateHardware(draft)).toThrow();
+  const moved = executeCommands(draft, [{ type: "layout.move", entityId: "led-1", transform: { ...draft.layout.entities["led-1"], position: [3, 1, .2] } }], undefined, "editor");
+  expect(moved.connections).toEqual(draft.connections);
+  expect(moved.layout.entities["led-1"].position).toEqual([3, 1, .2]);
+  expect(() => executeCommands(draft, [{ type: "layout.move", entityId: "led-1", transform: { ...draft.layout.entities["led-1"], position: [30, 1, .2] } }], undefined, "editor")).toThrow();
+  expect(() => executeCommands(base(), [connect("short", "board-main", "3v3", "board-main", "gnd")], undefined, "editor")).toThrow();
+  expect(() => executeCommands(base(), [connect("bad", "board-main", "gpio999", "board-main", "gnd")], undefined, "editor")).toThrow();
+  const outputs = [add("pir-1", "hc-sr501"), add("dht-1", "dht11-module"), connect("conflict", "pir-1", "out", "dht-1", "data")];
+  expect(() => executeCommands(base(), outputs, undefined, "editor")).toThrow();
+  expect(() => executeCommands(base(), [{ type: "component.remove", instanceId: "board-main" }], undefined, "editor")).toThrow();
+  const wired = executeCommands(base(), led);
+  const layout = wired.layout.entities["led-1"];
+  const rotated = executeCommands(wired, [{ type: "layout.move", entityId: "led-1", transform: { ...layout, rotation: [0, 0, .5] } }], undefined, "editor");
+  expect(rotated.layout.entities["led-1"].position).toEqual(layout.position);
+  expect(rotated.connections).toEqual(wired.connections);
+});
+it("replaces a part without guessing connections and keeps presentation out of electrical rules", () => {
+  const complete = executeCommands(base(), led);
+  const replacement = executeCommands(complete, [{ type: "component.replace", instanceId: "led-1", replacementId: "part-new", definitionId: "dht11-module" }], undefined, "editor");
+  expect(replacement.layout.entities["part-new"]).toEqual(complete.layout.entities["led-1"]);
+  expect(replacement.connections).toHaveLength(1);
+  expect(analyzeCircuit(replacement).length).toBeGreaterThan(0);
+  const definition = getDefinition("led-5mm")!;
+  const visual = definition.visualId;
+  try {
+    definition.visualId = "oled";
+    expect(() => validateHardware(complete)).not.toThrow();
+  } finally { definition.visualId = visual; }
+  const direct = executeCommands(base(), [add("led-direct", "led-5mm"), connect("drive", "board-main", "gpio23", "led-direct", "anode"), connect("ground", "led-direct", "cathode", "board-main", "gnd")], undefined, "editor");
+  expect(() => validateHardware(direct)).toThrow();
+  const model = definition.electricalModel;
+  try {
+    definition.electricalModel = "resistor";
+    expect(() => validateHardware(direct)).not.toThrow();
+  } finally { definition.electricalModel = model; }
 });

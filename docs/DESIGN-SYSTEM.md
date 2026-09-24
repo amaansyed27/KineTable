@@ -354,3 +354,7 @@ Reject a screen if it looks like:
 - an AR movie prop full of meaningless overlays.
 
 The target is a calm, personal, tactile engineering environment that reveals complexity only when the user asks for it.
+
+## Implemented workbench interaction
+
+Slice 07 keeps the 3D work surface dominant. Selection uses a restrained lime ring, contextual actions sit clear of the board on desktop and become a bottom strip on mobile, and the add-part tray appears only when requested. The DOM part list and camera controls remain keyboard/touch reachable; reduced motion removes nonessential easing. Incomplete circuits use one concise status rather than a warning panel. See [Slice 07](SLICE-07.md).

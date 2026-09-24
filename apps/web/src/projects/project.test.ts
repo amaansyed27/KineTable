@@ -103,6 +103,36 @@ it("keeps an assembled project intact when another board is selected", () => {
   expect(next.document.components).toHaveLength(1);
   expect(assembled.components).toHaveLength(3);
 });
+it("saves safe incomplete editor drafts locally and accepts them from cloud", async () => {
+  const row = starterRow("esp32-dev-module");
+  const draft = executeCommands(row.document as import("./v2").KinetableProjectV2, [{ type: "component.add", instanceId: "led-1", definitionId: "led-5mm" }], undefined, "editor");
+  await localProjectRepository.save({ ...row, document: draft, updatedAt: draft.metadata.updatedAt });
+  expect((await localProjectRepository.list())[0].document.components).toHaveLength(2);
+  const cloud = { id: draft.id, owner_id: "user-a", name: draft.name, primary_board_id: draft.boardIds[0], schema_version: 2,
+    document: draft, archived: false, created_at: draft.metadata.createdAt, updated_at: draft.metadata.updatedAt };
+  expect(validateCloudProject(cloud, "user-a").document.components).toHaveLength(2);
+  expect(() => validateCloudProject({ ...cloud, document: { ...draft, connections: [{ id: "bad", from: { componentId: "led-1", pinId: "missing" }, to: { componentId: "board-main", pinId: "gnd" } }] } }, "user-a")).toThrow();
+});
+it("commits one editor transaction per save and undoes it as a new revision", async () => {
+  const local = { list: localProjectRepository.list, save: vi.fn(localProjectRepository.save) };
+  const store = createProjectStore(local);
+  await store.getState().open("esp32-dev-module", null);
+  local.save.mockClear();
+  const before = store.getState().project!.document.metadata.updatedAt;
+  await store.getState().applyTransaction([{ type: "component.add", instanceId: "led-1", definitionId: "led-5mm" }]);
+  expect(local.save).toHaveBeenCalledTimes(1);
+  expect(store.getState().canUndo).toBe(true);
+  await store.getState().undo();
+  expect(store.getState().project!.document.components).toHaveLength(1);
+  expect(store.getState().project!.document.metadata.updatedAt > before).toBe(true);
+  await store.getState().redo();
+  expect(store.getState().project!.document.components).toHaveLength(2);
+  await store.getState().undo();
+  await store.getState().applyTransaction([{ type: "component.add", instanceId: "pir-1", definitionId: "hc-sr501" }]);
+  expect(store.getState().canRedo).toBe(false);
+  await store.getState().createBuild("esp32-dev-module", "New build", "New build");
+  expect(store.getState().canUndo).toBe(false);
+});
 it("adopts a guest project, retries failed cloud writes, and never transfers another owner's row", async () => {
   const cloud = { list: vi.fn(async () => [] as CloudProject[]), save: vi.fn() };
   const store = createProjectStore(localProjectRepository, cloud);

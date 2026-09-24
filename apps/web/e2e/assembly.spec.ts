@@ -35,9 +35,9 @@ test("fresh account browser restores hosted v2, applies validated commands, and 
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", projectId, { timeout: 20000 });
   await expect(page.getByRole("heading", { name: "Your build is on the table." })).toBeVisible();
-  await expect(page.getByText("2 parts · 6 validated connections.", { exact: false })).toBeVisible();
+  await expect(page.getByText("2 parts · 6 saved connections", { exact: false })).toBeVisible();
   await expect(page.getByText("HC-SR501 PIR · Grove Buzzer V1.1")).toBeVisible();
-  await expect(page.locator(".surface-board canvas")).toBeVisible();
+  await expect(page.locator(".workbench-surface canvas")).toBeVisible();
   await page.waitForTimeout(800); // Capture the settled arrival animation.
   mkdirSync("../../output/playwright", { recursive: true });
   for (const [width, height] of [[390,844],[768,1024],[1440,900],[1600,1000],[1920,1080]]) {

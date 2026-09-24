@@ -30,7 +30,7 @@ test("a guest assembles and reloads a real Codex CLI plan through the Local Brid
     await page.getByRole("link", { name: "Back to your table" }).click();
     await page.getByRole("button", { name: "Build with Kinetable" }).click();
     await expect(page.getByRole("heading", { name: "Your build is on the table." })).toBeVisible({ timeout: 150000 });
-    await expect(page.getByText("6 validated connections.", { exact: false })).toBeVisible();
+    await expect(page.getByText("6 saved connections", { exact: false })).toBeVisible();
     await expect(page.getByText("HC-SR501 PIR · Grove Buzzer V1.1")).toBeVisible();
     await page.reload();
     await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", projectId!);

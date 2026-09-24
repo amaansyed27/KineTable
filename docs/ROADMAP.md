@@ -175,6 +175,8 @@ The implemented subset creates direct electrical connection data and places cano
 
 # Slice 07 — Core 3D Workbench
 
+Status: implemented and verified with local editing, hosted Supabase persistence, Chrome Playwright and a protected Vercel preview. See [Slice 07](SLICE-07.md).
+
 Goal: make the table itself a serious editor.
 
 Build:

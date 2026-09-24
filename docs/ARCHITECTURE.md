@@ -274,7 +274,7 @@ interface KinetableProjectV2 {
 
 Schema version 1 remains the original one-board, empty-connection format. Slice 06 introduces version 2 with canonical board/component instances and electrical endpoint connections. On load, v1 migrates deterministically in memory; an intentional checkpoint stores v2. Logic remains empty. Layout maps stable instance IDs to serializable position, rotation and scale.
 
-`/new` calls `projectStore.createBuild`, not Dexie or Supabase. The domain builder validates intent and name, promotes a structurally pristine starter or creates a new UUID, then the store saves locally and starts an authenticated cloud checkpoint. The `projects` IndexedDB store holds multiple documents; most recent update selects the current project. The cloud repository validates the complete document and matching relational ID, name, board and schema version on read.
+`/new` calls `projectStore.createBuild`, not Dexie or Supabase. The domain builder validates intent and name, promotes a structurally pristine starter or creates a new UUID, then the store saves locally and starts an authenticated cloud checkpoint. The `projects` IndexedDB store holds multiple documents; most recent update selects the current project. The cloud repository validates structural and electrical safety plus matching relational ID, name, board and schema version on read. Incomplete editor drafts are allowed; AI Assembly separately requires a complete circuit.
 
 ## 7. Stable entity IDs
 
@@ -297,6 +297,7 @@ Project changes use commands rather than arbitrary mutation.
 type ProjectCommand =
   | { type: 'component.add'; instanceId: string; definitionId: string }
   | { type: 'component.remove'; instanceId: string }
+  | { type: 'component.replace'; instanceId: string; replacementId: string; definitionId: string }
   | { type: 'connection.create'; id: string; from: EndpointRef; to: EndpointRef }
   | { type: 'connection.remove'; id: string }
   | { type: 'layout.move'; entityId: string; transform: Transform }
@@ -529,8 +530,10 @@ Those claims come from deterministic metadata/rules and validated sources, not m
 That boundary is one of Kinetable's core architectural constraints.
 
 
-## 22. Implemented through Slice 06
+## 22. Implemented through Slice 07
 
 React Router supplies `/`, `/start`, `/table`, `/new`, `/auth` and `/auth/callback`. Canonical board and part definitions live in `apps/web/src/component-library`; Zustand profile state persists through a Dexie repository. Presentation geometry is shared independently of landing choreography.
 
 A single auth boundary owns Supabase sessions. The typed cloud profile repository reconciles guest setup with owner-only hosted profiles. Project creation and sync are separate services; the project store coordinates observable state. Local/cloud repositories persist validated v1/v2 documents in Dexie and `public.projects`. Pure `hardware-core` executes strict commands atomically and validates the graph. The provider-independent planner routes through remote BYOK, custom compatible, local HTTP or local CLI transports. The Vercel endpoint validates remote plans; the optional Local Bridge validates local plans. The client revalidates against its current revision before saving. Guest assembly is allowed; cloud sync still uses Supabase Auth. The spatial scene reads persisted layout and instances. Real Codex CLI plans passed the four initial intents and unsupported case. Inventory, simulation, firmware and editable wiring remain future slices. Operational details are in [BACKEND.md](BACKEND.md), [SLICE-06.md](SLICE-06.md) and [LOCAL-BRIDGE.md](LOCAL-BRIDGE.md).
+
+Slice 07 adds `WorkbenchStage` for interaction while `BoardStage` continues serving static previews. `Workbench` holds transient selection, tray and camera requests; a Three group holds only the current pointer drag. Manual edits and AI both use `hardware-core` commands. The project store serializes manual transactions, saves locally once per edit and coalesces authenticated cloud checkpoints. Its bounded history is transient and project-scoped; undo and redo save new document revisions. Structural and electrical safety validation protects repositories, while circuit completeness remains the AI gate. Provider metadata is runtime-validated and versioned separately from the credential vault. See [Slice 07](SLICE-07.md).

@@ -190,13 +190,14 @@ Real authenticated Codex CLI calls have generated and validated the four initial
 
 The primary Kinetable screen.
 
-- pan / orbit / zoom / focus;
-- select, move, rotate and inspect hardware;
-- snap objects to valid positions;
+- pan / orbit / zoom / focus / reset;
+- select, drag, nudge and rotate hardware;
 - add / remove / replace parts;
-- contextual controls;
-- Build / Simulate / Explain modes;
-- local autosave of layout and project state.
+- contextual controls and keyboard/touch access;
+- Build mode with Simulate / Explain clearly unavailable;
+- undo / redo and local-first autosave of layout and parts.
+
+Status: implemented and verified locally, on hosted Supabase and on a Vercel preview. Safe incomplete circuits remain editable; AI Assembly still requires complete validation. See [Slice 07](docs/SLICE-07.md).
 
 ### 08 — Wiring + Breadboard Intelligence
 
@@ -474,12 +475,13 @@ KineTable/
 - [Slice 04 My Table and project persistence](docs/SLICE-04.md)
 - [Slice 05 New Build and real project creation](docs/SLICE-05.md)
 - [Slice 06 AI assembly implementation and verification](docs/SLICE-06.md)
+- [Slice 07 interactive workbench and verification](docs/SLICE-07.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 
 ## Status
 
-**Slices 01–06 implemented and verified. Slice 07 has not begun.**
+**Slices 01–07 implemented and verified. Slice 08 has not begun.**
 
 Implementation proceeds page-by-page and feature-by-feature, with each completed slice visually finished, tested, and backed by the real persistence/server functionality it requires.
 

@@ -42,6 +42,13 @@ it.skipIf(process.env.KINETABLE_HOSTED_V2_QA !== "1")("round-trips validated v2 
   expect(restored[0].document).toEqual(candidate);
   expect(await request(`/rest/v1/projects?id=eq.${candidate.id}&select=*`, "GET", b.token)).toEqual([]);
   expect(await request(`/rest/v1/projects?id=eq.${candidate.id}`, "PATCH", b.token, { name: "stolen" })).toEqual([]);
+  const incomplete = executeCommands(migrateProject(starterProject("esp32-dev-module")), [{ type: "component.add", instanceId: "led-1", definitionId: "led-5mm" }], undefined, "editor");
+  const draft = await request("/rest/v1/projects", "POST", a.token, { id: incomplete.id, name: incomplete.name, primary_board_id: incomplete.boardIds[0], schema_version: 2, document: incomplete });
+  expect(draft[0].document.components).toHaveLength(2);
+  expect((await request(`/rest/v1/projects?id=eq.${incomplete.id}&select=*`, "GET", a.token))[0].document).toEqual(incomplete);
+  expect(await request(`/rest/v1/projects?id=eq.${incomplete.id}&select=*`, "GET", b.token)).toEqual([]);
+  expect(await request(`/rest/v1/projects?id=eq.${incomplete.id}`, "PATCH", b.token, { name: "stolen" })).toEqual([]);
+  expect(await request(`/rest/v1/projects?id=eq.${incomplete.id}`, "DELETE", a.token)).toHaveLength(1);
   mkdirSync("../../output", { recursive: true });
   writeFileSync("../../output/slice-06-hosted-v2.json", JSON.stringify({ a, b, projectId: candidate.id }));
 }, 60000);

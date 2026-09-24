@@ -24,7 +24,7 @@ export default function ProviderSettingsPage() {
   const [draft, setDraft] = useState<Record<string, { label: string; secret: string; remember: boolean }>>({});
   const [models, setModels] = useState<Record<string, string[]>>({});
   const [manageAllowed, setManageAllowed] = useState<Record<string, boolean>>({});
-  function update(next: ProviderSettings) { setSettings(next); saveProviderSettings(next); }
+  function update(next: ProviderSettings) { setSettings(next); try { saveProviderSettings(next); } catch { /* Keep an incomplete URL draft editable until it becomes valid. */ } }
   function updateRoute(id: string, change: Partial<RouteCandidate>) { update({ ...settings, profile: { ...settings.profile, routes: settings.profile.routes.map(route => route.id === id ? { ...route, ...change } : route) } }); }
   function add() {
     const option = options.find(o => o.id === chosen)!;
