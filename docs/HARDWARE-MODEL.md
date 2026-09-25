@@ -2,413 +2,412 @@
 
 ## 1. Principle
 
-Kinetable must treat hardware as structured, electrically meaningful data — not as 3D decorations.
+Hardware is structured, electrically meaningful data—not 3D decoration.
 
-Every supported component needs three linked representations:
+Each supported definition eventually has three linked representations sharing one stable definition ID:
 
 ```text
 Visual
-  3D model / anchors / dimensions
+3D geometry · dimensions · pin/lead anchors
 
 Electrical
-  pins / voltage / capabilities / constraints / topology
+electrical model · pins · supply · capabilities · topology
 
 Behavioural
-  simulation driver / state / events
+simulation driver · virtual inputs · runtime outputs/events
 ```
 
-These three representations share one canonical component definition ID.
+Changing a visual model must never change electrical or simulation behavior.
 
-## 2. Component definition
+## 2. Current project representation — v3
 
-Suggested shape:
+Project v3 stores physical facts explicitly.
 
 ```ts
-interface ComponentDefinition {
+type ElectricalEndpoint =
+  | { kind: 'pin'; componentId: string; pinId: string }
+  | { kind: 'breadboard-hole'; breadboardId: string; holeId: string }
+
+interface Wire {
   id: string
-  name: string
-  manufacturer?: string
-  model?: string
-  category: ComponentCategory
-  description: string
+  from: ElectricalEndpoint
+  to: ElectricalEndpoint
+}
 
-  visual: VisualDefinition
-  electrical: ElectricalDefinition
-  simulation?: SimulationDefinition
-  compatibility?: CompatibilityDefinition
-  provenance: ProvenanceDefinition
+interface TerminalPlacement {
+  componentId: string
+  pinId: string
+  breadboardId: string
+  holeId: string
 }
 ```
 
-Definitions describe a component type. Projects contain component instances.
+The project also stores component instances, layout, intent and metadata.
 
-## 3. Component instance
+A terminal placement means a physical component lead is inserted into a breadboard hole. It is not represented as a fake jumper wire.
 
-```ts
-interface ComponentInstance {
-  id: string
-  definitionId: string
-  label?: string
-  properties: Record<string, unknown>
-  placement?: PlacementState
-}
-```
+## 3. Pins and capabilities
 
-Example:
+Pins use stable machine-readable IDs shared by electrical definitions and presentation anchors.
 
-```json
-{
-  "id": "pir-1",
-  "definitionId": "sensor.hc-sr501",
-  "label": "Front motion sensor",
-  "properties": {
-    "delayMs": 1000
-  }
-}
-```
-
-## 4. Pins
-
-```ts
-interface PinDefinition {
-  id: string
-  label: string
-  kind: PinKind
-  capabilities: PinCapability[]
-  voltage?: VoltageConstraint
-  direction?: 'input' | 'output' | 'bidirectional' | 'power'
-}
-```
-
-Possible capabilities:
+Current role vocabulary includes:
 
 ```text
-digital-input
-digital-output
-analog-input
-pwm
-interrupt
+ground
+power
+digital-in
+digital-out
+digital-io
 i2c-sda
 i2c-scl
-spi-mosi
-spi-miso
-spi-sck
-uart-tx
-uart-rx
-power-3v3
-power-5v
-ground
-input-only
+passive
 ```
 
-Board-specific restrictions must be data-driven.
+As the component platform grows this should evolve toward richer capability metadata such as analog input, PWM, interrupts, SPI and UART without breaking stable definition/pin IDs.
 
-## 5. Endpoints
+Board-specific restrictions belong in canonical data/rules, not React or AI prompts.
 
-Any connectable location resolves to an endpoint.
+## 4. Visual anchors
 
-```ts
-interface EndpointRef {
-  componentId: string
-  portId: string
-  subPortId?: string
-}
-```
-
-Examples:
+Visual pin anchors are presentation data keyed by the same stable electrical pin IDs.
 
 ```text
-esp32-main:gpio23
-pir-1:out
-breadboard-1:e17
-breadboard-1:rail-plus-left-12
+electrical definition     spatial definition
+GPIO23 -----------------> GPIO23 anchor
+OLED SDA ----------------> SDA anchor
+PIR OUT -----------------> OUT anchor
 ```
 
-## 6. Nets
+Three.js may transform an anchor into world coordinates, but geometry has no authority over electrical connectivity.
 
-Electrical relationships are represented as nets.
+Anchor coverage is testable for the currently supported physical subset.
 
-```ts
-interface Net {
-  id: string
-  endpoints: EndpointRef[]
-  kind?: SignalKind
-  metadata?: Record<string, unknown>
-}
-```
+## 5. Canonical breadboard
 
-Important: a net is not the same thing as a visible jumper wire.
+The current supported breadboard is:
 
-A breadboard may join several endpoints into one conductive net without any direct visible wire connecting those exact endpoints.
+`breadboard-half-400`
 
-## 7. Connection validation
+Topology:
 
-Validation should return structured results rather than booleans.
+- A–J × 30 terminal columns;
+- A–E at one numbered column form one conductive strip;
+- F–J at that number form a separate conductive strip;
+- the center trench separates both sides;
+- four rail rows: L+, L−, R+, R−;
+- each rail has 25 holes;
+- each of those four rails is continuous in this exact Kinetable definition;
+- no rail is implicitly connected to another rail.
 
-```ts
-interface ValidationResult {
-  status: 'valid' | 'warning' | 'invalid'
-  code: string
-  message: string
-  evidence?: string[]
-  suggestions?: SuggestedFix[]
-}
-```
+Commercial breadboards vary. A different physical rail layout requires a different canonical definition rather than changing this topology dynamically.
 
-Example:
+Hole identity, coordinates and conductive-group membership come from pure hardware-core data.
 
-```json
-{
-  "status": "invalid",
-  "code": "PIN_INPUT_ONLY",
-  "message": "GPIO34 can read signals but cannot drive this LED.",
-  "suggestions": [
-    { "target": "esp32-main:gpio23" }
-  ]
-}
-```
+## 6. Wires, placements and nets
 
-## 8. Validation categories
-
-Initial validation should include:
-
-- incompatible direction;
-- input-only output attempt;
-- voltage mismatch;
-- missing power/ground;
-- short between power rails;
-- conflicting outputs on same net;
-- unsupported protocol pin assignment;
-- duplicate exclusive peripheral assignment where relevant;
-- required passive component missing where encoded by project rule;
-- unconnected required input/output;
-- breadboard placement mismatch.
-
-Warnings should be distinguishable from hard-invalid states.
-
-## 9. Breadboard model
-
-A breadboard is a component with internal topology.
-
-Example mini breadboard group rules:
+A visible jumper and an electrical net are different concepts.
 
 ```text
-A1 B1 C1 D1 E1   = group row-1-left
-F1 G1 H1 I1 J1   = group row-1-right
+Wire
+= persisted physical conductor between two endpoints
+
+TerminalPlacement
+= persisted inserted lead ↔ breadboard-hole relationship
+
+Breadboard topology
+= canonical implicit conductors
+
+Net
+= derived electrical equivalence set
 ```
 
-Each supported breadboard variant defines:
+Nets are computed, not stored:
 
-- hole coordinates;
-- row/column labels;
-- conductive groups;
-- center trench;
-- rail groups;
-- rail breaks if present;
-- physical dimensions;
-- insertion normals.
-
-Suggested schema:
-
-```ts
-interface BreadboardDefinition {
-  holes: BreadboardHole[]
-  conductiveGroups: ConductiveGroup[]
-}
-
-interface BreadboardHole {
-  id: string
-  row: number
-  column: string
-  anchorId: string
-}
-
-interface ConductiveGroup {
-  id: string
-  holeIds: string[]
-}
+```text
+component pins
++ physical wires
++ inserted leads
++ breadboard strips/rails
+→ resolveNets()
+→ derived nets
 ```
 
-Hovering one hole can therefore highlight all electrically connected holes without running simulation.
+This allows:
 
-## 10. Physical placement vs electrical connection
-
-Placing a lead in a breadboard hole creates a physical insertion relationship.
-
-The hardware engine then derives the electrical relationship through breadboard topology.
-
-This distinction supports:
-
-- visual learning;
-- snapping;
-- different breadboard variants;
-- future camera reconstruction;
-- explaining why an off-by-one row placement breaks a project.
-
-## 11. Simulation model
-
-V1 simulation is event-oriented and practical, not full analog circuit analysis.
-
-Core runtime concepts:
-
-```ts
-interface SimulationRuntime {
-  timeMs: number
-  componentState: Map<string, unknown>
-  netState: Map<string, SignalValue>
-  queue: SimulationEvent[]
-}
+```text
+ESP32 GND
+→ jumper
+→ breadboard rail
+→ internal rail conductivity
+→ another hole
+→ inserted LED cathode
 ```
 
-Signal values may include:
+to resolve as one electrical net.
+
+Passive components such as resistors and LEDs retain distinct terminals; their internal behavior is not treated as copper continuity.
+
+## 7. Validation confidence layers
+
+Do not collapse every type of correctness into one `valid` boolean.
+
+### Project structure
+
+Proves that IDs, definitions, endpoints, transforms and serialized data are well formed.
+
+### Electrical safety
+
+Rejects supported hard-invalid states such as:
+
+- power-to-ground short;
+- incompatible supply rails sharing a net;
+- prohibited output conflicts;
+- invalid pin/hole references;
+- duplicate/occupied physical endpoints where disallowed.
+
+### Circuit completeness
+
+Reports supported missing requirements such as:
+
+- unconnected required pin;
+- missing board supply/ground;
+- missing supported GPIO path;
+- incorrect supported OLED I²C mapping;
+- LED without required supported resistor/ground topology.
+
+Manual projects may be safe but incomplete.
+
+AI Assembly must pass complete-circuit validation before claiming success.
+
+### Simulation compatibility — Slice 09
+
+A circuit may be electrically complete but not supported by the simulator. Simulation compatibility is a separate capability check.
+
+### Simulation runtime state — Slice 09
+
+A compatible circuit may have changing virtual state over logical time. Runtime state is not persisted as electrical truth.
+
+### Physical verification — Slice 14/15
+
+Simulation does not prove the real circuit is physically built correctly. Real board telemetry and later camera observations provide additional evidence.
+
+## 8. Simulation philosophy
+
+Slice 09 is event-oriented and deterministic. It is not SPICE and not an ESP32/Pico/AVR CPU emulator.
+
+The goal is to model supported product behavior reliably enough to teach, test and visualize cause/effect.
+
+Required architecture:
+
+```text
+Project v3
+→ validate electrical structure/safety
+→ check simulation compatibility
+→ compile topology once
+→ SimulationRuntime
+    ├─ logical time
+    ├─ compiled nets
+    ├─ component driver state
+    ├─ net/signal state
+    ├─ event queue
+    └─ causal trace
+→ spatial/UI observers
+```
+
+The compiled graph should be rebuilt only when relevant project topology changes. `resolveNets()` must not run every animation frame or simulation tick.
+
+## 9. Logical clock
+
+Simulation time is independent of browser frame rate.
+
+The same input/event sequence at the same logical times must produce the same runtime result whether rendered at 30, 60 or 144 fps.
+
+Expected controls:
+
+```text
+Play
+Pause
+Reset
+step/advance helpers for deterministic tests
+```
+
+Wall-clock scheduling may drive the user experience, but domain correctness is based on logical time.
+
+## 10. Runtime signal values
+
+A practical initial vocabulary may include:
 
 ```ts
 type SignalValue =
   | { kind: 'digital'; value: 0 | 1 }
-  | { kind: 'analog'; value: number; min: number; max: number }
   | { kind: 'voltage'; volts: number }
+  | { kind: 'analog'; value: number; min: number; max: number }
   | { kind: 'data'; protocol: string; value: unknown }
 ```
 
-## 12. Simulation drivers
+Only use signal kinds that the implemented driver/runtime can justify.
 
-Each simulatable component can register a driver.
+Do not animate “current flowing” as if Kinetable were doing analog circuit analysis when it is not.
 
-```ts
-interface SimulationDriver<State, Input> {
-  initialize(ctx: DriverContext): State
-  applyInput(state: State, input: Input, ctx: DriverContext): State
-  step(state: State, ctx: DriverContext): State
-}
-```
+## 11. Component driver registry
 
-Examples:
+Simulation drivers must be registered by canonical behavioral/electrical semantics, never by `visualId`.
 
-### Button
-
-Input:
+Direction:
 
 ```text
-pressed = true / false
+electricalModel: momentary-switch
+→ momentary switch driver
+
+electricalModel: pir
+→ PIR driver
+
+electricalModel: led-passive
+→ LED output observer/driver
+
+electricalModel: buzzer
+→ buzzer output driver
+
+electricalModel: ssd1306-i2c
+→ SSD1306 display driver
+
+electricalModel: dht11
+→ DHT11 protocol/sensor driver
 ```
 
-Output:
+A driver receives stable component/pin/net identities from the compiled circuit graph.
+
+## 12. Initial virtual inputs
+
+Slice 09 should support only inputs that can be modeled honestly for the current catalog.
+
+### Push button
+
+User action:
 
 ```text
-digital HIGH/LOW depending on configured topology
+press
+release
 ```
 
-### Potentiometer
-
-Input:
-
-```text
-position = 0.0 ... 1.0
-```
-
-Output:
-
-```text
-ADC-like analog value
-```
+The runtime changes the corresponding switch behavior/net state according to the supported topology.
 
 ### PIR
 
-Input:
+User action:
 
 ```text
-trigger()
+trigger motion
 ```
 
-Output:
-
-```text
-HIGH for configured duration
-```
+The driver can emit a deterministic HIGH interval for a documented simulated duration.
 
 ### DHT11
 
-Virtual environment inputs:
+Virtual environment:
 
 ```text
 temperature
 humidity
 ```
 
-Output is exposed through its protocol abstraction rather than pretending it is a simple analog sensor.
+DHT11 should be represented as protocol/data behavior, not as a fake analog voltage.
 
-### OLED
+## 13. Initial outputs
 
-Consumes rendered display state from the project/firmware abstraction and exposes a texture/text representation to the spatial layer.
+### LED
+
+Visual state may reflect the runtime's supported drive/on-off result.
+
+This is a semantic simulation of supported topology, not a photometric/current calculation.
 
 ### Buzzer
 
-State:
+Expose on/off or supported beep state. Optional browser audio must be user-controlled and restrained; sound is not required for runtime correctness.
 
-```text
-on/off
-frequency where supported
-```
+### OLED
 
-UI may generate audible feedback when sound is enabled.
+Expose display state/text only when there is an actual supported runtime behavior producing it. Do not invent display text from project intent.
 
-## 13. Board runtime model
+## 14. Board behavior before Visual Logic
 
-In early prototypes, board firmware can be represented semantically rather than emulated at the CPU instruction level.
+Slice 10 owns editable persistent Visual Logic.
+
+Therefore Slice 09 must not quietly create a hidden general-purpose programming system.
+
+The simulator may support a small explicit set of deterministic **simulation recipes/scenarios** for verified demo circuits, provided that:
+
+- recipes are separate from persistent project logic;
+- supported topology requirements are explicit;
+- unsupported projects say simulation behavior is unavailable rather than guessing;
+- no arbitrary natural-language intent is treated as executable firmware;
+- Slice 10 can later replace/compile these demonstrations into the real editable behavior IR.
+
+Direct device/electrical behavior that requires no board program can be simulated independently.
+
+## 15. Causal trace
+
+Every meaningful runtime transition should be able to produce structured evidence.
 
 Example:
 
 ```text
-button event
-→ behaviour graph
-→ LED state
-→ OLED text
-→ buzzer sequence
+12 ms  button-1 pressed
+12 ms  board-main:gpio18 input LOW
+12 ms  recipe/button-led evaluated
+12 ms  board-main:gpio23 output HIGH
+12 ms  led-1 state ON
 ```
 
-Kinetable does not need an ESP32 ISA emulator to prove its initial product interaction.
+Explain/X-Ray must consume this trace and the same compiled nets/runtime state.
 
-Later integrations may compile and run actual firmware on physical hardware or use external emulation where useful.
+Do not build an independent “explanation interpretation” that can disagree with simulation.
 
-## 14. Visual logic intermediate representation
+## 16. Explain / X-Ray — Slice 09
 
-Suggested semantic primitives:
+Modes:
 
 ```text
-WHEN
-IF
-AND
-OR
-DO
-WAIT
-REPEAT
-SET
-SHOW
-BEEP
+Power
+Signals
+Data
+All
 ```
 
-Example IR:
+### Power
 
-```json
-{
-  "trigger": {
-    "type": "event",
-    "source": "button-1",
-    "event": "pressed"
-  },
-  "actions": [
-    { "type": "set", "target": "led-1.state", "value": true },
-    { "type": "displayText", "target": "oled-1", "value": "BONK!" },
-    { "type": "beep", "target": "buzzer-1", "count": 2, "durationMs": 120 }
-  ]
-}
+Highlight deterministic power/ground relationships from the circuit graph.
+
+### Signals
+
+Highlight supported active digital/signal nets from current runtime state.
+
+### Data
+
+Show supported protocol relationships such as I²C/DHT data conceptually where implemented.
+
+### Explain
+
+A concise explanation should be generated first from deterministic topology/runtime facts. Optional future AI language can translate those facts, but a model is not required for correctness.
+
+## 17. Visual Logic — Slice 10
+
+Slice 10 owns the persistent editable semantic behavior graph.
+
+Target direction:
+
+```text
+WHEN button pressed
+DO OLED "BONK!"
+AND LED ON
+AND BEEP ×2
 ```
 
-This representation should drive simulation and later feed firmware generators.
+That behavior IR should drive the same Slice 09 simulation runtime and later board-specific firmware generation.
 
-## 15. BONK reference topology
+## 18. BONK reference
 
-Initial intended mapping:
+Reference electrical mapping:
 
 ```text
 OLED SDA    → ESP32 GPIO21
@@ -418,62 +417,31 @@ Button      → ESP32 GPIO18 using input pull-up semantics
 Buzzer      → ESP32 GPIO19
 ```
 
-The exact physical breadboard layout belongs to the project fixture, while these semantic connections belong to the reference project model.
+Slice 09 can use BONK as a simulation/explanation fixture only when the runtime behavior is explicitly represented by a supported deterministic recipe. Slice 10 makes that behavior editable.
 
-## 16. Component data provenance
+## 19. Component provenance and future platform
 
-Every technical definition should include source metadata.
+Production component records eventually need:
 
-```ts
-interface ProvenanceDefinition {
-  sources: SourceReference[]
-  reviewedAt?: string
-  confidence?: 'verified' | 'reviewed' | 'experimental'
-  assetLicense?: string
-}
-```
+- technical sources;
+- reviewed/verified status;
+- electrical metadata;
+- physical dimensions/anchors;
+- simulation driver ID/version;
+- asset provenance/license;
+- compatibility information.
 
-Kinetable should be able to distinguish verified technical facts from incomplete community metadata.
+That broader verified knowledge and inventory platform belongs to **Slice 11 — Hardware Platform**.
 
-## 17. Versioning
-
-Component definitions must be versionable because:
-
-- model geometry may improve;
-- pin metadata may be corrected;
-- simulation may change;
-- warnings may be added.
-
-Projects should reference stable definition IDs and retain enough version metadata for deterministic migration.
-
-## 18. Future camera/digital-twin mapping
-
-The physical-vision layer should ultimately produce observations that map onto the same core entities:
+## 20. Canonical roadmap ownership
 
 ```text
-observed object
-→ candidate ComponentDefinition
-→ ComponentInstance
-
-observed wire endpoint
-→ EndpointRef
-
-observed breadboard hole
-→ breadboard hole ID
+08 Physical Circuit Editor  → physical topology, nets, inspectors
+09 Living Circuit           → simulation + Explain/X-Ray
+10 Visual Logic             → editable semantic behavior
+11 Hardware Platform        → inventory + full component knowledge
+14 Physical Runtime         → compile/flash/live telemetry/code
+15 Digital Twin             → real-workbench vision/reconciliation
 ```
 
-Vision should not create a second incompatible circuit representation.
-
-The same graph powers simulation, explanation, AI, deployment, and the eventual real-workbench digital twin.
-
-## Slice 06 implemented subset
-
-The v2 project format stores one board instance, canonical component instances, and electrical connections with stable `{componentId, pinId}` endpoints. It does not yet store generalized multi-endpoint nets, breadboards, signal propagation or simulation drivers. The pure command executor applies a complete command list to a project copy and fills deterministic part layout slots. Under the Slice 06 complete-circuit gate, unknown parts or pins, missing component pin connections, mismatched supply, rail shorts, output conflict, GPIO conflict, unsupported I²C pins and LED-without-resistor topology all reject AI output. These rules are intentionally narrow; an unproven circuit is rejected by AI Assembly. See [Slice 06](SLICE-06.md) and the canonical definitions in `apps/web/src/component-library/catalog.ts`.
-
-## Slice 07 editor validation
-
-Manual editing keeps the same v2 graph. Structural checks reject missing definitions, invalid IDs or endpoints, and malformed transforms. Electrical safety rejects direct shorts, incompatible rails, output conflicts and unsupported board/pin relationships. Unconnected pins, absent LED resistor and incomplete I²C or button connections are structured `incomplete` diagnostics, so a safe draft can be saved. AI Assembly still invokes the complete-circuit gate before claiming success. Electrical rules use catalog `electricalModel` and capability metadata; changing `visualId` cannot change them. See [Slice 07](SLICE-07.md).
-
-## Slice 08 physical graph
-
-The earlier `EndpointRef` and stored `Net` sketches above describe the intended domain, not the current JSON format. Project v3 uses discriminated pin and breadboard-hole endpoints, explicit `Wire` records and separate `TerminalPlacement` records. `resolveNets` derives nets; no net is persisted. The canonical `breadboard-half-400` has 30 A–E and F–J terminal strips on each side of a center gap, plus four separate continuous 25-hole rails. Other breadboard rail variants require their own definition. Validation reads derived nets for power, ground, voltage, outputs, GPIO, OLED, PIR, DHT and LED series-resistor rules. Spatial geometry has no authority over connectivity. See [Slice 08](SLICE-08.md).
+See [Slice 08](SLICE-08.md) for the current physical graph implementation and [ROADMAP.md](ROADMAP.md) for the full 15-slice roadmap.
