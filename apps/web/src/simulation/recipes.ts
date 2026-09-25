@@ -1,4 +1,4 @@
-import { type Binding, type CompiledCircuit } from "./compileCircuit.js";
+import { boardPin, type Binding, type CompiledCircuit } from "./compileCircuit.js";
 import { bindDriver } from "./drivers.js";
 
 export type RecipeId = "blink-led" | "button-led" | "motion-alarm" | "dht11-oled" | "bonk" | "explore";
@@ -12,6 +12,7 @@ const descriptor: Record<RecipeId, [string,string]> = {
   explore: ["Explore signals", "Inspect supported inputs and supply paths without a behavior recipe."],
 };
 const make = (id: RecipeId, parts: Partial<Recipe> = {}): Recipe => ({ id, name: descriptor[id][0], description: descriptor[id][1], ...parts });
+const distinctPins = (...pins: (string | undefined)[]) => pins.every((pin): pin is string => !!pin) && new Set(pins).size === pins.length;
 
 export function availableRecipes(circuit: CompiledCircuit): Recipe[] {
   const buttonBinding = bindDriver(circuit,"momentary-switch")[0];
@@ -26,12 +27,14 @@ export function availableRecipes(circuit: CompiledCircuit): Recipe[] {
   const buzzer = buzzerBinding && { buzzer: buzzerBinding.component, buzzerPin: buzzerBinding.boardPin };
   const dht = dhtBinding && { dht: dhtBinding.component, dhtPin: dhtBinding.boardPin };
   const oled = oledBinding?.component;
+  const oledSda = oled ? boardPin(circuit, oled, "sda") : undefined;
+  const oledScl = oled ? boardPin(circuit, oled, "scl") : undefined;
   const recipes = [
     led && make("blink-led", led),
-    button && led && make("button-led", { ...button, ...led }),
-    pir && buzzer && make("motion-alarm", { ...pir, ...buzzer }),
-    dht && oled && make("dht11-oled", { ...dht, oled }),
-    button && led && buzzer && oled && circuit.board.definition.id === "esp32-dev-module" && make("bonk", { ...button, ...led, ...buzzer, oled }),
+    button && led && distinctPins(button.buttonPin, led.ledPin) && make("button-led", { ...button, ...led }),
+    pir && buzzer && distinctPins(pir.pirPin, buzzer.buzzerPin) && make("motion-alarm", { ...pir, ...buzzer }),
+    dht && oled && distinctPins(dht.dhtPin, oledSda, oledScl) && make("dht11-oled", { ...dht, oled }),
+    button && led && buzzer && oled && circuit.board.definition.id === "esp32-dev-module" && distinctPins(button.buttonPin, led.ledPin, buzzer.buzzerPin, oledSda, oledScl) && make("bonk", { ...button, ...led, ...buzzer, oled }),
   ].filter((r): r is Recipe => !!r);
   return [...recipes, make("explore", { ...button, ...pir, ...dht, ...led, ...buzzer, oled })];
 }
