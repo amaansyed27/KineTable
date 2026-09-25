@@ -1,6 +1,14 @@
 import { useEffect, useRef } from "react";
 import { useSimulationStore } from "../state/simulationStore";
 import { causalChain, describeTrace, latestForComponent, xrayNets, type XRayMode } from "../simulation/explain";
+import type { Snapshot } from "../simulation/runtime";
+
+function outputLabel(output: Snapshot["outputs"][string] | undefined): string {
+  if (output?.text !== undefined) return output.text || "Blank";
+  if (output?.on === true) return "ON";
+  if (output?.on === false) return "OFF";
+  return "Not driven";
+}
 
 export function SimulationPanel({ selectedId }: { selectedId: string | null }) {
   const mode = useSimulationStore(s => s.mode), playing = useSimulationStore(s => s.playing);
@@ -29,7 +37,10 @@ export function SimulationPanel({ selectedId }: { selectedId: string | null }) {
       {recipe?.button && <div className="simulation-row"><span>Push button</span><button aria-pressed={!!snapshot?.outputs[recipe.button.id]?.pressed} onClick={() => actions.button(recipe.button!.id, !snapshot?.outputs[recipe.button!.id]?.pressed)}>{snapshot?.outputs[recipe.button.id]?.pressed ? "Release button" : "Press button"}</button></div>}
       {recipe?.pir && <div className="simulation-row"><span>Motion sensor</span><button onClick={() => actions.pir(recipe.pir!.id)}>Trigger motion</button></div>}
       {recipe?.dht && <div className="simulation-row simulation-environment"><span>Virtual environment</span><label>Temperature °C<input type="range" min="0" max="50" value={snapshot?.outputs[recipe.dht.id]?.temperatureC ?? 24} onChange={e => actions.environment(Number(e.target.value), snapshot?.outputs[recipe.dht!.id]?.humidityPct ?? 50)} /><output>{snapshot?.outputs[recipe.dht.id]?.temperatureC ?? 24} °C</output></label><label>Humidity %<input type="range" min="20" max="90" value={snapshot?.outputs[recipe.dht.id]?.humidityPct ?? 50} onChange={e => actions.environment(snapshot?.outputs[recipe.dht!.id]?.temperatureC ?? 24, Number(e.target.value))} /><output>{snapshot?.outputs[recipe.dht.id]?.humidityPct ?? 50}%</output></label></div>}
-      {snapshot && <div className="simulation-outputs" aria-live="polite">{circuit.bindings.filter(b => ["led-passive", "buzzer", "ssd1306-i2c"].includes(b.definition.electricalModel)).map(b => <span key={b.id}>{b.definition.name}: <strong>{snapshot.outputs[b.id]?.text ?? (snapshot.outputs[b.id]?.on ? "ON" : "OFF")}</strong> <button onClick={() => { const event = latestForComponent(snapshot, b.id); actions.selectTrace(event?.id ?? null); actions.explain(); }}>Why?</button></span>)}</div>}
+      {snapshot && <div className="simulation-outputs" aria-live="polite">{circuit.bindings.filter(b => ["led-passive", "buzzer", "ssd1306-i2c"].includes(b.definition.electricalModel)).map(b => {
+        const event = latestForComponent(snapshot, b.id);
+        return <span key={b.id}>{b.definition.name}: <strong>{outputLabel(snapshot.outputs[b.id])}</strong> <button disabled={!event} title={event ? undefined : "No runtime event to explain yet."} onClick={() => { if (!event) return; actions.selectTrace(event.id); actions.explain(); }}>Why?</button></span>;
+      })}</div>}
     </>}
     {mode === "explain" && <>
       <div className="simulation-xray" aria-label="X-Ray modes">{(["power","signals","data","all"] as XRayMode[]).map(m => <button key={m} aria-pressed={xray === m} onClick={() => actions.setXray(m)}>{m[0].toUpperCase() + m.slice(1)}</button>)}</div>
