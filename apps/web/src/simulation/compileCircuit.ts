@@ -18,10 +18,26 @@ export function topologyKey(project: KinetableProjectV3): string {
   });
 }
 
-let cached: CompiledCircuit | undefined;
+const MAX_COMPILED_CACHE = 16;
+const compiledCache = new Map<string, CompiledCircuit>();
+function cacheCompiled(key: string, circuit: CompiledCircuit): CompiledCircuit {
+  compiledCache.set(key, circuit);
+  if (compiledCache.size > MAX_COMPILED_CACHE) {
+    const oldest = compiledCache.keys().next().value as string | undefined;
+    if (oldest) compiledCache.delete(oldest);
+  }
+  return circuit;
+}
+
 export function compileCircuit(project: KinetableProjectV3): CompiledCircuit {
   const key = topologyKey(project);
-  if (cached?.topologyKey === key) return cached;
+  const cacheKey = `${project.id}:${key}`;
+  const cached = compiledCache.get(cacheKey);
+  if (cached) {
+    compiledCache.delete(cacheKey);
+    compiledCache.set(cacheKey, cached);
+    return cached;
+  }
   validateElectricalSafety(project);
   const nets = resolveNets(project);
   const endpointToNet = new Map(nets.flatMap(net => net.endpoints.map(e => [endpointKey(e), net.id] as const)));
@@ -34,8 +50,7 @@ export function compileCircuit(project: KinetableProjectV3): CompiledCircuit {
     const net = endpointToNet.get(endpointKey(wire.from))!;
     wiresByNet.set(net, [...(wiresByNet.get(net) ?? []), wire.id]);
   }
-  cached = { topologyKey: key, nets, endpointToNet, bindings, board: bindings.find(b => b.definition.kind === "board")!, wiresByNet };
-  return cached;
+  return cacheCompiled(cacheKey, { topologyKey: key, nets, endpointToNet, bindings, board: bindings.find(b => b.definition.kind === "board")!, wiresByNet });
 }
 
 export function sameNet(a: Binding, aPin: string, b: Binding, bPin: string): boolean {
