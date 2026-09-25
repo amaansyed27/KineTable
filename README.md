@@ -2,7 +2,7 @@
 
 **An AI-native visual workspace for building hardware.**
 
-Kinetable is a spatial, visual-first hardware environment where people can build electronics by manipulating live 3D components, understanding visual logic, simulating behaviour, and asking AI for help. Code exists underneath, but it is not the starting point.
+Kinetable is a spatial, visual-first hardware environment where people build electronics by manipulating live 3D hardware, wiring real electrical topology, simulating behaviour, and using AI for planning and explanation. Code exists underneath, but it is not the starting point.
 
 > Select your board. Describe the idea. See it work.
 
@@ -10,404 +10,152 @@ Kinetable is a spatial, visual-first hardware environment where people can build
 
 Most hardware tools begin with code, pin tables, wiring diagrams, or CAD. Kinetable begins with **the thing you want to make**.
 
-The core experience is a personalized digital workbench that knows:
+The workbench is the product. It should know what hardware exists in the project, how it is connected, whether the supported electrical rules are satisfied, what the project is intended to do, and eventually how the virtual build maps to the real physical workbench.
 
-- which boards and components you own;
-- how those components behave electrically;
-- how they are connected;
-- what the project is supposed to do;
-- how to explain that behaviour visually;
-- and, later, how your virtual project maps to your real physical workbench.
+Core rules:
 
-Kinetable is not another Arduino IDE, generic circuit simulator, or chatbot around hardware documentation. **The workbench itself is the product.**
+- **Visual first.** Hardware and behaviour are the primary interface.
+- **Code optional.** Source code is an advanced escape hatch, not the starting point.
+- **AI proposes; the hardware engine proves.** Models never override deterministic electrical rules.
+- **Local first, cloud backed.** Direct manipulation stays local and fast; accounts add sync.
+- **Provider agnostic.** AI can use BYOK APIs, custom compatible endpoints, local runtimes, or authenticated local CLIs.
+- **Fun through interaction, not clutter.** Physical response and cause/effect replace dashboard density.
 
-## Product principles
+## Current status
 
-1. **Visual first.** Hardware and behaviour are the primary interface.
-2. **Code optional.** Source code is available when wanted, not forced on beginners.
-3. **One-step setup.** Pick a board; Kinetable configures the rest.
-4. **Personal by default.** Projects are built around the parts the user actually owns.
-5. **AI proposes; the hardware engine proves.** Electrical truth comes from deterministic models and constraints.
-6. **Progressive disclosure.** Beginner-friendly on the surface, serious engineering detail underneath.
-7. **Fun through interaction, not clutter.** Tactile objects, motion, feedback, and satisfying cause/effect.
-8. **Browser first.** Normal use should require no installation.
-9. **Local first, cloud backed.** Fast workbench interactions stay local; accounts provide sync and storage. AI assembly can use a guest's own provider.
-10. **Full-stack slices.** A feature is not complete if its required backend is still fake.
+**Slices 01–08 are implemented and verified. Slice 09 — Living Circuit is next.**
 
-## Browser-first architecture
+Kinetable currently supports:
 
-```text
-                       VERCEL
-                          │
-                    Kinetable Web
-                 React + R3F + Vite
-                          │
-             ┌────────────┴────────────┐
-             │                         │
-          Supabase                Vercel APIs
-             │                         │
-   Postgres/Auth/Storage          AI orchestration
-             │                         │
-             └────────────┬────────────┘
-                          │
-                    Local runtime
-                 IndexedDB + Zustand
-                          │
-                 Web Serial / WebUSB
-                          │
-               ESP32 / Pico / Arduino
-```
+- board-first onboarding for ESP32, Raspberry Pi Pico and Arduino Uno;
+- optional Supabase authentication and owner-only cloud project sync;
+- local-first IndexedDB project persistence;
+- intent-first New Build;
+- real AI assembly through BYOK/local/CLI providers with structured commands and deterministic validation;
+- an interactive 3D workbench with camera controls, direct manipulation, add/remove/replace, undo/redo and autosave;
+- Project v3 physical circuit data;
+- explicit pin and breadboard-hole endpoints;
+- a deterministic 400-hole half-size breadboard topology;
+- physical wires and through-hole lead placement;
+- derived electrical nets;
+- net-aware safety/completeness checks;
+- component, pin, wire and breadboard-hole inspection;
+- accessible wiring controls, touch interaction and WebGL fallback.
 
-Normal users never manage Arduino-style cores, libraries, compilers, plugins or toolchains directly. Internally Kinetable can use board packs, component packs, simulation drivers and toolchain adapters while presenting only the physical hardware the user recognizes.
+Simulation, Explain/X-Ray, visual logic, personal inventory, physical-board runtime and digital-twin features remain future slices.
 
-For supported devices, browser APIs such as Web Serial/WebUSB can connect to real boards. Heavy firmware compilation can later run in an isolated container worker behind a compile API. A Tauri desktop/native bridge remains a fallback for hardware or browser combinations requiring deeper access.
-
-See [Backend and deployment](docs/BACKEND.md) and [Technical architecture](docs/ARCHITECTURE.md).
-
-## Locked stack
-
-| Need | Choice |
-| --- | --- |
-| Web application | React + TypeScript + Vite |
-| 3D/spatial UI | Three.js + React Three Fiber + Drei |
-| UI state | Zustand |
-| Local/offline persistence | IndexedDB + Dexie |
-| UI primitives | Radix UI |
-| Styling | Tailwind CSS + custom Kinetable design system |
-| Motion | Motion |
-| Cloud database | Supabase PostgreSQL |
-| Authentication | Supabase Auth |
-| 3D/project asset storage | Supabase Storage |
-| API / AI orchestration | Vercel Functions |
-| Web deployment | Vercel |
-| Testing | Vitest + React Testing Library + Playwright |
-| Workspace | pnpm workspaces + Turborepo |
-| Heavy compile worker, later | isolated container service |
-| Native fallback, later | Tauri + Rust |
-
-## Build plan — outside to inside, feature by feature
-
-The project is built in the same order a new user experiences it. Each slice is a user-visible capability **plus the real backend required by that capability**.
-
-### 01 — Landing ✅
-
-Public-facing Kinetable introduction.
-
-- premium minimal landing page;
-- continuous 3D product story;
-- personalization and learning teaser;
-- responsive visual QA;
-- no fake application functionality.
-
-Status: implemented. See [Slice 01](docs/SLICE-01.md).
-
-### 02 — Product Entry + Onboarding + Backend Foundation
-
-The first real application slice.
-
-User journey:
+## Architecture
 
 ```text
-Landing
-→ Open Kinetable
-→ choose ESP32 / Pico / Arduino
-→ Set up my table
-→ /table
+                        Kinetable Web
+                   React + R3F + Vite
+                            │
+          ┌─────────────────┼──────────────────┐
+          │                 │                  │
+     Workbench        AI provider router     Supabase
+          │                 │             Auth/Postgres
+          │         ┌───────┴────────┐         │
+          │         │                │         │
+          │      Remote BYOK      Local Bridge │
+          │      / Vercel API     HTTP / CLI   │
+          │                                   │
+          └───────────────┬───────────────────┘
+                          │
+                     Project v3
+                          │
+        components · wires · lead placements · layout
+                          │
+                    hardware-core
+                          │
+          breadboard topology + derived nets
+                          │
+           structural / safety / completeness
+                          │
+                IndexedDB local-first
 ```
 
-Build:
+The project/electrical model is the source of truth. Three.js renders it; AI proposes commands against it; persistence stores it. Derived nets are recomputed from physical project data and are not stored as a second source of truth.
 
-- real application routing;
-- `/start` onboarding and `/table` handoff;
-- board-first 3D selection;
-- no mandatory account;
-- local hardware profile and persistence boundary;
-- canonical board definitions;
-- Supabase client/config foundation;
-- database migrations folder and typed data boundary;
-- Vercel-ready environment configuration;
-- `.env.example`;
-- no fake device-detection success.
+See [Technical architecture](docs/ARCHITECTURE.md), [Hardware model](docs/HARDWARE-MODEL.md), [Backend](docs/BACKEND.md), [Providers](docs/PROVIDERS.md), and [Local Bridge](docs/LOCAL-BRIDGE.md).
 
-The selected board must survive refresh. If cloud credentials are configured, the architecture must be ready to sync without rewriting UI components.
+## Project format
 
-### 03 — Sign In / Account Upgrade + Real Auth
+The current editable project format is **schemaVersion 3**.
 
-Authentication adds cloud value; it does not gate experimentation.
+Project v3 stores:
 
-- Supabase Auth;
-- Google / GitHub / email;
-- continue locally/guest;
-- preserve existing local onboarding/project data when signing in;
-- user profile row;
-- Row Level Security policies;
-- session restore/logout;
-- clear local-vs-cloud ownership semantics.
+- one board instance;
+- supported component instances;
+- at most one canonical breadboard today;
+- physical wires between pin/hole endpoints;
+- through-hole terminal placements;
+- spatial transforms;
+- project intent and metadata.
 
-### 04 — My Table / Home + Real Project Persistence ✅
-
-The main home screen is a personal workbench, not a dashboard.
-
-- selected board already present;
-- prompt: `What do you want to make?`;
-- recent project spatially visible;
-- Table navigation; future destinations remain unavailable;
-- IndexedDB local project state;
-- Supabase project save/sync for signed-in users;
-- versioned JSONB project document;
-- returning-user restore.
-
-Status: implemented and verified on hosted Supabase and a Vercel preview. See [Slice 04](docs/SLICE-04.md).
-
-### 05 — New Build + Project Creation ✅
-
-Intent-first project creation.
-
-- natural-language project entry UI;
-- deterministic, editable local project name;
-- optional preview of the request, name and selected board;
-- validated intent in a real local project document;
-- first-build starter promotion and later independent projects;
-- authenticated Supabase checkpoint with offline retry.
-
-Status: implemented and verified locally, on hosted Supabase, and on a Vercel preview. No AI planning runs in this slice. See [Slice 05](docs/SLICE-05.md).
-
-### 06 — AI Assembly + Real AI Backend
-
-The build itself becomes the loading state.
-
-- components enter spatially;
-- auto-placement and structured auto-wiring;
-- device-local BYOK or optional Local Bridge inference, with Vercel proxying remote keys only for a request;
-- ordered provider and credential fallback;
-- model returns structured Kinetable commands only;
-- deterministic hardware validation before commands are applied;
-- unsupported requests fail clearly rather than hallucinating hardware.
-
-Real authenticated Codex CLI calls have generated and validated the four initial builds and rejected an unsupported drone request. Kinetable does not require its own paid model account. See [Slice 06](docs/SLICE-06.md), [Providers](docs/PROVIDERS.md) and [Local Bridge](docs/LOCAL-BRIDGE.md) for the supported paths and verification.
-
-### 07 — Core 3D Workbench
-
-The primary Kinetable screen.
-
-- pan / orbit / zoom / focus / reset;
-- select, drag, nudge and rotate hardware;
-- add / remove / replace parts;
-- contextual controls and keyboard/touch access;
-- Build mode with Simulate / Explain clearly unavailable;
-- undo / redo and local-first autosave of layout and parts.
-
-Status: implemented and verified locally, on hosted Supabase and on a Vercel preview. Safe incomplete circuits remain editable; AI Assembly still requires complete validation. See [Slice 07](docs/SLICE-07.md).
-
-### 08 — Wiring + Breadboard Intelligence
-
-Physical connectivity becomes real rather than decorative.
-
-- pin anchors;
-- draggable wires;
-- electrical nets;
-- breadboard A–E / F–J topology;
-- rails and center gap;
-- connected-hole highlighting;
-- invalid-placement warnings;
-- undo/redo;
-- serialized connection graph.
-
-### 09 — Component Inspector
-
-Understand one object without leaving the table.
-
-- plain-language explanation;
-- `Used here for` context;
-- connections;
-- Try / Replace actions;
-- technical details on demand;
-- metadata sourced from the canonical component definition rather than UI hardcoding.
-
-### 10 — Simulation
-
-Make the virtual project behave like the real system.
-
-- deterministic logical clock;
-- buttons / potentiometers / sensors;
-- LED / OLED / buzzer / servo outputs;
-- play / pause / reset;
-- spatial event labels;
-- state propagation through the hardware graph;
-- deterministic tests independent of frame rate.
-
-### 11 — Explain / X-Ray
-
-Turn invisible electronics into visible behaviour.
-
-- Power / Signals / Data views;
-- isolate one connection path;
-- signal animation through physical wires;
-- explain why a connection exists;
-- highlight relevant pins/components;
-- beginner explanation first, technical explanation on demand.
-
-### 12 — Visual Logic
-
-Programming without requiring source code.
-
-- spatial cause/effect graph;
-- events, conditions and actions;
-- editable action values;
-- simulation synchronization;
-- code remains hidden by default.
-
-Canonical example:
+Electrical nets are derived from:
 
 ```text
-BUTTON → BONK
-       ├─ OLED: "BONK!"
-       ├─ LED: ON
-       └─ BEEP ×2
+component pins
++ physical wires
++ inserted leads
++ breadboard conductive strips
+→ resolved nets
 ```
 
-### 13 — My Parts + Real Inventory Persistence
+Older v1/v2 projects migrate deterministically in memory and are saved as v3 only at an intentional edit/checkpoint.
 
-Persistent personal hardware inventory.
+## AI architecture
 
-- Boards / Sensors / Displays / Outputs / Components / Tools;
-- quantities;
-- add/search hardware;
-- local persistence;
-- Supabase inventory sync for signed-in users;
-- RLS ownership;
-- recommendations query the same inventory model.
+Kinetable does not require a Kinetable-owned paid model account.
 
-### 14 — Component Library
+Supported transport classes:
 
-The canonical Kinetable hardware knowledge base.
+- remote BYOK APIs;
+- multiple keys per provider with fallback;
+- custom OpenAI-compatible endpoints;
+- local HTTP runtimes such as Ollama, LM Studio and vLLM;
+- local authenticated CLIs through the optional loopback Local Bridge.
 
-Each supported part can contain:
-
-- accurate 3D model;
-- dimensions and anchors;
-- pins and capabilities;
-- electrical constraints;
-- protocol metadata;
-- simulation behaviour;
-- compatible boards/frameworks;
-- known libraries;
-- common mistakes;
-- provenance/license information.
-
-Canonical assets can be stored in Supabase Storage with metadata in PostgreSQL.
-
-### 15 — Projects + Cloud Sync / Versioning
-
-Projects should look like things the user built, not document rows.
-
-- Recent / Saved;
-- miniature 3D previews;
-- duplicate / rename / archive;
-- project versions/checkpoints;
-- cloud restore;
-- conflict-safe sync rules;
-- signed-out local projects remain usable.
-
-### 16 — Explore
-
-`What can I make with what I already own?`
-
-- Build Now;
-- Everything Required;
-- One Part Away;
-- deterministic inventory requirement matching;
-- AI redesign action: `Use something I already own instead`.
-
-### 17 — Learn
-
-Interactive missions rather than courses.
-
-- breadboard basics;
-- LED/button/sensor missions;
-- topology-aware validation;
-- staged hints;
-- explain why the successful circuit works;
-- progression without childish gamification.
-
-### 18 — Run on Board + Compile Infrastructure
-
-Move from simulation to the user's actual hardware.
-
-- browser board connection where supported;
-- target detection/confirmation;
-- generated firmware;
-- compile-job API;
-- isolated Arduino CLI / ESP-IDF / Pico SDK worker;
-- firmware artifact returned to browser;
-- flash/upload;
-- primary UX: `Preparing → Sending → Running`;
-- technical details optional.
-
-### 19 — Live Data
-
-Friendly runtime inspection.
-
-- sensor values;
-- GPIO state;
-- board status;
-- visual mapping back to 3D components;
-- raw serial available as an advanced option.
-
-### 20 — Advanced Code
-
-Optional escape hatch for developers.
-
-- generated firmware editor;
-- code ↔ hardware highlighting;
-- code ↔ visual-logic synchronization rules;
-- libraries/build details;
-- raw serial/debug logs;
-- never required for the default workflow.
-
-### 21 — Real Workbench Scan — later
-
-Create a digital twin from the physical desk.
-
-- camera/photo import;
-- identify board/breadboard/components;
-- map geometry;
-- reconcile physical objects with Kinetable entities;
-- confidence-aware confirmation;
-- media storage/processing added only when this slice is built.
-
-### 22 — Live Workbench — later
-
-Closed-loop physical building support.
-
-- continuous camera mode;
-- overlay the next physical connection;
-- compare intended vs observed topology;
-- verify physical actions;
-- debug incorrect rows/reversed components/missing connections;
-- combine vision with firmware/runtime state.
-
-## Backend-by-slice rule
-
-Kinetable is **not** being built as a finished frontend followed by a backend phase.
-
-When a feature needs persistent or server-side behaviour, that backend ships in the same slice:
+The AI path is always:
 
 ```text
-Onboarding → persistence boundary + backend foundation
-Auth       → real Supabase Auth + RLS
-My Table   → real project persistence/sync
-AI Build   → real server-side model API
-My Parts   → real inventory persistence
-Projects   → real cloud versions/restore
-Run Board  → real compile-job infrastructure
+intent
+→ provider
+→ strict planner response
+→ ProjectCommand[]
+→ deterministic hardware validation
+→ atomic project update
 ```
 
-No fake success states and no client-side secrets.
+Provider credentials never belong in project JSON or Supabase project documents.
 
-## Canonical first end-to-end demo: BONK
+## Canonical 15-slice roadmap
 
-The first complete internal project should recreate the existing real ESP32 build:
+The earlier 22-slice plan was compressed after Slice 07. Historical Slice 01–07 documents retain their original records; from Slice 08 onward, this 15-slice roadmap is canonical.
+
+| Slice | Status | Scope |
+| --- | --- | --- |
+| 01 — Landing | ✅ | Public product story |
+| 02 — Onboarding / Foundation | ✅ | Board-first entry, local/backend foundation |
+| 03 — Auth | ✅ | Supabase Auth, profiles, RLS |
+| 04 — My Table | ✅ | Persistent local/cloud projects |
+| 05 — New Build | ✅ | Intent-first project creation |
+| 06 — AI Assembly | ✅ | Provider-independent AI → validated hardware graph |
+| 07 — Core 3D Workbench | ✅ | Spatial editor, history, autosave |
+| 08 — Physical Circuit Editor | ✅ | Breadboard, wires, nets, inspectors |
+| 09 — Living Circuit | Next | Simulation + Explain/X-Ray |
+| 10 — Visual Logic | Planned | Editable semantic behaviour |
+| 11 — Hardware Platform | Planned | My Parts + canonical Component Library |
+| 12 — Personal Workspace | Planned | Projects/versioning + Explore |
+| 13 — Learn | Planned | Interactive topology-aware missions |
+| 14 — Physical Runtime | Planned | Compile/flash + live data + advanced code |
+| 15 — Digital Twin | Later | Workbench scan + continuous live workbench |
+
+See [ROADMAP.md](docs/ROADMAP.md) for scope and completion rules.
+
+## Canonical demo: BONK
+
+The internal end-to-end reference remains the real ESP32 build:
 
 ```text
 BUTTON PRESS
@@ -418,104 +166,71 @@ BUTTON PRESS
    └── BUZZER: BEEP ×2
 ```
 
-It should eventually prove the full product loop:
+The target product loop is:
 
-1. select ESP32;
-2. open My Table;
-3. ask for the BONK build;
-4. watch components assemble;
-5. inspect real breadboard/wire topology;
-6. press the virtual button;
-7. see the OLED/LED/buzzer respond;
-8. use Explain/X-Ray;
-9. edit `BEEP ×2` to `BEEP ×3` in Visual Logic;
-10. run it on the real board.
+1. choose ESP32;
+2. describe the build;
+3. let AI propose a validated assembly;
+4. inspect and edit the physical circuit;
+5. simulate it;
+6. use Explain/X-Ray;
+7. change `BEEP ×2` to `BEEP ×3` through Visual Logic;
+8. compile and run it on the real board.
 
-## Proposed repository shape
+## Stack
 
-```text
-KineTable/
-├── apps/
-│   ├── web/
-│   └── desktop/                 # later
-├── packages/
-│   ├── ui/
-│   ├── spatial/
-│   ├── hardware-core/
-│   ├── simulation/
-│   ├── visual-logic/
-│   ├── component-library/
-│   ├── ai/
-│   └── project-format/
-├── supabase/
-│   └── migrations/
-├── assets/
-│   └── models/
-├── docs/
-└── .github/
+| Need | Choice |
+| --- | --- |
+| Web | React + TypeScript + Vite |
+| 3D | Three.js + React Three Fiber + Drei |
+| UI state | Zustand |
+| Local persistence | IndexedDB + Dexie |
+| UI primitives | Radix UI |
+| Styling | Tailwind CSS + custom Kinetable design system |
+| Motion | Motion |
+| Cloud | Supabase PostgreSQL + Auth + Storage |
+| API / remote AI proxy | Vercel Functions |
+| Deployment | Vercel |
+| Testing | Vitest + Playwright |
+| Local AI/device bridge | Node/TypeScript loopback bridge |
+| Heavy compile worker, later | isolated container service |
+| Native fallback, later | Tauri + Rust |
+
+## Local development
+
+Requirements: Node.js 24 LTS (or 22.22+) and pnpm.
+
+```bash
+pnpm install
+pnpm dev
 ```
+
+Useful commands:
+
+```bash
+pnpm lint
+pnpm test
+pnpm build
+pnpm test:e2e
+pnpm bridge
+```
+
+For hosted Supabase features, copy `.env.example` to `apps/web/.env.local` and provide only the browser-safe Supabase URL/publishable key. Missing cloud configuration leaves local-first use available.
 
 ## Documentation
 
 - [Product specification](docs/PRODUCT-SPEC.md)
-- [UX flows and screen mocks](docs/UX-MOCKS.md)
+- [UX flows](docs/UX-MOCKS.md)
 - [Design system](docs/DESIGN-SYSTEM.md)
 - [Technical architecture](docs/ARCHITECTURE.md)
 - [Backend and deployment](docs/BACKEND.md)
 - [Hardware and simulation model](docs/HARDWARE-MODEL.md)
 - [AI interaction model](docs/AI-TOOLS.md)
-- [Starter component library](docs/COMPONENT-LIBRARY.md)
-- [Development roadmap](docs/ROADMAP.md)
-- [Decision log](docs/DECISIONS.md)
+- [Provider architecture](docs/PROVIDERS.md)
+- [Local Bridge](docs/LOCAL-BRIDGE.md)
+- [Component library](docs/COMPONENT-LIBRARY.md)
+- [Canonical roadmap](docs/ROADMAP.md)
 - [Testing strategy](docs/TESTING.md)
-- [Asset and model licensing](docs/ASSET-LICENSING.md)
-- [Slice 01 implementation](docs/SLICE-01.md)
-- [Slice 02 implementation and QA](docs/SLICE-02.md)
-- [Slice 03 implementation and hosted verification](docs/SLICE-03.md)
-- [Slice 04 My Table and project persistence](docs/SLICE-04.md)
-- [Slice 05 New Build and real project creation](docs/SLICE-05.md)
-- [Slice 06 AI assembly implementation and verification](docs/SLICE-06.md)
-- [Slice 07 interactive workbench and verification](docs/SLICE-07.md)
-- [Slice 08 physical circuit editor and verification](docs/SLICE-08.md)
+- [Slice 08 — Physical Circuit Editor](docs/SLICE-08.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
-
-## Status
-
-**Slices 01–08 implemented.** The canonical roadmap now has 15 slices; Slice 09 is Living Circuit.
-
-Implementation proceeds page-by-page and feature-by-feature, with each completed slice visually finished, tested, and backed by the real persistence/server functionality it requires.
-
-## Run locally
-
-Requirements: Node.js 24 LTS (or 22.22+) and pnpm (the exact pnpm version is recorded in `package.json`).
-
-```sh
-pnpm install
-pnpm dev
-```
-
-Verify:
-
-```sh
-pnpm lint
-pnpm test
-pnpm build
-```
-
-The web app lives in `apps/web`. `/start` selects ESP32, Pico or Uno. `/table` restores the current project from IndexedDB; `/new` captures intent and creates a real build, including offline. `/settings/providers` configures local models, CLI inference or BYOK remote APIs. Guest AI assembly works with user-supplied compute; `/auth` sign-in is needed only for Supabase sync. Run `pnpm bridge` for optional localhost inference. No Kinetable-managed model credential is required.
-
-Copy `.env.example` to `apps/web/.env.local` for cloud development; missing configuration preserves guest mode. See [BACKEND.md](docs/BACKEND.md). Vercel uses the root `vercel.json` for the build and direct SPA routes.
-
-Browser journey tests:
-
-```sh
-pnpm --filter @kinetable/web exec playwright install chromium
-pnpm test:e2e
-```
-
-For system Chrome on Windows set `PLAYWRIGHT_CHANNEL=chrome`. Hosted disposable-account checks are documented in [Slice 05](docs/SLICE-05.md).
-
-## License
-
-Kinetable is currently a private project and is **not open source**. See [LICENSE](LICENSE).
