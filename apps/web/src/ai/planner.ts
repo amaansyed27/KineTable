@@ -1,15 +1,15 @@
 import { executeCommands, HardwareError, validateHardware } from "../hardware-core/commands.js";
-import type { KinetableProjectV2 } from "../projects/v2.js";
+import type { KinetableProjectV3 } from "../projects/v3.js";
 import { parsePlan, type Plan, type PlanRequest } from "./contract.js";
 import { plannerPrompt } from "./prompt.js";
 
 export type ModelProvider = { generate(prompt: string): Promise<unknown> };
-export function validatePlanInput(request: PlanRequest, project: KinetableProjectV2): void {
+export function validatePlanInput(request: PlanRequest, project: KinetableProjectV3): void {
   if (project.id !== request.projectId || project.metadata.updatedAt !== request.revision || project.intent?.text !== request.intent || project.boardIds[0] !== request.boardId) throw new Error("STALE_PROJECT");
-  if (project.components.length !== 1 || project.connections.length !== 0) throw new Error("INVALID_PROJECT");
+  if (project.components.length !== 1 || project.wires.length !== 0 || project.terminalPlacements.length !== 0) throw new Error("INVALID_PROJECT");
   validateHardware(project);
 }
-export function validateGeneratedPlan(request: PlanRequest, project: KinetableProjectV2, output: unknown): Plan {
+export function validateGeneratedPlan(request: PlanRequest, project: KinetableProjectV3, output: unknown): Plan {
   validatePlanInput(request, project);
   const plan = parsePlan(output);
   if (plan.status === "supported") {
@@ -18,7 +18,7 @@ export function validateGeneratedPlan(request: PlanRequest, project: KinetablePr
   }
   return plan;
 }
-export async function planHardware(provider: ModelProvider, request: PlanRequest, project: KinetableProjectV2): Promise<Plan> {
+export async function planHardware(provider: ModelProvider, request: PlanRequest, project: KinetableProjectV3): Promise<Plan> {
   validatePlanInput(request, project);
   let output: unknown;
   try { output = await provider.generate(plannerPrompt(request)); }

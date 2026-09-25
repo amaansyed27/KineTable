@@ -841,3 +841,16 @@ This is an advanced efficiency layer, not primary navigation.
 Initial authoring target: desktop 16:10 / 16:9.
 
 Tablet can become a later touch-first adaptation. Mobile should initially focus on viewing, scanning, camera guidance, and lightweight project management rather than trying to compress the full 3D authoring environment into a phone screen.
+
+## Implemented Slice 08 circuit interaction
+
+```text
+Workbench:  [board pins]  [400-hole breadboard]  [physical wires]
+Wire mode:  choose pin/hole → pointer preview → choose destination → validate/save
+Hole tap:   selected strip + connected net highlighted; inspector names peers
+Part tap:   description, real pin connections, lead insertion, details on demand
+Wire tap:   exact source/destination and connected pins; remove/undo
+Fallback:   From/To selectors provide the same validated wiring command
+```
+
+The responsive workbench keeps the circuit legible and exposes a DOM part list and connection controls on touch screens. Electrical editing works without simulation; Simulate, Explain and X-Ray remain [Slice 09](ROADMAP.md). See [Slice 08](SLICE-08.md).

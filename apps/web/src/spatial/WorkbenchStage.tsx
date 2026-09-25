@@ -2,33 +2,41 @@ import { Component, Suspense, useEffect, useLayoutEffect, useRef, useState, type
 import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
 import { CameraControls, Environment, Lightformer, type CameraControls as CameraControlsType } from "@react-three/drei";
 import { useReducedMotion } from "motion/react";
-import { Group, Mesh, Plane, Vector3 } from "three";
-import type { KinetableProjectV2 } from "../projects/v2";
+import { Group, Mesh, Plane, Raycaster, Vector2, Vector3 } from "three";
+import { endpointKey, type ElectricalEndpoint, type KinetableProjectV3 } from "../projects/v3";
 import type { Transform } from "../projects/schema";
 import { getDefinition } from "../component-library/catalog";
 import { BoardModel } from "./Models";
 import { UnoModel } from "./UnoModel";
 import { PartObject } from "./PartObject";
+import { Breadboard } from "./Breadboard";
+import { PinTargets } from "./PinTargets";
+import { WireMesh } from "./WireMesh";
+import { endpointWorld } from "./anchors";
 
 export type CameraAction = { sequence: number; type: "focus" | "reset" | "zoom-in" | "zoom-out"; entityId?: string };
-type Props = { project: KinetableProjectV2; selectedId: string | null; onSelect(id: string | null): void;
+type Props = { project: KinetableProjectV3; selectedId: string | null; selectedWireId: string | null; selectedEndpointKey: string | null;
+  highlightedKeys: string[]; wireSource: ElectricalEndpoint | null; wiring: boolean;
+  onSelect(id: string | null): void; onEndpoint(endpoint: ElectricalEndpoint): void; onWire(id: string): void;
   onMove(id: string, transform: Transform): void; cameraAction: CameraAction | null };
 const identity: Transform = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
 const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
 
-function Entity({ id, kind, visualId, transform, selected, hovered, onSelect, onHover, onMove, onDragging, reduced }: {
-  id: string; kind: "board" | "component"; visualId: string; transform: Transform; selected: boolean; hovered: boolean;
-  onSelect(id: string): void; onHover(id: string | null): void; onMove(id: string, transform: Transform): void; onDragging(value: boolean): void; reduced: boolean;
+function Entity({ id, kind, definitionId, visualId, transform, selected, hovered, highlighted, selectedEndpointKey, wiring, onSelect, onEndpoint, onHover, onMove, onPreview, onDragging, reduced }: {
+  id: string; kind: "board" | "component" | "breadboard"; definitionId: string; visualId: string; transform: Transform; selected: boolean; hovered: boolean;
+  highlighted: Set<string>; selectedEndpointKey: string | null; wiring: boolean;
+  onSelect(id: string): void; onEndpoint(endpoint: ElectricalEndpoint): void; onHover(id: string | null): void; onMove(id: string, transform: Transform): void; onPreview(id: string, transform: Transform | null): void; onDragging(value: boolean): void; reduced: boolean;
 }) {
   const group = useRef<Group>(null);
   const ring = useRef<Mesh>(null);
   const drag = useRef<{ x: number; y: number; origin: [number, number]; moved: boolean } | null>(null);
   const invalidate = useThree(s => s.invalidate);
-  useEffect(() => { if (!drag.current && group.current) group.current.position.set(...transform.position); ring.current?.position.set(transform.position[0], transform.position[1], -.12); invalidate(); }, [transform, invalidate]);
+  useLayoutEffect(() => { if (!drag.current && group.current) group.current.position.set(...transform.position); ring.current?.position.set(transform.position[0], transform.position[1], -.12); invalidate(); }, [transform, invalidate]);
   const pointOnSurface = (event: ThreeEvent<PointerEvent>) => event.ray.intersectPlane(new Plane(new Vector3(0, 0, 1), -transform.position[2]), new Vector3());
   function down(event: ThreeEvent<PointerEvent>) {
     if (event.button !== 0) return;
     event.stopPropagation();
+    if (wiring) return;
     onSelect(id);
     const point = pointOnSurface(event);
     if (!point) return;
@@ -45,6 +53,7 @@ function Entity({ id, kind, visualId, transform, selected, hovered, onSelect, on
     if (Math.abs(x - drag.current.origin[0]) + Math.abs(y - drag.current.origin[1]) > .015) drag.current.moved = true;
     group.current.position.set(x, y, transform.position[2]);
     ring.current?.position.set(x, y, -.12);
+    onPreview(id, { ...transform, position: [x, y, transform.position[2]] });
     invalidate();
   }
   function finish(event: ThreeEvent<PointerEvent>, commit: boolean) {
@@ -54,33 +63,51 @@ function Entity({ id, kind, visualId, transform, selected, hovered, onSelect, on
     const current = drag.current;
     drag.current = null;
     onDragging(false);
+    onPreview(id, null);
     if (commit && current.moved && group.current) onMove(id, { ...transform, position: [group.current.position.x, group.current.position.y, transform.position[2]] });
     else if (group.current) { group.current.position.set(...transform.position); ring.current?.position.set(transform.position[0], transform.position[1], -.12); }
     invalidate();
   }
   return <>
-    {selected && <mesh ref={ring} position={[transform.position[0], transform.position[1], -.12]}><ringGeometry args={[kind === "board" ? 1.42 : .62, kind === "board" ? 1.44 : .64, 48]} /><meshBasicMaterial color="#a5d916" transparent opacity={.48} depthWrite={false} /></mesh>}
-    <group ref={group} position={transform.position} rotation={transform.rotation} scale={transform.scale}
+    {selected && <mesh ref={ring} position={[transform.position[0], transform.position[1], -.12]}><ringGeometry args={[kind === "board" ? 1.42 : kind === "breadboard" ? 1.7 : .62, kind === "board" ? 1.44 : kind === "breadboard" ? 1.72 : .64, 48]} /><meshBasicMaterial color="#a5d916" transparent opacity={.48} depthWrite={false} /></mesh>}
+    <group ref={group} rotation={transform.rotation} scale={transform.scale}
       onPointerDown={down} onPointerMove={move} onPointerUp={event => finish(event, true)} onPointerCancel={event => finish(event, false)}
       onPointerOver={event => { event.stopPropagation(); onHover(id); document.body.style.cursor = "grab"; }}
       onPointerOut={event => { event.stopPropagation(); onHover(null); document.body.style.cursor = ""; }}>
-      <mesh position={[0, 0, kind === "board" ? .2 : .02]}><sphereGeometry args={[kind === "board" ? 1.25 : .5, 16, 12]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
-      <group position={[0, 0, selected || hovered ? reduced ? .035 : .06 : 0]}>
-        {kind === "board" ? <group scale={visualId === "uno" ? .82 : 1}>{visualId === "uno" ? <UnoModel /> : <BoardModel pico={visualId === "pico"} />}</group> : <PartObject visualId={visualId} transform={identity} reduced={reduced} />}
+      {!wiring && kind !== "breadboard" && <mesh position={[0, 0, kind === "board" ? .2 : .02]}><sphereGeometry args={[kind === "board" ? 1.25 : .5, 16, 12]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>}
+      <group>
+        {kind === "board" ? <group scale={visualId === "uno" ? .82 : 1}>{visualId === "uno" ? <UnoModel /> : <BoardModel pico={visualId === "pico"} />}</group> : kind === "breadboard" ? <Breadboard id={id} highlighted={highlighted} selectedHole={selectedEndpointKey?.startsWith(`hole:${id}:`) ? selectedEndpointKey.split(":")[2] : undefined} onHole={onEndpoint} /> : <PartObject visualId={visualId} transform={identity} reduced={reduced} />}
+        {kind !== "breadboard" && <PinTargets componentId={id} definitionId={definitionId} visible={selected || hovered || wiring} highlighted={highlighted} onPin={onEndpoint} />}
       </group>
     </group>
   </>;
 }
 
-function World({ project, selectedId, onSelect, onMove, cameraAction, reduced }: Props & { reduced: boolean }) {
+function World({ project, selectedId, selectedWireId, selectedEndpointKey, highlightedKeys, wireSource, wiring, onSelect, onEndpoint, onWire, onMove, cameraAction, reduced }: Props & { reduced: boolean }) {
   const controls = useRef<CameraControlsType>(null);
   const projectRef = useRef(project);
   projectRef.current = project;
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
-  const { camera, invalidate, size } = useThree();
+  const [previewTransforms, setPreviewTransforms] = useState<Record<string, Transform>>({});
+  const [pointer, setPointer] = useState<Vector3 | null>(null);
+  const spatialProject = Object.keys(previewTransforms).length ? { ...project, layout: { entities: { ...project.layout.entities, ...previewTransforms } } } : project;
+  const highlighted = new Set(highlightedKeys);
+  const { camera, gl, invalidate, size } = useThree();
+  useEffect(() => {
+    if (!wireSource) { setPointer(null); return; }
+    const ray = new Raycaster(), plane = new Plane(new Vector3(0, 0, 1), -.35);
+    const move = (event: PointerEvent) => {
+      const rect = gl.domElement.getBoundingClientRect();
+      ray.setFromCamera(new Vector2((event.clientX - rect.left) / rect.width * 2 - 1, 1 - (event.clientY - rect.top) / rect.height * 2), camera);
+      const point = ray.ray.intersectPlane(plane, new Vector3());
+      if (point) setPointer(point);
+    };
+    gl.domElement.addEventListener("pointermove", move);
+    return () => gl.domElement.removeEventListener("pointermove", move);
+  }, [wireSource, camera, gl]);
   const assembled = project.components.length > 1;
-  const fitZoom = clamp(Math.min(size.width / (assembled ? 11 : 4), size.height / (assembled ? 6.6 : 3.5)), 25, 160);
+  const fitZoom = clamp(Math.min(size.width / (assembled ? size.width < 600 ? 12 : 11 : 4), size.height / (assembled ? 6.6 : 3.5)), 25, 160);
   const minZoom = Math.max(20, fitZoom * .6), maxZoom = Math.min(180, fitZoom * 1.5);
   useLayoutEffect(() => { camera.zoom = fitZoom; camera.updateProjectionMatrix(); void controls.current?.zoomTo(fitZoom, false); invalidate(); }, [camera, fitZoom, invalidate]);
   useEffect(() => {
@@ -94,17 +121,20 @@ function World({ project, selectedId, onSelect, onMove, cameraAction, reduced }:
   return <>
     <ambientLight intensity={1.8} /><directionalLight position={[-3, 6, 8]} intensity={3} /><directionalLight position={[5, -2, 4]} intensity={1} />
     <Environment resolution={64} frames={1}><Lightformer position={[-3, 4, 5]} scale={[8, 8, 1]} intensity={2} color="#fffdf5" /></Environment>
-    <CameraControls ref={controls} enabled={!dragging} minZoom={minZoom} maxZoom={maxZoom} minDistance={5} maxDistance={22} minAzimuthAngle={-1.1} maxAzimuthAngle={1.1} minPolarAngle={.45} maxPolarAngle={2.6} />
-    <mesh position={[0, 0, -1]} onPointerDown={() => onSelect(null)}><planeGeometry args={[100, 100]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
+    <CameraControls ref={controls} enabled={!dragging && !wireSource} minZoom={minZoom} maxZoom={maxZoom} minDistance={5} maxDistance={22} minAzimuthAngle={-1.1} maxAzimuthAngle={1.1} minPolarAngle={.45} maxPolarAngle={2.6} />
+    <mesh position={[0, 0, -1]} onPointerDown={() => { if (!wiring) onSelect(null); }}><planeGeometry args={[100, 100]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
+    {project.wires.map(wire => <WireMesh key={wire.id} from={endpointWorld(spatialProject, wire.from)} to={endpointWorld(spatialProject, wire.to)} color={wire.color} selected={selectedWireId === wire.id} highlighted={highlighted.has(endpointKey(wire.from))} onSelect={() => onWire(wire.id)} />)}
+    {wireSource && pointer && <WireMesh from={endpointWorld(spatialProject, wireSource)} to={pointer} preview />}
     {project.components.map(component => {
       const definition = getDefinition(component.definitionId)!;
-      return <Entity key={component.id} id={component.id} kind={component.kind} visualId={definition.visualId} transform={project.layout.entities[component.id]}
-        selected={selectedId === component.id} hovered={hovered === component.id} onSelect={onSelect} onHover={setHovered} onMove={onMove} onDragging={setDragging} reduced={reduced} />;
+      return <Entity key={component.id} id={component.id} kind={component.kind} definitionId={component.definitionId} visualId={definition.visualId} transform={project.layout.entities[component.id]}
+        selected={selectedId === component.id} hovered={hovered === component.id} highlighted={highlighted} selectedEndpointKey={selectedEndpointKey} wiring={wiring}
+        onSelect={onSelect} onEndpoint={onEndpoint} onHover={setHovered} onMove={onMove} onPreview={(id, transform) => setPreviewTransforms(current => { const next = { ...current }; if (transform) next[id] = transform; else delete next[id]; return next; })} onDragging={setDragging} reduced={reduced} />;
     })}
   </>;
 }
 
-class WorkbenchBoundary extends Component<{ children: ReactNode; project: KinetableProjectV2 }, { failed: boolean }> {
+class WorkbenchBoundary extends Component<{ children: ReactNode; project: KinetableProjectV3 }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   render() { return this.state.failed ? <div className="workbench-fallback" role="status"><strong>3D editing is unavailable.</strong><span>{this.props.project.name} is safe on this device. Your parts remain listed below.</span></div> : this.props.children; }

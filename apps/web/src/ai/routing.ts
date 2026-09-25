@@ -1,4 +1,4 @@
-import type { KinetableProjectV2 } from "../projects/v2.js";
+import type { KinetableProjectV3 } from "../projects/v3.js";
 import { parsePlanResponse, type PlanRequest, type PlanResponse } from "./contract.js";
 import { validateGeneratedPlan } from "./planner.js";
 
@@ -20,7 +20,7 @@ const retryable = new Set(["NETWORK_FAILURE", "TIMEOUT", "RATE_LIMIT", "QUOTA_EX
 export function shouldFallback(code: string): boolean { return retryable.has(code); }
 
 export async function routePlan(
-  profile: RoutingProfile, credentials: CredentialMeta[], request: PlanRequest, project: KinetableProjectV2,
+  profile: RoutingProfile, credentials: CredentialMeta[], request: PlanRequest, project: KinetableProjectV3,
   invoke: (route: RouteCandidate, credentialId: string | null) => Promise<unknown>,
 ): Promise<RoutedPlan> {
   const attempts: Attempt[] = [];

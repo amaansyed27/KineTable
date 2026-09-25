@@ -1,6 +1,6 @@
 import { useAuthStore } from "../auth/authStore";
 import { executeCommands } from "../hardware-core/commands";
-import { migrateProject } from "../projects/v2";
+import { migrateProject } from "../projects/v3";
 import { useProjectStore } from "../state/projectStore";
 import { parsePlanResponse, type PlanResponse } from "./contract";
 import { loadProviderSettings } from "./providerSettings";

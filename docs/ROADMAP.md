@@ -191,314 +191,65 @@ Build:
 
 ---
 
-# Slice 08 — Wiring + Breadboard Intelligence
+# Canonical roadmap from Slice 08
 
-Goal: make visible connections electrically meaningful.
+The former 22-slice plan is compressed to 15 slices. Slices 01–07 above retain their historical scope and records.
 
-Build:
+| Current slice | Earlier slices | Scope |
+| --- | --- | --- |
+| 08 — Physical Circuit Editor | 08 + 09 | Breadboard, physical wires, net-aware validation and inspectors |
+| 09 — Living Circuit | 10 + 11 | Simulation, Explain and X-Ray |
+| 10 — Visual Logic | 12 | Editable semantic behavior |
+| 11 — Hardware Platform | 13 + 14 | Inventory and verified component knowledge |
+| 12 — Personal Workspace | 15 + 16 | Project versions, sync and Explore |
+| 13 — Learn | 17 | Topology-aware interactive lessons |
+| 14 — Physical Runtime | 18 + 19 + 20 | Compile, flash, live data and advanced code |
+| 15 — Digital Twin | 21 + 22 | Scan and live workbench |
 
-- machine-readable pin anchors;
-- wire creation/routing;
-- real nets/endpoints;
-- breadboard A–E / F–J topology;
-- rails/center gap;
-- connected-hole highlighting;
-- invalid-placement feedback;
-- serialization and deterministic tests.
+## 08 — Physical Circuit Editor
 
-This slice is core Kinetable value and must not be faked.
+Status: implemented; see [Slice 08](SLICE-08.md).
 
----
+A project stores explicit pin and breadboard-hole endpoints, physical wires and component lead insertions. A deterministic 400-hole half-size breadboard topology derives nets; the workbench renders exact endpoints, allows manual wiring, inspects parts/wires/holes and saves edits locally and to owner-only cloud projects. Circuit validity is derived from the graph. The editor remains useful without simulation.
 
-# Slice 09 — Component Inspector
+## 09 — Living Circuit
 
-Goal: explain one selected hardware object without leaving the table.
+Implement a deterministic component runtime and simulation clock, then Explain and X-Ray views that reveal supported power, signal and data paths. Rendering cannot determine electrical truth. No simulation or causal animation is claimed by Slice 08.
 
-Build:
+## 10 — Visual Logic
 
-- plain-language description;
-- `Used here for` context;
-- connection list;
-- Try / Replace actions;
-- technical details on demand;
-- metadata sourced from canonical definitions.
+Map editable WHEN/IF/DO behavior to physical objects and the simulation runtime, with validation and an explicit intermediate representation.
 
----
+## 11 — Hardware Platform
 
-# Slice 10 — Simulation
+Persist personal inventory and build a provenance-aware component library with canonical electrical metadata, models and supported variants.
 
-Goal: make supported virtual hardware actually behave.
+## 12 — Personal Workspace
 
-Build:
+Add project versions and conflict-safe cross-device restore, then inventory-based Explore recommendations.
 
-- deterministic simulation clock;
-- component driver API;
-- digital/analog states;
-- buttons/potentiometers/PIR/etc.;
-- LED/OLED/buzzer/servo outputs;
-- play/pause/reset;
-- spatial event feedback;
-- deterministic automated tests.
+## 13 — Learn
 
-UI animation must not determine electrical/simulation correctness.
+Teach breadboard rows, LED, button, brightness and OLED projects through topology-aware missions and staged hints.
 
----
+## 14 — Physical Runtime
 
-# Slice 11 — Explain / X-Ray
+Support explicit device connection, isolated compilation and flashing, live board data, serial diagnostics and advanced code with clear code-to-visual rules.
 
-Goal: make invisible relationships visible.
+## 15 — Digital Twin
 
-Build:
-
-- Power / Signals / Data modes;
-- active-path isolation;
-- signal animation;
-- pin/component highlighting;
-- concise beginner explanation;
-- deeper technical explanation on demand.
-
----
-
-# Slice 12 — Visual Logic
-
-Goal: represent programming as understandable behaviour.
-
-Canonical BONK logic:
-
-```text
-WHEN button pressed
-DO OLED "BONK!"
-AND LED ON
-AND BEEP ×2
-```
-
-Build:
-
-- semantic behaviour graph;
-- events/conditions/actions;
-- physical-object mapping;
-- editable action properties;
-- simulation IR;
-- validation;
-- immediate simulation sync.
-
----
-
-# Slice 13 — My Parts + Real Inventory Persistence
-
-Goal: make Kinetable personal to the hardware the user owns.
-
-Build:
-
-- Boards / Sensors / Displays / Outputs / Components / Tools;
-- quantities;
-- add/search;
-- local inventory persistence;
-- Supabase inventory table;
-- ownership RLS;
-- signed-in sync;
-- project/recommendation queries use this same model.
-
----
-
-# Slice 14 — Component Library
-
-Goal: establish the canonical hardware knowledge base.
-
-Each component can include:
-
-- GLB model;
-- dimensions/anchors;
-- pins/capabilities;
-- voltage/current constraints;
-- protocols;
-- simulation driver;
-- framework/library metadata;
-- common mistakes;
-- provenance/license data.
-
-Cloud:
-
-- metadata in PostgreSQL;
-- canonical models/thumbnails in Supabase Storage;
-- version/provenance tracked explicitly.
-
-Do not optimize for raw component count; optimize for correctness and usefulness.
-
----
-
-# Slice 15 — Projects + Cloud Sync / Versioning
-
-Goal: make projects reliable across sessions/devices.
-
-Build:
-
-- Recent / Saved;
-- miniature 3D previews;
-- rename/duplicate/archive;
-- project versions/checkpoints;
-- cloud restore;
-- conflict-safe sync rules;
-- signed-out local projects remain usable.
-
----
-
-# Slice 16 — Explore
-
-Goal: answer `What can I build with what I already own?`
-
-Build:
-
-- Build Now;
-- Everything Required;
-- One Part Away;
-- deterministic inventory requirement matching;
-- saved examples/templates;
-- AI action: `Use something I already own instead`.
-
----
-
-# Slice 17 — Learn
-
-Goal: teach hardware by interaction rather than courses.
-
-Initial missions:
-
-1. understand breadboard rows;
-2. make an LED light;
-3. use a button;
-4. control brightness;
-5. show text on OLED.
-
-Requirements:
-
-- topology-aware validation;
-- staged hints;
-- no answer dump by default;
-- explain why success works;
-- progression without childish gamification.
-
----
-
-# Slice 18 — Run on Board + Compile Infrastructure
-
-Goal: move from simulation to supported real hardware.
-
-Browser:
-
-- explicit Web Serial/WebUSB connection where supported;
-- target confirmation;
-- friendly `Preparing → Sending → Running` UX;
-- technical details optional.
-
-Backend:
-
-- compile-job API;
-- replaceable isolated worker interface;
-- Arduino CLI / ESP-IDF / Pico SDK toolchains;
-- binary/UF2 artifact delivery;
-- job errors mapped to user-friendly states;
-- no compiler/toolchain secrets or commands exposed to normal users.
-
-Do not run heavy compilation in Supabase Edge Functions.
-
----
-
-# Slice 19 — Live Data
-
-Goal: inspect the running physical system visually.
-
-Build:
-
-- sensor values;
-- GPIO state;
-- board status;
-- mapping to 3D objects;
-- raw serial as an advanced option.
-
----
-
-# Slice 20 — Advanced Code
-
-Goal: provide a serious developer escape hatch without changing the default workflow.
-
-Build:
-
-- generated firmware editor;
-- physical pin ↔ source highlighting;
-- code ↔ visual-logic synchronization rules;
-- build/library details;
-- raw serial/debug logs.
-
----
-
-# Slice 21 — Real Workbench Scan — later
-
-Goal: create a digital twin from a real desk.
-
-Build:
-
-- camera/photo import;
-- detect board/breadboard/components;
-- geometry calibration;
-- reconcile observations with Kinetable entities;
-- confidence-aware user confirmation;
-- media upload/processing backend only when needed.
-
----
-
-# Slice 22 — Live Workbench — later
-
-Goal: close the loop between Kinetable and the physical build.
-
-Build:
-
-- continuous camera mode;
-- next-connection overlay;
-- intended vs observed topology comparison;
-- physical-action verification;
-- spatial debugging;
-- combine visual observations with runtime/firmware state.
+Reconstruct a real bench from images with user confirmation, then compare an observed live setup against the intended circuit.
 
 ---
 
 # Product milestones
 
-## Milestone A — Entry
-
-Slices 01–04.
-
-A new user can discover Kinetable, choose a board, optionally create an account, and return to a persistent personal table.
-
-## Milestone B — AI Builder
-
-Slices 05–09.
-
-A user can describe a build, receive a validated assembly, manipulate it spatially, wire it, and inspect each part.
-
-## Milestone C — Living Hardware
-
-Slices 10–12.
-
-The virtual project behaves, explains itself, and exposes editable visual logic without requiring code.
-
-## Milestone D — Personal Platform
-
-Slices 13–17.
-
-Inventory, component knowledge, projects, recommendations and learning are persistent and useful.
-
-## Milestone E — Physical Hardware
-
-Slices 18–20.
-
-Kinetable can compile, flash and inspect supported real boards while still keeping code optional.
-
-## Milestone F — Digital Twin
-
-Slices 21–22.
-
-The real workbench becomes part of the same Kinetable project model.
+- **Entry (01–04):** landing, onboarding, identity and persistent table.
+- **Builder (05–08):** real project creation, AI assembly, spatial editing and physical circuits.
+- **Living hardware (09–10):** supported simulation, explanations and visual logic.
+- **Personal platform (11–13):** inventory, reusable projects, recommendations and learning.
+- **Physical hardware (14):** compile, flash and inspect supported boards.
+- **Digital twin (15):** observe and reconcile a real workbench.
 
 ---
 

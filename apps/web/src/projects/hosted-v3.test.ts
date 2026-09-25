@@ -1,11 +1,11 @@
-import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { executeCommands } from "../hardware-core/commands";
 import { projectFromIntent, starterProject } from "./schema";
-import { migrateProject } from "./v2";
+import { migrateProject } from "./v3";
 
-it.skipIf(process.env.KINETABLE_HOSTED_V2_QA !== "1")("round-trips validated v2 hardware through hosted Supabase and enforces RLS", async () => {
+it.skipIf(process.env.KINETABLE_HOSTED_QA !== "1")("round-trips v3 physical circuits through hosted Supabase and enforces RLS", async () => {
   const env = Object.fromEntries(readFileSync(".env.local", "utf8").split(/\r?\n/).filter(line => line.includes("=")).map(line => { const i = line.indexOf("="); return [line.slice(0,i), line.slice(i+1)]; }));
   const url = env.VITE_SUPABASE_URL, key = env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const request = async (path: string, method: string, token?: string, body?: unknown) => {
@@ -15,7 +15,7 @@ it.skipIf(process.env.KINETABLE_HOSTED_V2_QA !== "1")("round-trips validated v2 
   };
   expect((await request("/auth/v1/settings", "GET")).mailer_autoconfirm).toBe(true);
   const account = async () => {
-    const email = `kinetable-qa-v2-${randomUUID()}@gmail.com`, password = randomBytes(24).toString("base64url");
+    const email = `kinetable-qa-v3-${randomUUID()}@gmail.com`, password = randomBytes(24).toString("base64url");
     const data = await request("/auth/v1/signup", "POST", undefined, { email, password });
     return { id: data.user.id as string, token: data.access_token as string, email, password };
   };
@@ -34,21 +34,24 @@ it.skipIf(process.env.KINETABLE_HOSTED_V2_QA !== "1")("round-trips validated v2 
     { type: "connection.create", id: "buzzer-signal", from: e("buzzer-1", "sig"), to: e("board-main", "gpio19") },
     { type: "connection.create", id: "buzzer-gnd", from: e("buzzer-1", "gnd"), to: e("board-main", "gnd") },
   ]);
-  const created = await request("/rest/v1/projects", "POST", a.token, { id: candidate.id, name: candidate.name, primary_board_id: candidate.boardIds[0], schema_version: 2, document: candidate });
+  const created = await request("/rest/v1/projects", "POST", a.token, { id: candidate.id, name: candidate.name, primary_board_id: candidate.boardIds[0], schema_version: 3, document: candidate });
   expect(created[0].owner_id).toBe(a.id);
-  expect(created[0].schema_version).toBe(2);
+  expect(created[0].schema_version).toBe(3);
   expect(created[0].document).toEqual(candidate);
   const restored = await request(`/rest/v1/projects?id=eq.${candidate.id}&select=*`, "GET", a.token);
   expect(restored[0].document).toEqual(candidate);
   expect(await request(`/rest/v1/projects?id=eq.${candidate.id}&select=*`, "GET", b.token)).toEqual([]);
   expect(await request(`/rest/v1/projects?id=eq.${candidate.id}`, "PATCH", b.token, { name: "stolen" })).toEqual([]);
-  const incomplete = executeCommands(migrateProject(starterProject("esp32-dev-module")), [{ type: "component.add", instanceId: "led-1", definitionId: "led-5mm" }], undefined, "editor");
-  const draft = await request("/rest/v1/projects", "POST", a.token, { id: incomplete.id, name: incomplete.name, primary_board_id: incomplete.boardIds[0], schema_version: 2, document: incomplete });
-  expect(draft[0].document.components).toHaveLength(2);
+  const incomplete = executeCommands(migrateProject(starterProject("esp32-dev-module")), [{ type: "component.add", instanceId: "led-1", definitionId: "led-5mm" }, { type: "breadboard.add", id: "breadboard-1" },
+    { type: "wire.add", id: "ground-rail", from: { kind: "pin", componentId: "board-main", pinId: "gnd" }, to: { kind: "breadboard-hole", breadboardId: "breadboard-1", holeId: "L-1" } },
+    { type: "terminal.place", placement: { componentId: "led-1", pinId: "cathode", breadboardId: "breadboard-1", holeId: "L-14" } }], undefined, "editor");
+  const draft = await request("/rest/v1/projects", "POST", a.token, { id: incomplete.id, name: incomplete.name, primary_board_id: incomplete.boardIds[0], schema_version: 3, document: incomplete });
+  expect(draft[0].document.components).toHaveLength(3);
+  expect(draft[0].document.wires).toHaveLength(1);
+  expect(draft[0].document.terminalPlacements).toHaveLength(1);
   expect((await request(`/rest/v1/projects?id=eq.${incomplete.id}&select=*`, "GET", a.token))[0].document).toEqual(incomplete);
   expect(await request(`/rest/v1/projects?id=eq.${incomplete.id}&select=*`, "GET", b.token)).toEqual([]);
   expect(await request(`/rest/v1/projects?id=eq.${incomplete.id}`, "PATCH", b.token, { name: "stolen" })).toEqual([]);
   expect(await request(`/rest/v1/projects?id=eq.${incomplete.id}`, "DELETE", a.token)).toHaveLength(1);
-  mkdirSync("../../output", { recursive: true });
-  writeFileSync("../../output/slice-06-hosted-v2.json", JSON.stringify({ a, b, projectId: candidate.id }));
+  expect(await request(`/rest/v1/projects?id=eq.${candidate.id}`, "DELETE", a.token)).toHaveLength(1);
 }, 60000);

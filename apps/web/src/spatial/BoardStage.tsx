@@ -8,7 +8,7 @@ import { BoardModel } from "./Models";
 import { UnoModel } from "./UnoModel";
 import { makeShadow } from "./SoftShadow";
 import type { Transform } from "../projects/schema";
-import type { KinetableProjectV2 } from "../projects/v2";
+import type { KinetableProjectV3 } from "../projects/v3";
 import { getDefinition } from "../component-library/catalog";
 import { PartObject } from "./PartObject";
 function BoardObject({ board, x, y, selected, quiet, hovered, reduced, single, transform }: {
@@ -43,7 +43,7 @@ function BoardObject({ board, x, y, selected, quiet, hovered, reduced, single, t
     </group>
   </group>;
 }
-function BoardWorld({ selected, hovered, single, reduced, transform, project }: { selected?: BoardId; hovered?: BoardId | null; single: boolean; reduced: boolean; transform?: Transform; project?: KinetableProjectV2 }) {
+function BoardWorld({ selected, hovered, single, reduced, transform, project }: { selected?: BoardId; hovered?: BoardId | null; single: boolean; reduced: boolean; transform?: Transform; project?: KinetableProjectV3 }) {
   const { size, camera, invalidate } = useThree();
   const mobile = size.width < 560 && !single;
   const zoom = single ? project && project.components.length > 1 ? Math.min(90,size.width/8.3,size.height/5.1) : Math.min(125,size.width/3.8,size.height/3.5) : mobile ? 64 : Math.min(102,size.width/10.5,size.height/3.3);
@@ -64,7 +64,7 @@ class StageBoundary extends Component<{ children: ReactNode; single: boolean; se
   static getDerivedStateFromError() { return { failed: true }; }
   render() { return this.state.failed ? <p className="scene-fallback">{this.props.single ? `${getBoard(this.props.selected)?.name ?? "Your board"} is on your table.` : "3D previews are unavailable. Choose a board by its name below."}</p> : this.props.children; }
 }
-export default function BoardStage({ selected, hovered, single = false, transform, project }: { selected?: BoardId; hovered?: BoardId | null; single?: boolean; transform?: Transform; project?: KinetableProjectV2 }) {
+export default function BoardStage({ selected, hovered, single = false, transform, project }: { selected?: BoardId; hovered?: BoardId | null; single?: boolean; transform?: Transform; project?: KinetableProjectV3 }) {
   const reduced = !!useReducedMotion();
   return <StageBoundary selected={selected} single={single}><Canvas orthographic frameloop="demand" camera={{ position: [0,0,12], near: .1, far: 100, zoom: 90 }} dpr={[1,1.5]} gl={{ antialias: true, alpha: true }} aria-hidden="true"
     fallback={<p className="scene-fallback">3D previews are unavailable. Board selection still works.</p>}>

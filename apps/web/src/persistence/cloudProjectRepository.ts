@@ -1,6 +1,6 @@
 import type { Database, Json } from "../backend/database.types";
 import { getSupabaseClient } from "../backend/supabaseClient";
-import { migrateProject, type ProjectDocument } from "../projects/v2";
+import { migrateProject, type ProjectDocument } from "../projects/v3";
 import { validateElectricalSafety } from "../hardware-core/commands";
 
 export type CloudProject = Database["public"]["Tables"]["projects"]["Row"] & { document: ProjectDocument };
@@ -12,7 +12,7 @@ export function validateCloudProject(value: unknown, ownerId: string): CloudProj
     row.schema_version !== (row.document as ProjectDocument).schemaVersion || row.primary_board_id !== document.boardIds[0] || row.archived !== false ||
     typeof row.created_at !== "string" || typeof row.updated_at !== "string" ||
     !Number.isFinite(Date.parse(row.created_at)) || !Number.isFinite(Date.parse(row.updated_at))) throw new Error("Invalid cloud project");
-  return { ...row, document } as CloudProject;
+  return row as CloudProject;
 }
 export const cloudProjectRepository = {
   async list(token: string, ownerId: string): Promise<CloudProject[]> {

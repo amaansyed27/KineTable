@@ -473,3 +473,7 @@ The v2 project format stores one board instance, canonical component instances, 
 ## Slice 07 editor validation
 
 Manual editing keeps the same v2 graph. Structural checks reject missing definitions, invalid IDs or endpoints, and malformed transforms. Electrical safety rejects direct shorts, incompatible rails, output conflicts and unsupported board/pin relationships. Unconnected pins, absent LED resistor and incomplete I²C or button connections are structured `incomplete` diagnostics, so a safe draft can be saved. AI Assembly still invokes the complete-circuit gate before claiming success. Electrical rules use catalog `electricalModel` and capability metadata; changing `visualId` cannot change them. See [Slice 07](SLICE-07.md).
+
+## Slice 08 physical graph
+
+The earlier `EndpointRef` and stored `Net` sketches above describe the intended domain, not the current JSON format. Project v3 uses discriminated pin and breadboard-hole endpoints, explicit `Wire` records and separate `TerminalPlacement` records. `resolveNets` derives nets; no net is persisted. The canonical `breadboard-half-400` has 30 A–E and F–J terminal strips on each side of a center gap, plus four separate continuous 25-hole rails. Other breadboard rail variants require their own definition. Validation reads derived nets for power, ground, voltage, outputs, GPIO, OLED, PIR, DHT and LED series-resistor rules. Spatial geometry has no authority over connectivity. See [Slice 08](SLICE-08.md).

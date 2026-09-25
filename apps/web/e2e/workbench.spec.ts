@@ -80,7 +80,7 @@ test("canvas drag, keyboard controls and responsive workbench remain usable", as
   const before = (await saved(page)).layout.entities["board-main"].position[0];
   await page.mouse.move(startX, startY);
   await page.screenshot({ path: "../../output/playwright/workbench-hover.png", fullPage: true });
-  await page.mouse.down(); await page.mouse.move(startX + 60, startY, { steps: 8 }); await page.mouse.up();
+  await page.mouse.down(); await expect(page.getByLabel("ESP32 Dev Module inspector")).toBeVisible(); await page.mouse.move(startX + 60, startY, { steps: 8 }); await page.mouse.up();
   await expect.poll(async () => (await saved(page)).layout.entities["board-main"].position[0]).toBeGreaterThan(before);
   await page.screenshot({ path: "../../output/playwright/workbench-selected.png", fullPage: true });
   await page.getByRole("button", { name: "+ Add part" }).click();
@@ -90,7 +90,7 @@ test("canvas drag, keyboard controls and responsive workbench remain usable", as
   await page.keyboard.press("Shift+ArrowDown");
   await page.keyboard.press("f");
   await page.keyboard.press("Escape");
-  await expect(page.getByLabel("Push button controls")).toHaveCount(0);
+  await expect(page.getByLabel("Push button inspector")).toHaveCount(0);
   await page.getByRole("button", { name: "Push button", exact: true }).click();
   await page.keyboard.press("Delete");
   await expect(page.getByRole("button", { name: "Push button", exact: true })).toHaveCount(0);
@@ -105,12 +105,19 @@ test("touch can select and move hardware without overflow", async ({ browser }) 
     await start(page);
     const box = (await page.locator(".workbench-surface canvas").boundingBox())!;
     const x = box.x + box.width / 2, y = box.y + box.height / 2;
-    await page.touchscreen.tap(x, y);
-    await expect(page.getByLabel("ESP32 Dev Module controls")).toBeVisible();
+    for (let attempt = 0; attempt < 3 && await page.getByLabel("ESP32 Dev Module inspector").count() === 0; attempt++) {
+      await page.touchscreen.tap(x, y);
+      await page.waitForTimeout(300);
+    }
+    await expect(page.getByLabel("ESP32 Dev Module inspector")).toBeVisible();
+    await page.getByRole("button", { name: "Close inspector" }).click();
     const before = (await saved(page)).layout.entities["board-main"].position[0];
     const cdp = await context.newCDPSession(page);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y, id: 1 }] });
-    for (let step = 1; step <= 6; step++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + step * 9, y, id: 1 }] });
+    for (let step = 1; step <= 6; step++) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + step * 9, y, id: 1 }] });
+      await page.waitForTimeout(40);
+    }
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect.poll(async () => (await saved(page)).layout.entities["board-main"].position[0]).toBeGreaterThan(before);
     await page.getByRole("button", { name: "Zoom in" }).click();

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { Session } from "@supabase/supabase-js";
 import type { BoardId } from "../hardware/boards";
 import { createBuildRow, changeBoard, starterRow } from "../projects/projectCreation";
-import { migrateProject, type KinetableProjectV2 } from "../projects/v2";
+import { migrateProject, type KinetableProjectV3 } from "../projects/v3";
 import { localProjectRepository, type LocalProject } from "../persistence/localProjectRepository";
 import { cloudProjectRepository } from "../persistence/cloudProjectRepository";
 import { reconcileProjects } from "../sync/projectSyncService";
@@ -12,9 +12,9 @@ import { restoreRevision, WorkbenchHistory } from "../hardware-core/history";
 
 type ProjectState = { project: LocalProject | null; ready: boolean; status: "local" | "syncing" | "synced" | "offline"; error: string | null; canUndo: boolean; canRedo: boolean;
   open: (board: BoardId, session: Session | null) => Promise<void>; setBoard: (board: BoardId, session: Session | null) => Promise<void>;
-  createBuild: (board: BoardId, intent: string, name: string) => Promise<KinetableProjectV2>;
-  saveDocument: (document: KinetableProjectV2, expectedRevision: string, preserveHistory?: boolean) => Promise<void>;
-  applyTransaction: (commands: ProjectCommand[] | ((current: KinetableProjectV2) => ProjectCommand[])) => Promise<KinetableProjectV2>;
+  createBuild: (board: BoardId, intent: string, name: string) => Promise<KinetableProjectV3>;
+  saveDocument: (document: KinetableProjectV3, expectedRevision: string, preserveHistory?: boolean) => Promise<void>;
+  applyTransaction: (commands: ProjectCommand[] | ((current: KinetableProjectV3) => ProjectCommand[])) => Promise<KinetableProjectV3>;
   undo: () => Promise<void>; redo: () => Promise<void>; sync: () => Promise<void> };
 export function createProjectStore(local = localProjectRepository, cloud = cloudProjectRepository) {
   let generation = 0;
@@ -82,7 +82,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       if (!current || current.id !== document.id || current.document.metadata.updatedAt !== expectedRevision) throw new Error("STALE_PROJECT");
       const ownerId = useAuthStore.getState().session?.user.id;
       if (current.cloudUserId && current.cloudUserId !== ownerId) throw new Error("AUTH_REQUIRED");
-      const project: LocalProject = { ...current, document, schemaVersion: 2, updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: !!ownerId };
+      const project: LocalProject = { ...current, document, schemaVersion: 3, updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: !!ownerId };
       generation++;
       await local.save(project);
       if (!preserveHistory) history.reset(project.id);

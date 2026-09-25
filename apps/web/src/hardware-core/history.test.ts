@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { starterProject } from "../projects/schema";
-import { migrateProject } from "../projects/v2";
+import { migrateProject } from "../projects/v3";
 import { executeCommands, type ProjectCommand } from "./commands";
 import { restoreRevision, WorkbenchHistory } from "./history";
 

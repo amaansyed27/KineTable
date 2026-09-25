@@ -6,7 +6,7 @@ import { useProfileStore } from "../state/profileStore";
 import { useAuthStore } from "../auth/authStore";
 import { useProjectStore } from "../state/projectStore";
 import { assembleProject, assemblyError, type AssemblyPhase } from "../ai/assembleProject";
-import { migrateProject } from "../projects/v2";
+import { migrateProject } from "../projects/v3";
 import { getDefinition } from "../component-library/catalog";
 import { starterProject } from "../projects/schema";
 import { Workbench } from "./Workbench";
@@ -35,8 +35,12 @@ function ReadyTable() {
   const activeBoard = getBoard(project.document.boardIds[0]) ?? board;
   const document = migrateProject(project.document);
   const assembled = document.components.length > 1;
+  const partCount = document.components.filter(c => c.kind === "component").length;
+  const buildSummary = [partCount ? `${partCount} ${partCount === 1 ? "part" : "parts"}` : null,
+    document.components.some(c => c.kind === "breadboard") ? "breadboard" : null,
+    `${document.wires.length} saved connections`].filter(Boolean).join(" · ");
   const initialBoard = starterProject(activeBoard.id).layout.entities["board-main"];
-  const canAssemble = !!document.intent && !assembled && !document.connections.length &&
+  const canAssemble = !!document.intent && !assembled && !document.wires.length && !document.terminalPlacements.length &&
     JSON.stringify(document.layout.entities["board-main"]) === JSON.stringify(initialBoard);
   async function build() {
     if (phase) return;
@@ -49,7 +53,7 @@ function ReadyTable() {
     finally { setPhase(null); }
   }
   return <main id="app-main" className="my-table" data-board-id={activeBoard.id} data-project-id={project.id}>
-    <div className="my-table-heading"><div><p className="eyebrow">YOUR TABLE <span aria-hidden="true">/</span> BUILD</p><h1>{assembled ? "Your build is on the table." : "What do you want to make?"}</h1><p>{assembled ? `${document.components.length - 1} parts · ${document.connections.length} saved connections` : "Your board is here whenever you’re ready."}</p></div><Link className="table-new-build button" to="/new">New Build <span aria-hidden="true">↗</span></Link>
+    <div className="my-table-heading"><div><p className="eyebrow">YOUR TABLE <span aria-hidden="true">/</span> BUILD</p><h1>{assembled ? "Your build is on the table." : "What do you want to make?"}</h1><p>{assembled ? buildSummary : "Your board is here whenever you’re ready."}</p></div><Link className="table-new-build button" to="/new">New Build <span aria-hidden="true">↗</span></Link>
       {canAssemble && <div className="table-assembly"><button className="button" disabled={!!phase} onClick={() => void build()}>{phase ? "Building…" : "Build with Kinetable"}</button><Link className="table-provider-link" to="/settings/providers">Provider settings ↗</Link>
         <p role={assemblyMessage ? "alert" : "status"} className={unsupported ? "assembly-message unsupported" : "assembly-message"}>{phase === "planning" ? "Planning your build…" : phase === "checking" ? "Checking the connections…" : phase === "placing" ? "Putting it on the table…" : assemblyMessage}</p></div>}
     </div>

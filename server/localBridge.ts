@@ -4,7 +4,7 @@ import { parsePlanRequest } from "../apps/web/src/ai/contract.js";
 import { parsePlan } from "../apps/web/src/ai/contract.js";
 import { planHardware } from "../apps/web/src/ai/planner.js";
 import { HardwareError } from "../apps/web/src/hardware-core/commands.js";
-import { migrateProject } from "../apps/web/src/projects/v2.js";
+import { migrateProject } from "../apps/web/src/projects/v3.js";
 import { cliModelProvider, cliStatus, validateCliId } from "./ai/cliRuntime.js";
 import { localModelProvider, localModels, validateLocalConfig } from "./ai/localRuntime.js";
 import { runtimeManager } from "./ai/runtimeManager.js";

@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { projectFromIntent, starterProject } from "../projects/schema";
-import { migrateProject } from "../projects/v2";
+import { migrateProject } from "../projects/v3";
 import { parsePlan, parsePlanRequest, parsePlanResponse } from "./contract";
 import { planHardware } from "./planner";
 import { assemblyError } from "./assembleProject";

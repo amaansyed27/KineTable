@@ -476,12 +476,13 @@ KineTable/
 - [Slice 05 New Build and real project creation](docs/SLICE-05.md)
 - [Slice 06 AI assembly implementation and verification](docs/SLICE-06.md)
 - [Slice 07 interactive workbench and verification](docs/SLICE-07.md)
+- [Slice 08 physical circuit editor and verification](docs/SLICE-08.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 
 ## Status
 
-**Slices 01–07 implemented and verified. Slice 08 has not begun.**
+**Slices 01–08 implemented.** The canonical roadmap now has 15 slices; Slice 09 is Living Circuit.
 
 Implementation proceeds page-by-page and feature-by-feature, with each completed slice visually finished, tested, and backed by the real persistence/server functionality it requires.
 

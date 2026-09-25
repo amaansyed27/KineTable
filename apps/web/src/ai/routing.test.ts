@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { projectFromIntent, starterProject } from "../projects/schema";
-import { migrateProject } from "../projects/v2";
+import { migrateProject } from "../projects/v3";
 import { routePlan, RoutingError, maskSecret, type CredentialMeta, type RoutingProfile } from "./routing";
 
 const project = migrateProject(projectFromIntent(starterProject("esp32-dev-module"), "esp32-dev-module", "Build me a drone flight controller", "Drone"));

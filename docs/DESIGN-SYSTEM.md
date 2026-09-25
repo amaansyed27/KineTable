@@ -358,3 +358,7 @@ The target is a calm, personal, tactile engineering environment that reveals com
 ## Implemented workbench interaction
 
 Slice 07 keeps the 3D work surface dominant. Selection uses a restrained lime ring, contextual actions sit clear of the board on desktop and become a bottom strip on mobile, and the add-part tray appears only when requested. The DOM part list and camera controls remain keyboard/touch reachable; reduced motion removes nonessential easing. Incomplete circuits use one concise status rather than a warning panel. See [Slice 07](SLICE-07.md).
+
+## Slice 08 circuit editor
+
+The 400-hole breadboard is a quiet physical object with restrained rail markings and sparse labels. Pin markers appear on hover, selection or in Wire mode; connected holes use a subtle highlight rather than permanent label clouds. Actual wires use conventional muted colors and exact anchors, with a larger invisible hit target. An on-table inspector names the selected component, wire or hole and offers technical detail on demand. Text names and diagnostics carry electrical meaning even when color or WebGL is unavailable. On mobile, the same From/To controls and part list provide touch-friendly access. See [Slice 08](SLICE-08.md).

@@ -7,7 +7,7 @@ import { localProjectRepository } from "../persistence/localProjectRepository";
 import { createProjectStore } from "../state/projectStore";
 import { useAuthStore } from "../auth/authStore";
 import { validateCloudProject, type CloudProject } from "../persistence/cloudProjectRepository";
-import { isProjectV2 } from "./v2";
+import { isProjectV3 } from "./v3";
 import { changeBoard, starterRow } from "./projectCreation";
 import { executeCommands } from "../hardware-core/commands";
 
@@ -74,7 +74,7 @@ it("keeps earlier projects and opens the newest build", async () => {
   expect(store.getState().project!.id).not.toBe(starterId);
   expect((await localProjectRepository.list()).map(row => row.id)).toContain(starterId);
   expect(await localProjectRepository.list()).toHaveLength(2);
-  expect(isProjectV2(store.getState().project!.document)).toBe(true);
+  expect(isProjectV3(store.getState().project!.document)).toBe(true);
   const restored = createProjectStore(); await restored.getState().open("esp32-dev-module", null);
   expect(restored.getState().project?.id).toBe(store.getState().project?.id);
 });
@@ -90,7 +90,7 @@ it("creates one local starter and restores its board and transform after reload"
 });
 it("keeps an assembled project intact when another board is selected", () => {
   const row = starterRow("esp32-dev-module");
-  const assembled = executeCommands(row.document as import("./v2").KinetableProjectV2, [
+  const assembled = executeCommands(row.document as import("./v3").KinetableProjectV3, [
     { type: "component.add", instanceId: "led-main", definitionId: "led-5mm" },
     { type: "component.add", instanceId: "resistor-main", definitionId: "resistor-220r" },
     { type: "connection.create", id: "led-ground", from: { componentId: "led-main", pinId: "cathode" }, to: { componentId: "board-main", pinId: "gnd" } },
@@ -105,13 +105,13 @@ it("keeps an assembled project intact when another board is selected", () => {
 });
 it("saves safe incomplete editor drafts locally and accepts them from cloud", async () => {
   const row = starterRow("esp32-dev-module");
-  const draft = executeCommands(row.document as import("./v2").KinetableProjectV2, [{ type: "component.add", instanceId: "led-1", definitionId: "led-5mm" }], undefined, "editor");
+  const draft = executeCommands(row.document as import("./v3").KinetableProjectV3, [{ type: "component.add", instanceId: "led-1", definitionId: "led-5mm" }], undefined, "editor");
   await localProjectRepository.save({ ...row, document: draft, updatedAt: draft.metadata.updatedAt });
   expect((await localProjectRepository.list())[0].document.components).toHaveLength(2);
-  const cloud = { id: draft.id, owner_id: "user-a", name: draft.name, primary_board_id: draft.boardIds[0], schema_version: 2,
+  const cloud = { id: draft.id, owner_id: "user-a", name: draft.name, primary_board_id: draft.boardIds[0], schema_version: 3,
     document: draft, archived: false, created_at: draft.metadata.createdAt, updated_at: draft.metadata.updatedAt };
   expect(validateCloudProject(cloud, "user-a").document.components).toHaveLength(2);
-  expect(() => validateCloudProject({ ...cloud, document: { ...draft, connections: [{ id: "bad", from: { componentId: "led-1", pinId: "missing" }, to: { componentId: "board-main", pinId: "gnd" } }] } }, "user-a")).toThrow();
+  expect(() => validateCloudProject({ ...cloud, document: { ...draft, wires: [{ id: "bad", from: { kind: "pin", componentId: "led-1", pinId: "missing" }, to: { kind: "pin", componentId: "board-main", pinId: "gnd" } }] } }, "user-a")).toThrow();
 });
 it("commits one editor transaction per save and undoes it as a new revision", async () => {
   const local = { list: localProjectRepository.list, save: vi.fn(localProjectRepository.save) };
@@ -145,7 +145,7 @@ it("adopts a guest project, retries failed cloud writes, and never transfers ano
   expect(store.getState().status).toBe("offline");
   expect((await localProjectRepository.list())[0].cloudDirty).toBe(true);
   cloud.save.mockImplementation(async document => ({ id: document.id, owner_id: "user-a", name: document.name,
-    schema_version: 1, primary_board_id: document.boardIds[0], document, archived: false,
+    schema_version: document.schemaVersion, primary_board_id: document.boardIds[0], document, archived: false,
     created_at: document.metadata.createdAt, updated_at: "2026-09-23T12:00:00Z" } as CloudProject));
   await store.getState().sync();
   expect(store.getState().status).toBe("synced");
@@ -166,7 +166,7 @@ it("starts an authenticated local table when cloud is unavailable", async () => 
 });
 it("uploads every guest build when an account is connected", async () => {
   const cloud = { list: vi.fn(async () => [] as CloudProject[]), save: vi.fn(async (document: KinetableProject) => ({
-    id: document.id, owner_id: "user-a", name: document.name, schema_version: 1,
+    id: document.id, owner_id: "user-a", name: document.name, schema_version: document.schemaVersion,
     primary_board_id: document.boardIds[0], document, archived: false,
     created_at: document.metadata.createdAt, updated_at: document.metadata.updatedAt,
   } as CloudProject)) };
