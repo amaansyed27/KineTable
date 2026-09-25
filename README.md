@@ -238,5 +238,6 @@ For hosted Supabase features, copy `.env.example` to `apps/web/.env.local` and p
 - [Canonical roadmap](docs/ROADMAP.md)
 - [Testing strategy](docs/TESTING.md)
 - [Slice 08 — Physical Circuit Editor](docs/SLICE-08.md)
+- [Slice 09 — Living Circuit](docs/SLICE-09.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
