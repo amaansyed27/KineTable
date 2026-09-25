@@ -40,6 +40,11 @@ it("compiles topology once across layout changes and keeps incomplete circuits s
   const moved = structuredClone(p); moved.layout.entities["led-1"].position[0] += 1;
   expect(topologyKey(moved)).toBe(topologyKey(p));
   expect(compileCircuit(moved)).toBe(first);
+  const anotherProject = structuredClone(p);
+  anotherProject.id = "11111111-1111-4111-8111-111111111111";
+  expect(topologyKey(anotherProject)).toBe(topologyKey(p));
+  expect(compileCircuit(anotherProject)).not.toBe(first);
+  expect(compileCircuit(p)).toBe(first);
   expect(first.endpointToNet.get("pin:board-main:gpio23")).toBe(first.endpointToNet.get("pin:resistor-1:a"));
   expect(first.endpointToNet.get("pin:resistor-1:b")).not.toBe(first.endpointToNet.get("pin:resistor-1:a"));
   const incomplete = structuredClone(p); incomplete.wires.pop();
@@ -47,6 +52,32 @@ it("compiles topology once across layout changes and keeps incomplete circuits s
   expect(analyzeSimulationCompatibility(p).status).toBe("supported");
   const otherResistor = project([["resistor-1","resistor-220r"]], [[board,"gpio23","resistor-1","a"],["resistor-1","b",board,"gpio19"]]);
   expect(analyzeSimulationCompatibility(otherResistor).diagnostics[0]).toMatch(/no supported simulation topology/);
+});
+
+it("does not offer behavior recipes when their semantic roles share one board GPIO", () => {
+  const bonkProject = project([...button, ...led, ...buzzer, ...oled], [...buttonLinks, ...ledLinks, ...buzzerLinks, ...oledLinks]);
+  const bonkCircuit = compileCircuit(bonkProject);
+  const sharedBonkPin = {
+    ...bonkCircuit,
+    bindings: bonkCircuit.bindings.map(binding => binding.id === "buzzer-1" ? { ...binding, pins: { ...binding.pins, sig: bonkCircuit.board.pins.gpio23 } } : binding),
+  };
+  expect(availableRecipes(sharedBonkPin).map(recipe => recipe.id)).not.toContain("bonk");
+
+  const alarmProject = project([...pir, ...buzzer], [...pirLinks, ...buzzerLinks]);
+  const alarmCircuit = compileCircuit(alarmProject);
+  const sharedAlarmPin = {
+    ...alarmCircuit,
+    bindings: alarmCircuit.bindings.map(binding => binding.id === "buzzer-1" ? { ...binding, pins: { ...binding.pins, sig: alarmCircuit.board.pins.gpio27 } } : binding),
+  };
+  expect(availableRecipes(sharedAlarmPin).map(recipe => recipe.id)).not.toContain("motion-alarm");
+
+  const displayProject = project([...dht, ...oled], [...dhtLinks, ...oledLinks]);
+  const displayCircuit = compileCircuit(displayProject);
+  const sharedDataPin = {
+    ...displayCircuit,
+    bindings: displayCircuit.bindings.map(binding => binding.id === "dht-1" ? { ...binding, pins: { ...binding.pins, data: displayCircuit.board.pins.gpio21 } } : binding),
+  };
+  expect(availableRecipes(sharedDataPin).map(recipe => recipe.id)).not.toContain("dht11-oled");
 });
 
 it("uses logical time for blink and reports the driven resistor/LED path", () => {
