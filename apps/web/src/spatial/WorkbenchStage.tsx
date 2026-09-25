@@ -13,6 +13,8 @@ import { Breadboard } from "./Breadboard";
 import { PinTargets } from "./PinTargets";
 import { WireMesh } from "./WireMesh";
 import { endpointWorld } from "./anchors";
+import { useSimulationStore } from "../state/simulationStore";
+import { causalChain, xrayNets } from "../simulation/explain";
 
 export type CameraAction = { sequence: number; type: "focus" | "reset" | "zoom-in" | "zoom-out"; entityId?: string };
 type Props = { project: KinetableProjectV3; selectedId: string | null; selectedWireId: string | null; selectedEndpointKey: string | null;
@@ -22,9 +24,9 @@ type Props = { project: KinetableProjectV3; selectedId: string | null; selectedW
 const identity: Transform = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
 const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
 
-function Entity({ id, kind, definitionId, visualId, transform, selected, hovered, highlighted, selectedEndpointKey, wiring, onSelect, onEndpoint, onHover, onMove, onPreview, onDragging, reduced }: {
+function Entity({ id, kind, definitionId, visualId, transform, selected, hovered, highlighted, selectedEndpointKey, wiring, editable, xrayVisible, output, onSelect, onEndpoint, onHover, onMove, onPreview, onDragging, reduced }: {
   id: string; kind: "board" | "component" | "breadboard"; definitionId: string; visualId: string; transform: Transform; selected: boolean; hovered: boolean;
-  highlighted: Set<string>; selectedEndpointKey: string | null; wiring: boolean;
+  highlighted: Set<string>; selectedEndpointKey: string | null; wiring: boolean; editable: boolean; xrayVisible: boolean; output?: { on?: boolean; text?: string; pressed?: boolean; motion?: boolean };
   onSelect(id: string): void; onEndpoint(endpoint: ElectricalEndpoint): void; onHover(id: string | null): void; onMove(id: string, transform: Transform): void; onPreview(id: string, transform: Transform | null): void; onDragging(value: boolean): void; reduced: boolean;
 }) {
   const group = useRef<Group>(null);
@@ -38,6 +40,7 @@ function Entity({ id, kind, definitionId, visualId, transform, selected, hovered
     event.stopPropagation();
     if (wiring) return;
     onSelect(id);
+    if (!editable) return;
     const point = pointOnSurface(event);
     if (!point) return;
     drag.current = { x: transform.position[0] - point.x, y: transform.position[1] - point.y, origin: [transform.position[0], transform.position[1]], moved: false };
@@ -76,14 +79,19 @@ function Entity({ id, kind, definitionId, visualId, transform, selected, hovered
       onPointerOut={event => { event.stopPropagation(); onHover(null); document.body.style.cursor = ""; }}>
       {!wiring && kind !== "breadboard" && <mesh position={[0, 0, kind === "board" ? .2 : .02]}><sphereGeometry args={[kind === "board" ? 1.25 : .5, 16, 12]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>}
       <group>
-        {kind === "board" ? <group scale={visualId === "uno" ? .82 : 1}>{visualId === "uno" ? <UnoModel /> : <BoardModel pico={visualId === "pico"} />}</group> : kind === "breadboard" ? <Breadboard id={id} highlighted={highlighted} selectedHole={selectedEndpointKey?.startsWith(`hole:${id}:`) ? selectedEndpointKey.split(":")[2] : undefined} onHole={onEndpoint} /> : <PartObject visualId={visualId} transform={identity} reduced={reduced} />}
-        {kind !== "breadboard" && <PinTargets componentId={id} definitionId={definitionId} visible={selected || hovered || wiring} highlighted={highlighted} onPin={onEndpoint} />}
+        {kind === "board" ? <group scale={visualId === "uno" ? .82 : 1}>{visualId === "uno" ? <UnoModel /> : <BoardModel pico={visualId === "pico"} />}</group> : kind === "breadboard" ? <Breadboard id={id} highlighted={highlighted} selectedHole={selectedEndpointKey?.startsWith(`hole:${id}:`) ? selectedEndpointKey.split(":")[2] : undefined} onHole={onEndpoint} /> : <PartObject visualId={visualId} transform={identity} reduced={reduced} output={output} />}
+        {kind !== "breadboard" && <PinTargets componentId={id} definitionId={definitionId} visible={selected || hovered || wiring || xrayVisible} highlightedOnly={xrayVisible && !selected && !hovered} highlighted={highlighted} onPin={onEndpoint} />}
       </group>
     </group>
   </>;
 }
 
 function World({ project, selectedId, selectedWireId, selectedEndpointKey, highlightedKeys, wireSource, wiring, onSelect, onEndpoint, onWire, onMove, cameraAction, reduced }: Props & { reduced: boolean }) {
+  const mode = useSimulationStore(s => s.mode);
+  const circuit = useSimulationStore(s => s.circuit);
+  const snapshot = useSimulationStore(s => s.snapshot);
+  const xray = useSimulationStore(s => s.xray);
+  const selectedTraceId = useSimulationStore(s => s.selectedTraceId);
   const controls = useRef<CameraControlsType>(null);
   const projectRef = useRef(project);
   projectRef.current = project;
@@ -93,6 +101,11 @@ function World({ project, selectedId, selectedWireId, selectedEndpointKey, highl
   const [pointer, setPointer] = useState<Vector3 | null>(null);
   const spatialProject = Object.keys(previewTransforms).length ? { ...project, layout: { entities: { ...project.layout.entities, ...previewTransforms } } } : project;
   const highlighted = new Set(highlightedKeys);
+  if (mode === "explain" && circuit) {
+    for (const net of xrayNets(circuit, snapshot, xray)) for (const key of net.endpoints) highlighted.add(key);
+    const event = snapshot?.trace.find(e => e.id === selectedTraceId);
+    if (event && snapshot) for (const step of causalChain(snapshot.trace, event.id)) if (step.netId) for (const endpoint of circuit.nets.find(n => n.id === step.netId)?.endpoints ?? []) highlighted.add(endpointKey(endpoint));
+  }
   const { camera, gl, invalidate, size } = useThree();
   useEffect(() => {
     if (!wireSource) { setPointer(null); return; }
@@ -128,8 +141,8 @@ function World({ project, selectedId, selectedWireId, selectedEndpointKey, highl
     {project.components.map(component => {
       const definition = getDefinition(component.definitionId)!;
       return <Entity key={component.id} id={component.id} kind={component.kind} definitionId={component.definitionId} visualId={definition.visualId} transform={project.layout.entities[component.id]}
-        selected={selectedId === component.id} hovered={hovered === component.id} highlighted={highlighted} selectedEndpointKey={selectedEndpointKey} wiring={wiring}
-        onSelect={onSelect} onEndpoint={onEndpoint} onHover={setHovered} onMove={onMove} onPreview={(id, transform) => setPreviewTransforms(current => { const next = { ...current }; if (transform) next[id] = transform; else delete next[id]; return next; })} onDragging={setDragging} reduced={reduced} />;
+        selected={selectedId === component.id} hovered={hovered === component.id} highlighted={highlighted} selectedEndpointKey={selectedEndpointKey} wiring={wiring} editable={mode === "build"} xrayVisible={mode === "explain"} output={snapshot?.outputs[component.id]}
+        onSelect={id => { onSelect(id); if (mode === "simulate" && definition.electricalModel === "momentary-switch") useSimulationStore.getState().button(id, !snapshot?.outputs[id]?.pressed); }} onEndpoint={onEndpoint} onHover={setHovered} onMove={onMove} onPreview={(id, transform) => setPreviewTransforms(current => { const next = { ...current }; if (transform) next[id] = transform; else delete next[id]; return next; })} onDragging={setDragging} reduced={reduced} />;
     })}
   </>;
 }

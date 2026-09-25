@@ -147,7 +147,7 @@ AI returns strict Kinetable operations. It never directly edits the DOM, Three.j
 
 ### `simulation` — Slice 09
 
-Simulation must remain independent from rendering and persistence.
+Simulation is implemented independently from rendering and persistence. `compileCircuit.ts` caches the validated physical graph by a topology-only key, `drivers.ts` binds canonical component semantics, `recipes.ts` matches supported demonstrations, `runtime.ts` advances a logical clock and records causal events, and `explain.ts` derives X-Ray paths and explanations from that same graph and trace. `state/simulationStore.ts` exposes an ephemeral UI snapshot without project writes.
 
 Responsibilities:
 

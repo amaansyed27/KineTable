@@ -191,7 +191,7 @@ AI Assembly still requires the complete-circuit validation gate before claiming 
 
 **Living Circuit is primarily a local deterministic runtime, not a cloud service.**
 
-Slice 09 should not add a server dependency merely because simulation is complex.
+Slice 09 uses a local deterministic runtime and adds no server dependency.
 
 Required boundary:
 

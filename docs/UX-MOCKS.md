@@ -853,4 +853,4 @@ Wire tap:   exact source/destination and connected pins; remove/undo
 Fallback:   From/To selectors provide the same validated wiring command
 ```
 
-The responsive workbench keeps the circuit legible and exposes a DOM part list and connection controls on touch screens. Electrical editing works without simulation; Simulate, Explain and X-Ray remain [Slice 09](ROADMAP.md). See [Slice 08](SLICE-08.md).
+The responsive workbench keeps the circuit legible and exposes a DOM part list and connection controls on touch screens. Electrical editing works without simulation; Simulate, Explain and X-Ray are implemented in [Slice 09](SLICE-09.md). See [Slice 08](SLICE-08.md).

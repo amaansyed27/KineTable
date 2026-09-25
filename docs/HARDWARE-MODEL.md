@@ -279,7 +279,7 @@ A driver receives stable component/pin/net identities from the compiled circuit 
 
 ## 12. Initial virtual inputs
 
-Slice 09 should support only inputs that can be modeled honestly for the current catalog.
+Slice 09 supports only inputs that can be modeled honestly for the current catalog.
 
 ### Push button
 

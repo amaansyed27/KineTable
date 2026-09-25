@@ -23,7 +23,7 @@ Core rules:
 
 ## Current status
 
-**Slices 01–08 are implemented and verified. Slice 09 — Living Circuit is next.**
+**Slices 01–09 are implemented. Slice 10 — Visual Logic is next.**
 
 Kinetable currently supports:
 
@@ -42,7 +42,7 @@ Kinetable currently supports:
 - component, pin, wire and breadboard-hole inspection;
 - accessible wiring controls, touch interaction and WebGL fallback.
 
-Simulation, Explain/X-Ray, visual logic, personal inventory, physical-board runtime and digital-twin features remain future slices.
+Deterministic simulation, runtime recipes, virtual inputs, causal Explain and Power/Signals/Data X-Ray are available for supported complete circuits. Visual logic, personal inventory, physical-board runtime and digital-twin features remain future slices.
 
 ## Architecture
 
@@ -71,7 +71,13 @@ Simulation, Explain/X-Ray, visual logic, personal inventory, physical-board runt
                           │
            structural / safety / completeness
                           │
-                IndexedDB local-first
+             ┌────────────┴─────────────┐
+             │                          │
+     IndexedDB local-first     simulation compiler
+                                       │
+                                logical runtime
+                                       │
+                              Explain / X-Ray
 ```
 
 The project/electrical model is the source of truth. Three.js renders it; AI proposes commands against it; persistence stores it. Derived nets are recomputed from physical project data and are not stored as a second source of truth.
@@ -143,7 +149,7 @@ The earlier 22-slice plan was compressed after Slice 07. Historical Slice 01–0
 | 06 — AI Assembly | ✅ | Provider-independent AI → validated hardware graph |
 | 07 — Core 3D Workbench | ✅ | Spatial editor, history, autosave |
 | 08 — Physical Circuit Editor | ✅ | Breadboard, wires, nets, inspectors |
-| 09 — Living Circuit | Next | Simulation + Explain/X-Ray |
+| 09 — Living Circuit | Implemented | Simulation + Explain/X-Ray |
 | 10 — Visual Logic | Planned | Editable semantic behaviour |
 | 11 — Hardware Platform | Planned | My Parts + canonical Component Library |
 | 12 — Personal Workspace | Planned | Projects/versioning + Explore |

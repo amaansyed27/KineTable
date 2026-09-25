@@ -19,8 +19,8 @@ async function saved(page: import("@playwright/test").Page) {
 test("guest edits parts and transforms with local persistence, undo and redo", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   await start(page);
-  await expect(page.getByRole("button", { name: "Simulate · later" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Explain · later" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Simulate", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Explain", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "+ Add part" }).click();
   await expect(page.getByRole("dialog", { name: "Add part" })).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "LED", exact: true }).click();

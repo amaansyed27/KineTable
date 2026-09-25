@@ -72,7 +72,7 @@ fresh app
 → buzzer action count = 3
 ```
 
-The test may assert project/simulation state directly in addition to visible UI.
+Through Slice 09 the test stops after the two deterministic beeps. Editing beep count belongs to Slice 10. `src/simulation/simulation.test.ts` asserts the pure compiler, logical clock, recipes, causal trace and X-Ray; `e2e/simulation.spec.ts` asserts rendered guest flows, refresh isolation and mobile controls. The test may assert project/simulation state directly in addition to visible UI.
 
 ## Core deterministic fixtures
 

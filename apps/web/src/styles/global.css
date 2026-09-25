@@ -559,9 +559,11 @@ footer .wordmark {
   z-index: 100;
   background: #fff;
   padding: 15px;
+  clip-path: inset(100%);
 }
 .skip-link:focus {
   top: 10px;
+  clip-path: none;
 }
 dialog {
   border: 1px solid #d6d3c8;

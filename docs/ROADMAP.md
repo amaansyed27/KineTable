@@ -214,7 +214,7 @@ A project stores explicit pin and breadboard-hole endpoints, physical wires and 
 
 ## 09 — Living Circuit
 
-Implement a deterministic component runtime and simulation clock, then Explain and X-Ray views that reveal supported power, signal and data paths. Rendering cannot determine electrical truth. No simulation or causal animation is claimed by Slice 08.
+Status: implemented; see [Slice 09](SLICE-09.md). A deterministic compiled-circuit runtime, virtual inputs, topology-matched demonstration recipes, causal Explain and Power/Signals/Data/All X-Ray reveal supported behavior. Rendering observes runtime truth. This is semantic simulation, not firmware or physical verification.
 
 ## 10 — Visual Logic
 

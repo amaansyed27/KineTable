@@ -171,8 +171,8 @@
 .table-assembly { margin: 0; justify-content: flex-end; max-width: 380px; }
 .workbench { display: flex; flex-direction: column; min-height: 0; flex: 1; margin-top: 18px; }
 .workbench-modes { display: flex; align-items: center; gap: 22px; height: 36px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
-.workbench-modes span { height: 100%; display: grid; align-items: center; border-bottom: 2px solid #99c70e; font-weight: 600; }
-.workbench-modes button { color: #898e82; cursor: not-allowed; }
+.workbench-modes button { height: 100%; color: #687465; padding: 0 3px; }
+.workbench-modes button[aria-current="page"] { border-bottom: 2px solid #99c70e; color: #253c2b; font-weight: 600; }
 .workbench-surface { position: relative; flex: 1; min-height: 450px; height: clamp(450px, calc(100svh - 330px), 850px); overflow: hidden; border: 1px solid #dedfd3; background: radial-gradient(ellipse at 50% 43%, #fbfaf3 0%, #f1f0e6 66%, #e9eadd 100%); }
 .workbench-surface::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url('/surface-grain.png'); opacity: .13; }
 .workbench-surface canvas { touch-action: none; }
@@ -234,6 +234,34 @@
 .workbench-connection-controls button { min-height: 36px; padding: 5px 12px; border: 1px solid #cbd3c7; }
 .workbench-fallback { display: grid; place-content: center; gap: 10px; height: 100%; padding: 32px; text-align: center; color: #4b584a; }
 .workbench-fallback strong { font-size: 18px; font-weight: 500; }
+.simulation-panel { border-bottom: 1px solid #d9ddd1; padding: 15px 0 13px; color: #26382b; font-size: 12px; }
+.simulation-panel-top, .simulation-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 18px; }
+.simulation-panel-top h2 { font-size: 19px; font-weight: 500; letter-spacing: -.035em; margin: 2px 0 8px; }
+.simulation-kicker { color: #7a8c6b; font-size: 9px; letter-spacing: .17em; }
+.simulation-clock { color: #65745d; font-variant-numeric: tabular-nums; }
+.simulation-row { justify-content: flex-start; padding: 8px 0; border-top: 1px solid #e1e4d9; }
+.simulation-row > span { min-width: 130px; }
+.simulation-row label { display: flex; align-items: center; gap: 8px; }
+.simulation-row select, .simulation-row input { accent-color: #829f48; }
+.simulation-row select, .simulation-panel button { min-height: 36px; border: 1px solid #cbd4c2; background: #fafbf4; padding: 5px 11px; border-radius: 2px; }
+.simulation-panel button:hover:not(:disabled) { background: #e8f0d8; }
+.simulation-panel button:disabled { opacity: .45; }
+.simulation-buttons, .simulation-xray { display: flex; flex-wrap: wrap; gap: 6px; }
+.simulation-hint { color: #6c7769; margin: 4px 0 9px; line-height: 1.45; }
+.simulation-environment label { font-size: 11px; }
+.simulation-environment output { min-width: 34px; font-variant-numeric: tabular-nums; }
+.simulation-outputs { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-top: 9px; }
+.simulation-outputs > span { display: inline-flex; align-items: center; gap: 5px; }
+.simulation-outputs button { min-height: 28px; padding: 3px 7px; }
+.simulation-xray { margin: 0 0 10px; }
+.simulation-xray button[aria-pressed="true"] { background: #dcebbd; border-color: #9fb568; }
+.simulation-net-list { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; padding: 0; margin: 0 0 10px; color: #536252; font-size: 11px; }
+.simulation-trace { border-top: 1px solid #e1e4d9; padding-top: 9px; }
+.simulation-trace h3 { margin: 0 0 7px; font-size: 12px; }
+.simulation-trace ol { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; padding: 0; margin: 0; }
+.simulation-trace li button { text-align: left; font-size: 11px; }
+.simulation-trace li span { color: #718267; font-variant-numeric: tabular-nums; }
+.simulation-error { color: #9b3b2d; }
 @media (max-width: 700px) {
   .my-table { padding: 18px 14px 25px; }
   .my-table-heading { flex-wrap: wrap; gap: 10px; }
@@ -253,6 +281,10 @@
   .workbench-tray { top: auto; bottom: 0; max-height: 75%; width: 100%; right: 0; }
   .workbench-inspector { top: auto; right: 0; bottom: 0; width: 100%; max-height: 62%; padding: 14px 18px; }
   .workbench-parts > span { flex-basis: 100%; }
+  .simulation-panel-top { align-items: baseline; }
+  .simulation-row > span { min-width: 100%; }
+  .simulation-environment label { width: 100%; justify-content: space-between; }
+  .simulation-environment input { flex: 1; }
 }
 .provider-settings { max-width: 1000px; margin: 0 auto; padding: 70px 40px 100px; }
 .provider-settings > .eyebrow { color: #737b69; letter-spacing: .17em; font-size: 11px; }
