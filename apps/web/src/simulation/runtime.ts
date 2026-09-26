@@ -81,7 +81,7 @@ export class SimulationRuntime {
     }
   }
   private display(text: string, causedBy: number, componentId?: string) {
-    const oled = componentId ? this.circuit.bindings.find(b => b.id === componentId) : this.recipe.oled;
+    const oled = componentId ? this.circuit.bindings.find(b => b.id === componentId) : this.recipe.id === "project-logic" ? undefined : this.recipe.oled;
     if (!oled) return;
     const sent = this.record("i2c.text", { componentId: this.circuit.board.id, netId: oled.pins.sda, value: text, causedBy });
     this.signals.set(oled.pins.sda, { kind: "data", protocol: "i2c", value: text });
@@ -131,7 +131,7 @@ export class SimulationRuntime {
       const action = this.record(pressed ? "button.press" : "button.release", { componentId, value: pressed ? "PRESSED" : "RELEASED" });
       const input = this.setInput(pin, pressed ? 0 : 1, action);
       if (this.recipe.id === "project-logic") this.runRules("button", componentId, pressed ? "pressed" : "released", input);
-      if (["button-led", "bonk"].includes(this.recipe.id)) {
+      if (this.recipe.id === "button-led" || this.recipe.id === "bonk") {
         const reaction = this.record(`recipe.${this.recipe.id}`, { causedBy: input });
         if (this.recipe.ledPin) this.drive(this.recipe.ledPin, pressed ? 1 : 0, reaction);
         if (this.recipe.id === "bonk") {
@@ -195,7 +195,7 @@ export class SimulationRuntime {
             this.runRules("timer", undefined, undefined, tick, rule.id);
             this.schedule(this.timeMs + rule.when.intervalMs, "timer", tick, undefined, undefined, rule.id);
           }
-        } else if (event.action === "blink" && this.recipe.ledPin && this.recipe.led) {
+        } else if (event.action === "blink" && this.recipe.id !== "project-logic" && this.recipe.ledPin && this.recipe.led) {
           const on = !this.outputs[this.recipe.led.id].on;
           this.drive(this.recipe.ledPin, on ? 1 : 0, this.record("recipe.blink-led", { causedBy: event.causedBy }));
           this.schedule(this.timeMs + 500, "blink");
@@ -204,8 +204,9 @@ export class SimulationRuntime {
           const off = this.record("pir.clear", { componentId: event.componentId, causedBy: event.causedBy });
           const input = this.setInput(this.recipe.id === "project-logic" ? this.recipe.inputPins[event.componentId] : this.recipe.pirPin!, 0, off);
           if (this.recipe.id === "motion-alarm" && this.recipe.buzzerPin) this.drive(this.recipe.buzzerPin, 0, this.record("recipe.motion-alarm", { causedBy: input }));
-        } else if ((event.action === "buzzer-off" || event.action === "buzzer-on") && (event.pin || this.recipe.buzzerPin)) {
-          this.drive(event.pin ?? this.recipe.buzzerPin!, event.action === "buzzer-on" ? 1 : 0, this.record(this.recipe.id === "project-logic" ? "logic.beep" : "recipe.bonk.beep", { causedBy: event.causedBy, componentId: event.componentId }));
+        } else if (event.action === "buzzer-off" || event.action === "buzzer-on") {
+          const pin = event.pin ?? (this.recipe.id === "project-logic" ? undefined : this.recipe.buzzerPin);
+          if (pin) this.drive(pin, event.action === "buzzer-on" ? 1 : 0, this.record(this.recipe.id === "project-logic" ? "logic.beep" : "recipe.bonk.beep", { causedBy: event.causedBy, componentId: event.componentId }));
         }
       }
       this.timeMs = targetTimeMs;

@@ -7,10 +7,15 @@ export type CompiledTrigger = Trigger & { boardPin?: string; netId?: string };
 export type CompiledCondition = Condition & { boardPin: string; netId: string };
 export type CompiledAction = Action & { boardPin?: string; netId: string };
 export type CompiledRule = { id: string; enabled: boolean; when: CompiledTrigger; if: CompiledCondition[]; do: CompiledAction[] };
-export type CompiledBehaviorProgram = { id: "project-logic"; name: string; description: string; rules: CompiledRule[];
-  button?: Binding; buttonPin?: string; pir?: Binding; pirPin?: string; dht?: Binding; dhtPin?: string;
-  led?: Binding; ledPin?: string; buzzer?: Binding; buzzerPin?: string; oled?: Binding;
-  inputs: { buttons: Binding[]; pirs: Binding[]; dhts: Binding[] }; inputPins: Record<string, string>; outputs: { leds: DriverBinding[]; buzzers: DriverBinding[]; oleds: DriverBinding[] } };
+export type CompiledBehaviorProgram = {
+  id: "project-logic";
+  name: string;
+  description: string;
+  rules: CompiledRule[];
+  inputs: { buttons: Binding[]; pirs: Binding[]; dhts: Binding[] };
+  inputPins: Record<string, string>;
+  outputs: { leds: DriverBinding[]; buzzers: DriverBinding[]; oleds: DriverBinding[] };
+};
 type Model = Binding["definition"]["electricalModel"];
 const expected: Record<Exclude<Trigger["kind"] | Action["kind"], "timer">, Model> = {
   button: "momentary-switch", pir: "pir", dht11: "dht11", led: "led-passive", oled: "ssd1306-i2c", buzzer: "buzzer",
@@ -50,12 +55,6 @@ export function compileLogic(project: KinetableProjectV4, circuit = compileCircu
   const roles = [...Object.entries(inputPins).map(([id,pin]) => [pin,id]), ...[...outputs.leds,...outputs.buzzers].map(b => [b.boardPin!,b.component.id]), ...outputs.oleds.flatMap(b => ["sda","scl"].map(pin => [boardPin(circuit,b.component,pin)!,`${b.component.id}:${pin}`]))];
   const occupied = new Map<string,string>();
   for (const [pin,id] of roles) { if (occupied.has(pin) && occupied.get(pin) !== id) throw new Error(`Board pin ${pin} has conflicting behavior roles. Update the wiring first.`); occupied.set(pin,id); }
-  const button = inputs.buttons[0], pir = inputs.pirs[0], dht = inputs.dhts[0];
-  return { id: "project-logic", name: "Project Logic", description: "Saved behavior from this project.", rules, inputs, inputPins, outputs,
-    button, buttonPin: button && bindDriver(circuit, "momentary-switch").find(b => b.component.id === button.id)?.boardPin,
-    pir, pirPin: pir && bindDriver(circuit, "pir").find(b => b.component.id === pir.id)?.boardPin,
-    dht, dhtPin: dht && bindDriver(circuit, "dht11").find(b => b.component.id === dht.id)?.boardPin,
-    led: outputs.leds[0]?.component, ledPin: outputs.leds[0]?.boardPin,
-    buzzer: outputs.buzzers[0]?.component, buzzerPin: outputs.buzzers[0]?.boardPin, oled: outputs.oleds[0]?.component };
+  return { id: "project-logic", name: "Project Logic", description: "Saved behavior from this project.", rules, inputs, inputPins, outputs };
 }
 export function validateLogic(project: KinetableProjectV4): void { if (project.logic.length) compileLogic(project); }
