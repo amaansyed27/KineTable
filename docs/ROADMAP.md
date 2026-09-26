@@ -218,7 +218,7 @@ Status: implemented; see [Slice 09](SLICE-09.md). A deterministic compiled-circu
 
 ## 10 — Visual Logic
 
-Map editable WHEN/IF/DO behavior to physical objects and the simulation runtime, with validation and an explicit intermediate representation.
+Status: implemented; see [Slice 10](SLICE-10.md). Project v4 persists bounded WHEN/IF/DO rules, validates canonical capabilities and physical bindings, and compiles them into the existing logical runtime. Manual edits use project commands, history and local-first cloud checkpoints. BONK ×2 → ×3, timer Blink and DHT11 conditions are editable and deterministic.
 
 ## 11 — Hardware Platform
 
@@ -272,3 +272,6 @@ Known limitations
 ```
 
 A slice is not complete because the screen renders. The intended user flow, persistence/server behaviour, and failure paths must work end-to-end.
+
+Slices 01–10 implemented.
+Slice 11 — Hardware Platform is next.

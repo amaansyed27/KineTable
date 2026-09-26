@@ -19,9 +19,9 @@ simulation driver · virtual inputs · runtime outputs/events
 
 Changing a visual model must never change electrical or simulation behavior.
 
-## 2. Current project representation — v3
+## 2. Current project representation — v4
 
-Project v3 stores physical facts explicitly.
+Project v4 stores physical facts explicitly and persistent semantic logic. Historical v3 retains its empty logic field.
 
 ```ts
 type ElectricalEndpoint =
@@ -200,7 +200,7 @@ The goal is to model supported product behavior reliably enough to teach, test a
 Required architecture:
 
 ```text
-Project v3
+Project v4 physical document + authored logic
 → validate electrical structure/safety
 → check simulation compatibility
 → compile topology once
@@ -341,7 +341,7 @@ The simulator may support a small explicit set of deterministic **simulation rec
 - supported topology requirements are explicit;
 - unsupported projects say simulation behavior is unavailable rather than guessing;
 - no arbitrary natural-language intent is treated as executable firmware;
-- Slice 10 can later replace/compile these demonstrations into the real editable behavior IR.
+- Slice 10 compiles authored project behavior into the same runtime; demonstration recipes run only for logic-empty projects.
 
 Direct device/electrical behavior that requires no board program can be simulated independently.
 
@@ -394,7 +394,7 @@ A concise explanation should be generated first from deterministic topology/runt
 
 Slice 10 owns the persistent editable semantic behavior graph.
 
-Target direction:
+Implemented semantic subset:
 
 ```text
 WHEN button pressed
@@ -403,7 +403,7 @@ AND LED ON
 AND BEEP ×2
 ```
 
-That behavior IR should drive the same Slice 09 simulation runtime and later board-specific firmware generation.
+The v4 behavior IR drives the same Slice 09 simulation runtime. Canonical momentary-switch, PIR and DHT11 bindings support triggers; bounded timers use logical time. DHT11 temperature/humidity comparisons are ANDed. LED ON/OFF/toggle, bounded OLED text/clear and bounded buzzer sequences use verified physical output bindings. Removal/replacement or rewiring that breaks authored behavior is blocked at the command boundary. No capability is inferred from visual IDs. See [SLICE-10.md](SLICE-10.md). Later firmware generation can consume the same semantic IR.
 
 ## 18. BONK reference
 

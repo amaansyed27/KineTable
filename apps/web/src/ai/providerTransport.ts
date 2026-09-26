@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import type { KinetableProjectV3 } from "../projects/v3.js";
+import type { CircuitProject } from "../projects/v4.js";
 import type { PlanRequest } from "./contract.js";
 import { credentialVault } from "./credentialVault.js";
 import type { RouteCandidate } from "./routing.js";
@@ -33,7 +33,7 @@ function localConfig(route: RouteCandidate) {
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("INVALID_REQUEST");
   return { runtime: route.providerId, port, modelId: route.modelId };
 }
-export async function invokeProvider(route: RouteCandidate, credentialId: string | null, input: PlanRequest, project: KinetableProjectV3, session: Session | null): Promise<unknown> {
+export async function invokeProvider(route: RouteCandidate, credentialId: string | null, input: PlanRequest, project: CircuitProject, session: Session | null): Promise<unknown> {
   if (route.transport === "LOCAL_HTTP" || route.transport === "LOCAL_CLI") {
     return bridgeRequest("/v1/plan", { transport: route.transport, providerId: route.providerId, modelId: route.modelId, config: route.transport === "LOCAL_HTTP" ? localConfig(route) : undefined, input, project });
   }

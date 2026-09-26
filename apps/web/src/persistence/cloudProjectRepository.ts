@@ -1,13 +1,15 @@
 import type { Database, Json } from "../backend/database.types";
 import { getSupabaseClient } from "../backend/supabaseClient";
-import { migrateProject, type ProjectDocument } from "../projects/v3";
+import { migrateProject, type ProjectDocument } from "../projects/v4";
 import { validateElectricalSafety } from "../hardware-core/commands";
+import { validateLogic } from "../logic/compile";
 
 export type CloudProject = Database["public"]["Tables"]["projects"]["Row"] & { document: ProjectDocument };
 export function validateCloudProject(value: unknown, ownerId: string): CloudProject {
   const row = value as Partial<CloudProject> | null;
   const document = migrateProject(row?.document);
   validateElectricalSafety(document);
+  validateLogic(document);
   if (!row || row.owner_id !== ownerId || row.id !== document.id || row.name !== document.name ||
     row.schema_version !== (row.document as ProjectDocument).schemaVersion || row.primary_board_id !== document.boardIds[0] || row.archived !== false ||
     typeof row.created_at !== "string" || typeof row.updated_at !== "string" ||
@@ -22,6 +24,8 @@ export const cloudProjectRepository = {
     return (data ?? []).map(row => validateCloudProject(row, ownerId));
   },
   async save(document: ProjectDocument, token: string, ownerId: string, exists: boolean): Promise<CloudProject> {
+    const validated = migrateProject(document);
+    validateElectricalSafety(validated); validateLogic(validated);
     const client = getSupabaseClient(); if (!client) throw new Error("Cloud is not configured");
     const payload = { name: document.name, primary_board_id: document.boardIds[0], schema_version: document.schemaVersion, document: document as unknown as Json };
     const query = exists ? client.from("projects").update(payload).eq("id", document.id) : client.from("projects").insert({ id: document.id, ...payload });

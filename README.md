@@ -23,7 +23,7 @@ Core rules:
 
 ## Current status
 
-**Slices 01–09 are implemented. Slice 10 — Visual Logic is next.**
+**Slices 01–10 implemented. Slice 11 — Hardware Platform is next.**
 
 Kinetable currently supports:
 
@@ -33,7 +33,7 @@ Kinetable currently supports:
 - intent-first New Build;
 - real AI assembly through BYOK/local/CLI providers with structured commands and deterministic validation;
 - an interactive 3D workbench with camera controls, direct manipulation, add/remove/replace, undo/redo and autosave;
-- Project v3 physical circuit data;
+- Project v4 physical circuit data;
 - explicit pin and breadboard-hole endpoints;
 - a deterministic 400-hole half-size breadboard topology;
 - physical wires and through-hole lead placement;
@@ -42,7 +42,7 @@ Kinetable currently supports:
 - component, pin, wire and breadboard-hole inspection;
 - accessible wiring controls, touch interaction and WebGL fallback.
 
-Deterministic simulation, runtime recipes, virtual inputs, causal Explain and Power/Signals/Data X-Ray are available for supported complete circuits. Visual logic, personal inventory, physical-board runtime and digital-twin features remain future slices.
+Deterministic simulation, runtime recipes, virtual inputs, causal Explain and Power/Signals/Data X-Ray are available for supported complete circuits. Manual Visual Logic edits persistent WHEN / IF / DO rules and runs them through the same physical compiler and runtime. Personal inventory, physical-board runtime and digital-twin features remain future slices.
 
 ## Architecture
 
@@ -61,9 +61,9 @@ Deterministic simulation, runtime recipes, virtual inputs, causal Explain and Po
           │                                   │
           └───────────────┬───────────────────┘
                           │
-                     Project v3
+                     Project v4
                           │
-        components · wires · lead placements · layout
+        components · wires · lead placements · layout · behavior IR
                           │
                     hardware-core
                           │
@@ -86,9 +86,9 @@ See [Technical architecture](docs/ARCHITECTURE.md), [Hardware model](docs/HARDWA
 
 ## Project format
 
-The current editable project format is **schemaVersion 3**.
+The current editable project format is **schemaVersion 4**.
 
-Project v3 stores:
+Project v4 stores:
 
 - one board instance;
 - supported component instances;
@@ -96,6 +96,7 @@ Project v3 stores:
 - physical wires between pin/hole endpoints;
 - through-hole terminal placements;
 - spatial transforms;
+- persistent WHEN / IF / DO behavior rules;
 - project intent and metadata.
 
 Electrical nets are derived from:
@@ -108,7 +109,7 @@ component pins
 → resolved nets
 ```
 
-Older v1/v2 projects migrate deterministically in memory and are saved as v3 only at an intentional edit/checkpoint.
+Older v1/v2/v3 projects migrate deterministically in memory to v4 with empty authored logic. Reading does not rewrite cloud data; the next intentional edit/checkpoint saves v4.
 
 ## AI architecture
 
@@ -239,5 +240,9 @@ For hosted Supabase features, copy `.env.example` to `apps/web/.env.local` and p
 - [Testing strategy](docs/TESTING.md)
 - [Slice 08 — Physical Circuit Editor](docs/SLICE-08.md)
 - [Slice 09 — Living Circuit](docs/SLICE-09.md)
+- [Slice 10 — Visual Logic](docs/SLICE-10.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
+
+Slices 01–10 implemented.
+Slice 11 — Hardware Platform is next.

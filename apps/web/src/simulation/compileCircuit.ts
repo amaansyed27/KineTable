@@ -1,7 +1,8 @@
 import { getDefinition, type Definition } from "../component-library/catalog.js";
 import { resolveNets, type Net } from "../hardware-core/nets.js";
 import { analyzeCircuit, validateElectricalSafety } from "../hardware-core/validation.js";
-import { endpointKey, pinEndpoint, type KinetableProjectV3 } from "../projects/v3.js";
+import { endpointKey, pinEndpoint } from "../projects/v3.js";
+import type { CircuitProject } from "../projects/v4.js";
 import { bindDriver, driverRegistry } from "./drivers.js";
 
 export type Binding = { id: string; definition: Definition; pins: Record<string, string> };
@@ -10,7 +11,7 @@ export type CompiledCircuit = {
   board: Binding; wiresByNet: Map<string, string[]>;
 };
 
-export function topologyKey(project: KinetableProjectV3): string {
+export function topologyKey(project: CircuitProject): string {
   return JSON.stringify({
     components: project.components.map(c => [c.id, c.definitionId]).sort((a,b) => String(a[0]).localeCompare(String(b[0]))),
     wires: project.wires.map(w => `${w.id}:${[endpointKey(w.from), endpointKey(w.to)].sort().join("|")}`).sort(),
@@ -29,7 +30,7 @@ function cacheCompiled(key: string, circuit: CompiledCircuit): CompiledCircuit {
   return circuit;
 }
 
-export function compileCircuit(project: KinetableProjectV3): CompiledCircuit {
+export function compileCircuit(project: CircuitProject): CompiledCircuit {
   const key = topologyKey(project);
   const cacheKey = `${project.id}:${key}`;
   const cached = compiledCache.get(cacheKey);
@@ -74,7 +75,7 @@ export function powerNet(circuit: CompiledCircuit, netId: string): number | "gro
 }
 
 export type Compatibility = { status: "supported" | "unsupported"; diagnostics: string[]; circuit?: CompiledCircuit };
-export function analyzeSimulationCompatibility(project: KinetableProjectV3): Compatibility {
+export function analyzeSimulationCompatibility(project: CircuitProject): Compatibility {
   try {
     const incomplete = analyzeCircuit(project);
     if (incomplete.length) return { status: "unsupported", diagnostics: [incomplete[0].message] };

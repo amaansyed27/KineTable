@@ -1,10 +1,11 @@
 import { getDefinition } from "../component-library/catalog.js";
 import { holes } from "./breadboard.js";
-import { endpointKey, holeEndpoint, pinEndpoint, type ElectricalEndpoint, type KinetableProjectV3 } from "../projects/v3.js";
+import { endpointKey, holeEndpoint, pinEndpoint, type ElectricalEndpoint } from "../projects/v3.js";
+import type { CircuitProject } from "../projects/v4.js";
 
 export type Net = { id: string; endpoints: ElectricalEndpoint[] };
 /** Conductors join endpoints; component internals (including LED/resistor/button) do not. */
-export function resolveNets(project: KinetableProjectV3): Net[] {
+export function resolveNets(project: CircuitProject): Net[] {
   const parent = new Map<string, string>();
   const endpoints = new Map<string, ElectricalEndpoint>();
   const add = (e: ElectricalEndpoint) => { const k = endpointKey(e); parent.set(k, k); endpoints.set(k, e); };

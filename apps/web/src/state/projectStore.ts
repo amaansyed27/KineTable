@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { Session } from "@supabase/supabase-js";
 import type { BoardId } from "../hardware/boards";
 import { createBuildRow, changeBoard, starterRow } from "../projects/projectCreation";
-import { migrateProject, type KinetableProjectV3 } from "../projects/v3";
+import { migrateProject, type KinetableProjectV4 } from "../projects/v4";
 import { localProjectRepository, type LocalProject } from "../persistence/localProjectRepository";
 import { cloudProjectRepository } from "../persistence/cloudProjectRepository";
 import { reconcileProjects } from "../sync/projectSyncService";
@@ -12,9 +12,9 @@ import { restoreRevision, WorkbenchHistory } from "../hardware-core/history";
 
 type ProjectState = { project: LocalProject | null; ready: boolean; status: "local" | "syncing" | "synced" | "offline"; error: string | null; canUndo: boolean; canRedo: boolean;
   open: (board: BoardId, session: Session | null) => Promise<void>; setBoard: (board: BoardId, session: Session | null) => Promise<void>;
-  createBuild: (board: BoardId, intent: string, name: string) => Promise<KinetableProjectV3>;
-  saveDocument: (document: KinetableProjectV3, expectedRevision: string, preserveHistory?: boolean) => Promise<void>;
-  applyTransaction: (commands: ProjectCommand[] | ((current: KinetableProjectV3) => ProjectCommand[])) => Promise<KinetableProjectV3>;
+  createBuild: (board: BoardId, intent: string, name: string) => Promise<KinetableProjectV4>;
+  saveDocument: (document: KinetableProjectV4, expectedRevision: string, preserveHistory?: boolean) => Promise<void>;
+  applyTransaction: (commands: ProjectCommand[] | ((current: KinetableProjectV4) => ProjectCommand[])) => Promise<KinetableProjectV4>;
   undo: () => Promise<void>; redo: () => Promise<void>; sync: () => Promise<void> };
 export function createProjectStore(local = localProjectRepository, cloud = cloudProjectRepository) {
   let generation = 0;
@@ -22,7 +22,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
   let checkpoint: ReturnType<typeof setTimeout> | undefined;
   let boardForStarter: BoardId | undefined;
   let syncAgain = false;
-  const history = new WorkbenchHistory();
+  const history = new WorkbenchHistory<KinetableProjectV4>();
   let editQueue: Promise<unknown> = Promise.resolve();
   const enqueue = <T>(action: () => Promise<T>): Promise<T> => {
     const next = editQueue.then(action);
@@ -82,7 +82,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       if (!current || current.id !== document.id || current.document.metadata.updatedAt !== expectedRevision) throw new Error("STALE_PROJECT");
       const ownerId = useAuthStore.getState().session?.user.id;
       if (current.cloudUserId && current.cloudUserId !== ownerId) throw new Error("AUTH_REQUIRED");
-      const project: LocalProject = { ...current, document, schemaVersion: 3, updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: !!ownerId };
+      const project: LocalProject = { ...current, document, schemaVersion: 4, updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: !!ownerId };
       generation++;
       await local.save(project);
       if (!preserveHistory) history.reset(project.id);
@@ -108,7 +108,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       const current = migrateProject(row.document);
       history.ensure(current.id);
       const target = history.undoTarget(); if (!target) return;
-      await get().saveDocument(restoreRevision(target, current), current.metadata.updatedAt, true);
+      await get().saveDocument(restoreRevision(migrateProject(target), current), current.metadata.updatedAt, true);
       history.finishUndo(current);
       set({ canUndo: history.canUndo, canRedo: history.canRedo });
     }),
@@ -117,7 +117,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       const current = migrateProject(row.document);
       history.ensure(current.id);
       const target = history.redoTarget(); if (!target) return;
-      await get().saveDocument(restoreRevision(target, current), current.metadata.updatedAt, true);
+      await get().saveDocument(restoreRevision(migrateProject(target), current), current.metadata.updatedAt, true);
       history.finishRedo(current);
       set({ canUndo: history.canUndo, canRedo: history.canRedo });
     }),

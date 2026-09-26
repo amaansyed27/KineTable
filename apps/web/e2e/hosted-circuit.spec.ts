@@ -49,8 +49,8 @@ test("hosted v3 circuit restores fresh, survives offline edit and reconnects", a
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", id, { timeout: 20000 });
   await expect.poll(async () => (await cloud(id))?.document?.wires?.length, { timeout: 30000 }).toBe(1);
   const row = await cloud(id);
-  expect(row.schema_version).toBe(3);
-  expect(row.document.schemaVersion).toBe(3);
+  expect(row.schema_version).toBe(4);
+  expect(row.document.schemaVersion).toBe(4);
   expect(row.document.wires[0].to).toEqual({ kind: "breadboard-hole", breadboardId: "breadboard-1", holeId: "L-1" });
   expect(row.document.terminalPlacements).toHaveLength(1);
   expect(row.primary_board_id).toBe(row.document.boardIds[0]);

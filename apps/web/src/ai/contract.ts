@@ -19,7 +19,7 @@ export function parsePlan(v: unknown): Plan {
     typeof v.unsupportedReason !== "string" || v.unsupportedReason.length > 400) throw new Error("INVALID_MODEL_RESPONSE");
   let commands: ProjectCommand[];
   try { commands = parseCommands(v.commands); } catch { throw new Error("INVALID_MODEL_RESPONSE"); }
-  if (v.status === "unsupported" ? commands.length !== 0 || !v.unsupportedReason.trim() : commands.length === 0 || !!v.unsupportedReason) throw new Error("INVALID_MODEL_RESPONSE");
+  if (commands.some(command => command.type.startsWith("logic.")) || (v.status === "unsupported" ? commands.length !== 0 || !v.unsupportedReason.trim() : commands.length === 0 || !!v.unsupportedReason)) throw new Error("INVALID_MODEL_RESPONSE");
   return { status: v.status, summary: v.summary, unsupportedReason: v.unsupportedReason, commands };
 }
 export function parsePlanResponse(v: unknown): PlanResponse {

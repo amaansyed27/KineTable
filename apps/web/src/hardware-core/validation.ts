@@ -1,13 +1,14 @@
 import { getDefinition, getPin, type Pin } from "../component-library/catalog.js";
-import { endpointKey, pinEndpoint, parseProjectV3, type ElectricalEndpoint, type KinetableProjectV3 } from "../projects/v3.js";
+import { endpointKey, pinEndpoint, parseProjectV3, type ElectricalEndpoint } from "../projects/v3.js";
+import { parseProjectV4, type CircuitProject } from "../projects/v4.js";
 import { resolveNets, netFor, type Net } from "./nets.js";
 
 export type Diagnostic = { severity: "error" | "incomplete"; code: string; message: string; componentId?: string; pinId?: string };
 export class HardwareError extends Error { constructor(public code: string, message: string) { super(message); } }
-export function validateProjectStructure(project: unknown): asserts project is KinetableProjectV3 { parseProjectV3(project); }
+export function validateProjectStructure(project: unknown): asserts project is CircuitProject { if ((project as { schemaVersion?: number })?.schemaVersion === 4) parseProjectV4(project); else parseProjectV3(project); }
 const pinsOn = (net: Net) => net.endpoints.filter((e): e is Extract<ElectricalEndpoint, { kind: "pin" }> => e.kind === "pin");
 
-export function validateElectricalSafety(project: KinetableProjectV3): void {
+export function validateElectricalSafety(project: CircuitProject): void {
   validateProjectStructure(project);
   if (project.components.filter(c => c.kind === "component").length > 5) throw new HardwareError("PART_LIMIT", "This workbench supports up to five additional parts.");
   const component = (id: string) => project.components.find(c => c.id === id)!;
@@ -60,7 +61,7 @@ export function validateElectricalSafety(project: KinetableProjectV3): void {
   }
 }
 
-export function analyzeCircuit(project: KinetableProjectV3): Diagnostic[] {
+export function analyzeCircuit(project: CircuitProject): Diagnostic[] {
   validateElectricalSafety(project);
   const diagnostics: Diagnostic[] = [];
   const board = project.components.find(c => c.kind === "board")!;
@@ -94,7 +95,7 @@ export function analyzeCircuit(project: KinetableProjectV3): Diagnostic[] {
   }
   return diagnostics;
 }
-export function validateCompleteCircuit(project: KinetableProjectV3): void {
+export function validateCompleteCircuit(project: CircuitProject): void {
   const first = analyzeCircuit(project)[0];
   if (first) throw new HardwareError(first.code, first.message);
 }

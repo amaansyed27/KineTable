@@ -99,7 +99,7 @@ Cloud never sits in the high-frequency workbench render/input loop.
 
 Owns versioned project schemas and migrations.
 
-Current editable format: **Project v3**.
+Current editable format: **Project v4**.
 
 ### `hardware-core`
 
@@ -162,17 +162,17 @@ The simulator must reuse a compiled graph rather than recomputing the 400-hole b
 
 ### `visual-logic` — Slice 10
 
-Owns semantic behavior such as WHEN/IF/DO/WAIT and later firmware-generation mapping.
+`logic/schema.ts` parses strict tagged WHEN/IF/DO unions. `logic/compile.ts` validates and binds them to the compiled physical circuit. `LogicPanel.tsx` sends explicit project commands; domain truth stays outside React. No WAIT language or arbitrary executable source is supported.
 
-## 5. Current project format — v3
+## 5. Current project format — v4
 
-Project v3 explicitly stores physical circuit facts.
+Project v4 stores physical circuit facts and authored semantic behavior.
 
 Conceptually:
 
 ```ts
-interface KinetableProjectV3 {
-  schemaVersion: 3
+interface KinetableProjectV4 {
+  schemaVersion: 4
   id: string
   name: string
   intent?: { text: string }
@@ -180,7 +180,7 @@ interface KinetableProjectV3 {
   components: ComponentInstanceV3[]
   wires: Wire[]
   terminalPlacements: TerminalPlacement[]
-  logic: []
+  logic: LogicRule[]
   layout: WorkbenchLayout
   metadata: ProjectMetadata
 }
@@ -213,17 +213,18 @@ This avoids storing a stale second representation of connectivity.
 
 - v1: board-first starter/intention format;
 - v2: board + canonical component instances + direct component pin connections;
-- v3: explicit physical wires, breadboard-hole endpoints and terminal placements.
+- v3: explicit physical wires, breadboard-hole endpoints and terminal placements; historical logic stays empty.
+- v4: the same physical document plus strict persistent logic rules.
 
 Migration is deterministic:
 
 ```text
-v1 → v2 → v3
+v1 → v2 → v3 → v4
 ```
 
 Old documents migrate in memory on load. Reading alone does not force a cloud rewrite. An intentional edit/checkpoint persists the newest version.
 
-Supabase currently accepts schema versions 1, 2 and 3 so old documents remain recoverable during migration.
+Supabase currently accepts schema versions 1, 2, 3 and 4 so old documents remain recoverable during migration.
 
 ## 7. Validation layers
 
@@ -352,14 +353,14 @@ BYOK credentials are device-local by default. They are never stored in project J
 
 Local Bridge handles supported localhost runtimes and authenticated CLIs with explicit bounded adapters rather than arbitrary command execution.
 
-## 13. Simulation architecture — next
+## 13. Simulation architecture — implemented
 
 Slice 09 — Living Circuit combines simulation and Explain/X-Ray.
 
 Required design:
 
 ```text
-Project v3
+Project v4 physical document + authored logic
 → validate simulation compatibility
 → compile topology once
 → SimulationRuntime
@@ -377,7 +378,7 @@ Explain/X-Ray should consume the same runtime/net facts rather than recomputing 
 
 ## 14. Visual Logic — Slice 10
 
-Visual Logic will add a semantic behavior IR such as:
+Visual Logic persists a semantic behavior IR such as:
 
 ```text
 WHEN button.pressed
@@ -386,7 +387,7 @@ AND led.state = ON
 AND buzzer.beep(count=2)
 ```
 
-That IR should drive Slice 09 simulation and later compile to board/framework-specific firmware.
+That IR compiles into `CompiledBehaviorProgram` beside `CompiledCircuit` and drives the existing Slice 09 runtime. Authored logic suppresses demonstration recipes. Enabled released-button rules establish deterministic initial released states; timer rules first fire after their interval. Conditions are ANDed; trace facts carry stable rule IDs and action indices. The semantic IR remains suitable for later firmware generation, which is not implemented here.
 
 ## 15. Physical runtime — Slice 14
 
@@ -429,8 +430,8 @@ Current canonical roadmap:
 06 AI Assembly                 ✅
 07 Core 3D Workbench           ✅
 08 Physical Circuit Editor     ✅
-09 Living Circuit              next
-10 Visual Logic
+09 Living Circuit              ✅
+10 Visual Logic                ✅
 11 Hardware Platform
 12 Personal Workspace
 13 Learn
@@ -449,3 +450,5 @@ Users must be able to trust statements like:
 Those claims come from deterministic metadata, topology and runtime rules—not model improvisation or visual proximity.
 
 Operational details are in [BACKEND.md](BACKEND.md). Current implementation evidence is in [SLICE-06.md](SLICE-06.md), [SLICE-07.md](SLICE-07.md), and [SLICE-08.md](SLICE-08.md).
+
+Slice 10 details, bounds and verification: [SLICE-10.md](SLICE-10.md).

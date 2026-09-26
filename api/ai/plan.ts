@@ -2,13 +2,13 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { parsePlanRequest } from "../../apps/web/src/ai/contract.js";
 import { planHardware } from "../../apps/web/src/ai/planner.js";
 import { HardwareError } from "../../apps/web/src/hardware-core/commands.js";
-import { migrateProject, type KinetableProjectV3 } from "../../apps/web/src/projects/v3.js";
+import { migrateProject, type KinetableProjectV4 } from "../../apps/web/src/projects/v4.js";
 import { remoteModelProvider, validateRemoteConfig } from "../../server/ai/remoteProvider.js";
 import { readJsonObject } from "../../server/ai/requestBody.js";
 
 type Request = IncomingMessage & { body?: unknown };
 const send = (res: ServerResponse, status: number, value: unknown) => { res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(value)); };
-async function ownedProject(token: string, id: string): Promise<KinetableProjectV3> {
+async function ownedProject(token: string, id: string): Promise<KinetableProjectV4> {
   const url = process.env.VITE_SUPABASE_URL, key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) throw new Error("BACKEND_UNAVAILABLE");
   const headers = { apikey: key, Authorization: `Bearer ${token}` };

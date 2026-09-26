@@ -2,7 +2,8 @@ import { Euler, Vector3 } from "three";
 import { catalog } from "../component-library/catalog.js";
 import { leadAnchors } from "../component-library/leadAnchors.js";
 import { getHole } from "../hardware-core/breadboard.js";
-import type { ElectricalEndpoint, KinetableProjectV3 } from "../projects/v3.js";
+import type { ElectricalEndpoint } from "../projects/v3.js";
+import type { CircuitProject } from "../projects/v4.js";
 
 /** Coordinates are presentation data, keyed by stable electrical pin IDs. */
 export const pinAnchors: Record<string, Record<string, [number, number, number]>> = {
@@ -16,7 +17,7 @@ export const pinAnchors: Record<string, Record<string, [number, number, number]>
   "dht11-module": { vcc: [-.16,-.33,.02], gnd: [0,-.33,.02], data: [.16,-.33,.02] },
 };
 Object.assign(pinAnchors["arduino-uno"], { "5v": [-.97*.82,.26*.82,-.87*.82], "3v3": [-.97*.82,.26*.82,-.73*.82], gnd: [-.97*.82,.26*.82,-.59*.82] });
-export function endpointLocal(project: KinetableProjectV3, endpoint: ElectricalEndpoint): [number, number, number] {
+export function endpointLocal(project: CircuitProject, endpoint: ElectricalEndpoint): [number, number, number] {
   if (endpoint.kind === "breadboard-hole") {
     const hole = getHole(endpoint.holeId);
     if (!hole) throw new Error(`Missing breadboard hole ${endpoint.holeId}`);
@@ -27,7 +28,7 @@ export function endpointLocal(project: KinetableProjectV3, endpoint: ElectricalE
   if (!anchor) throw new Error(`Missing visual pin anchor ${definition ?? endpoint.componentId}:${endpoint.pinId}`);
   return anchor;
 }
-export function endpointWorld(project: KinetableProjectV3, endpoint: ElectricalEndpoint): Vector3 {
+export function endpointWorld(project: CircuitProject, endpoint: ElectricalEndpoint): Vector3 {
   const id = endpoint.kind === "pin" ? endpoint.componentId : endpoint.breadboardId;
   const transform = project.layout.entities[id];
   if (!transform) throw new Error(`Missing layout for ${id}`);

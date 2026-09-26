@@ -6,7 +6,7 @@ import { useProfileStore } from "../state/profileStore";
 import { useAuthStore } from "../auth/authStore";
 import { useProjectStore } from "../state/projectStore";
 import { assembleProject, assemblyError, type AssemblyPhase } from "../ai/assembleProject";
-import { migrateProject } from "../projects/v3";
+import { migrateProject } from "../projects/v4";
 import { getDefinition } from "../component-library/catalog";
 import { starterProject } from "../projects/schema";
 import { Workbench } from "./Workbench";

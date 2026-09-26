@@ -72,7 +72,7 @@ fresh app
 → buzzer action count = 3
 ```
 
-Through Slice 09 the test stops after the two deterministic beeps. Editing beep count belongs to Slice 10. `src/simulation/simulation.test.ts` asserts the pure compiler, logical clock, recipes, causal trace and X-Ray; `e2e/simulation.spec.ts` asserts rendered guest flows, refresh isolation and mobile controls. The test may assert project/simulation state directly in addition to visible UI.
+Slice 09 recipe regression tests retain the two deterministic beeps. Slice 10 authored BONK tests edit only beep count from two to three and assert exact logical pulse timing, local refresh and authenticated cloud restore. `src/simulation/simulation.test.ts` asserts the pure compiler, logical clock, recipes, causal trace and X-Ray; `e2e/simulation.spec.ts` asserts rendered guest flows, refresh isolation and mobile controls. The test may assert project/simulation state directly in addition to visible UI.
 
 ## Core deterministic fixtures
 
@@ -199,3 +199,11 @@ A slice is ready when:
 - product behaviour matches the slice spec;
 - known limitations are documented;
 - no temporary fake state has become a hidden dependency for later slices.
+
+## Slice 10 verification
+
+`src/logic/logic.test.ts` covers v1/v2/v3 → v4 migration, historical v3 parsing, strict limits, stale/capability/topology validation, physical GPIO/net bindings, layout invariance, deterministic BONK timing, timer/PIR/DHT conditions, causal chains, disabled logic, reorder and runaway bounds. Project repository/store tests cover migration without cloud overwrite, offline logic, reconnect and history.
+
+`e2e/logic.spec.ts` exercises manual editing, BONK ×2 → ×3, reload, validation, hardware edit rejection, undo/redo, keyboard, WebGL fallback, DHT conditions and required viewports. Hosted `e2e/hosted-logic.spec.ts` uses disposable accounts to prove v3 read compatibility, intentional v4 checkpoint, fresh restore, offline reload/reconnect, timestamp isolation and A/B RLS. Run with `KINETABLE_HOSTED_LOGIC_QA=1`. Historical hosted v3 REST checks remain available with `KINETABLE_HOSTED_QA=1`. No credentials or screenshots are committed.
+
+Run all four gates: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm test:e2e`. Deployed route tests cover `/`, `/start`, `/auth`, `/table`, `/new` and `/settings/providers`. Detailed evidence and intentional limits are in [SLICE-10.md](SLICE-10.md).

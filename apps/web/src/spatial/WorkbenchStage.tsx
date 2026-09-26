@@ -3,7 +3,8 @@ import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
 import { CameraControls, Environment, Lightformer, type CameraControls as CameraControlsType } from "@react-three/drei";
 import { useReducedMotion } from "motion/react";
 import { Group, Mesh, Plane, Raycaster, Vector2, Vector3 } from "three";
-import { endpointKey, type ElectricalEndpoint, type KinetableProjectV3 } from "../projects/v3";
+import { endpointKey, type ElectricalEndpoint } from "../projects/v3";
+import type { CircuitProject } from "../projects/v4";
 import type { Transform } from "../projects/schema";
 import { getDefinition } from "../component-library/catalog";
 import { BoardModel } from "./Models";
@@ -17,15 +18,15 @@ import { useSimulationStore } from "../state/simulationStore";
 import { causalChain, xrayNets } from "../simulation/explain";
 
 export type CameraAction = { sequence: number; type: "focus" | "reset" | "zoom-in" | "zoom-out"; entityId?: string };
-type Props = { project: KinetableProjectV3; selectedId: string | null; selectedWireId: string | null; selectedEndpointKey: string | null;
+type Props = { project: CircuitProject; selectedId: string | null; referencedIds?: string[]; selectedWireId: string | null; selectedEndpointKey: string | null;
   highlightedKeys: string[]; wireSource: ElectricalEndpoint | null; wiring: boolean;
   onSelect(id: string | null): void; onEndpoint(endpoint: ElectricalEndpoint): void; onWire(id: string): void;
   onMove(id: string, transform: Transform): void; cameraAction: CameraAction | null };
 const identity: Transform = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
 const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
 
-function Entity({ id, kind, definitionId, visualId, transform, selected, hovered, highlighted, selectedEndpointKey, wiring, editable, xrayVisible, output, onSelect, onEndpoint, onHover, onMove, onPreview, onDragging, reduced }: {
-  id: string; kind: "board" | "component" | "breadboard"; definitionId: string; visualId: string; transform: Transform; selected: boolean; hovered: boolean;
+function Entity({ id, kind, definitionId, visualId, transform, selected, referenced, hovered, highlighted, selectedEndpointKey, wiring, editable, xrayVisible, output, onSelect, onEndpoint, onHover, onMove, onPreview, onDragging, reduced }: {
+  id: string; kind: "board" | "component" | "breadboard"; definitionId: string; visualId: string; transform: Transform; selected: boolean; referenced: boolean; hovered: boolean;
   highlighted: Set<string>; selectedEndpointKey: string | null; wiring: boolean; editable: boolean; xrayVisible: boolean; output?: { on?: boolean; text?: string; pressed?: boolean; motion?: boolean };
   onSelect(id: string): void; onEndpoint(endpoint: ElectricalEndpoint): void; onHover(id: string | null): void; onMove(id: string, transform: Transform): void; onPreview(id: string, transform: Transform | null): void; onDragging(value: boolean): void; reduced: boolean;
 }) {
@@ -72,7 +73,7 @@ function Entity({ id, kind, definitionId, visualId, transform, selected, hovered
     invalidate();
   }
   return <>
-    {selected && <mesh ref={ring} position={[transform.position[0], transform.position[1], -.12]}><ringGeometry args={[kind === "board" ? 1.42 : kind === "breadboard" ? 1.7 : .62, kind === "board" ? 1.44 : kind === "breadboard" ? 1.72 : .64, 48]} /><meshBasicMaterial color="#a5d916" transparent opacity={.48} depthWrite={false} /></mesh>}
+    {(selected || referenced) && <mesh ref={ring} position={[transform.position[0], transform.position[1], -.12]}><ringGeometry args={[kind === "board" ? 1.42 : kind === "breadboard" ? 1.7 : .62, kind === "board" ? 1.44 : kind === "breadboard" ? 1.72 : .64, 48]} /><meshBasicMaterial color="#a5d916" transparent opacity={selected ? .48 : .28} depthWrite={false} /></mesh>}
     <group ref={group} rotation={transform.rotation} scale={transform.scale}
       onPointerDown={down} onPointerMove={move} onPointerUp={event => finish(event, true)} onPointerCancel={event => finish(event, false)}
       onPointerOver={event => { event.stopPropagation(); onHover(id); document.body.style.cursor = "grab"; }}
@@ -86,7 +87,7 @@ function Entity({ id, kind, definitionId, visualId, transform, selected, hovered
   </>;
 }
 
-function World({ project, selectedId, selectedWireId, selectedEndpointKey, highlightedKeys, wireSource, wiring, onSelect, onEndpoint, onWire, onMove, cameraAction, reduced }: Props & { reduced: boolean }) {
+function World({ project, selectedId, referencedIds = [], selectedWireId, selectedEndpointKey, highlightedKeys, wireSource, wiring, onSelect, onEndpoint, onWire, onMove, cameraAction, reduced }: Props & { reduced: boolean }) {
   const mode = useSimulationStore(s => s.mode);
   const circuit = useSimulationStore(s => s.circuit);
   const snapshot = useSimulationStore(s => s.snapshot);
@@ -141,13 +142,13 @@ function World({ project, selectedId, selectedWireId, selectedEndpointKey, highl
     {project.components.map(component => {
       const definition = getDefinition(component.definitionId)!;
       return <Entity key={component.id} id={component.id} kind={component.kind} definitionId={component.definitionId} visualId={definition.visualId} transform={project.layout.entities[component.id]}
-        selected={selectedId === component.id} hovered={hovered === component.id} highlighted={highlighted} selectedEndpointKey={selectedEndpointKey} wiring={wiring} editable={mode === "build"} xrayVisible={mode === "explain"} output={snapshot?.outputs[component.id]}
+        selected={selectedId === component.id} referenced={referencedIds.includes(component.id)} hovered={hovered === component.id} highlighted={highlighted} selectedEndpointKey={selectedEndpointKey} wiring={wiring} editable={mode === "build"} xrayVisible={mode === "explain"} output={snapshot?.outputs[component.id]}
         onSelect={id => { onSelect(id); if (mode === "simulate" && definition.electricalModel === "momentary-switch") useSimulationStore.getState().button(id, !snapshot?.outputs[id]?.pressed); }} onEndpoint={onEndpoint} onHover={setHovered} onMove={onMove} onPreview={(id, transform) => setPreviewTransforms(current => { const next = { ...current }; if (transform) next[id] = transform; else delete next[id]; return next; })} onDragging={setDragging} reduced={reduced} />;
     })}
   </>;
 }
 
-class WorkbenchBoundary extends Component<{ children: ReactNode; project: KinetableProjectV3 }, { failed: boolean }> {
+class WorkbenchBoundary extends Component<{ children: ReactNode; project: CircuitProject }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   render() { return this.state.failed ? <div className="workbench-fallback" role="status"><strong>3D editing is unavailable.</strong><span>{this.props.project.name} is safe on this device. Your parts remain listed below.</span></div> : this.props.children; }

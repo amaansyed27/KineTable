@@ -7,7 +7,8 @@ import { localProjectRepository } from "../persistence/localProjectRepository";
 import { createProjectStore } from "../state/projectStore";
 import { useAuthStore } from "../auth/authStore";
 import { validateCloudProject, type CloudProject } from "../persistence/cloudProjectRepository";
-import { isProjectV3 } from "./v3";
+import { isProjectV4 } from "./v4";
+import { migrateProject as migrateV3 } from "./v3";
 import { changeBoard, starterRow } from "./projectCreation";
 import { executeCommands } from "../hardware-core/commands";
 
@@ -74,7 +75,7 @@ it("keeps earlier projects and opens the newest build", async () => {
   expect(store.getState().project!.id).not.toBe(starterId);
   expect((await localProjectRepository.list()).map(row => row.id)).toContain(starterId);
   expect(await localProjectRepository.list()).toHaveLength(2);
-  expect(isProjectV3(store.getState().project!.document)).toBe(true);
+  expect(isProjectV4(store.getState().project!.document)).toBe(true);
   const restored = createProjectStore(); await restored.getState().open("esp32-dev-module", null);
   expect(restored.getState().project?.id).toBe(store.getState().project?.id);
 });
@@ -108,7 +109,7 @@ it("saves safe incomplete editor drafts locally and accepts them from cloud", as
   const draft = executeCommands(row.document as import("./v3").KinetableProjectV3, [{ type: "component.add", instanceId: "led-1", definitionId: "led-5mm" }], undefined, "editor");
   await localProjectRepository.save({ ...row, document: draft, updatedAt: draft.metadata.updatedAt });
   expect((await localProjectRepository.list())[0].document.components).toHaveLength(2);
-  const cloud = { id: draft.id, owner_id: "user-a", name: draft.name, primary_board_id: draft.boardIds[0], schema_version: 3,
+  const cloud = { id: draft.id, owner_id: "user-a", name: draft.name, primary_board_id: draft.boardIds[0], schema_version: draft.schemaVersion,
     document: draft, archived: false, created_at: draft.metadata.createdAt, updated_at: draft.metadata.updatedAt };
   expect(validateCloudProject(cloud, "user-a").document.components).toHaveLength(2);
   expect(() => validateCloudProject({ ...cloud, document: { ...draft, wires: [{ id: "bad", from: { kind: "pin", componentId: "led-1", pinId: "missing" }, to: { kind: "pin", componentId: "board-main", pinId: "gnd" } }] } }, "user-a")).toThrow();
@@ -178,4 +179,26 @@ it("uploads every guest build when an account is connected", async () => {
   await store.getState().open("esp32-dev-module", user("user-a"));
   expect(cloud.save).toHaveBeenCalledTimes(2);
   expect((await localProjectRepository.list()).every(row => row.cloudUserId === "user-a" && !row.cloudDirty)).toBe(true);
+});
+it("reads v3 without cloud overwrite, then persists, undoes and reconnects v4 logic", async () => {
+  const legacy = executeCommands(migrateV3(starterProject("esp32-dev-module")), [
+    { type: "component.add", instanceId: "led-1", definitionId: "led-5mm" }, { type: "component.add", instanceId: "resistor-1", definitionId: "resistor-220r" },
+    { type: "connection.create", id: "drive", from: { componentId: "board-main", pinId: "gpio23" }, to: { componentId: "resistor-1", pinId: "a" } },
+    { type: "connection.create", id: "series", from: { componentId: "resistor-1", pinId: "b" }, to: { componentId: "led-1", pinId: "anode" } },
+    { type: "connection.create", id: "ground", from: { componentId: "led-1", pinId: "cathode" }, to: { componentId: "board-main", pinId: "gnd" } },
+  ]);
+  const remote = { id: legacy.id, owner_id: "user-a", name: legacy.name, schema_version: 3, primary_board_id: legacy.boardIds[0], document: legacy, archived: false, created_at: legacy.metadata.createdAt, updated_at: legacy.metadata.updatedAt } as CloudProject;
+  const cloud = { list: vi.fn(async () => [remote]), save: vi.fn() };
+  useAuthStore.setState({ session: user("user-a") });
+  const store = createProjectStore(localProjectRepository,cloud); await store.getState().open("esp32-dev-module",user("user-a"));
+  expect(cloud.save).not.toHaveBeenCalled(); expect((await localProjectRepository.list())[0].document.schemaVersion).toBe(3);
+  cloud.save.mockRejectedValue(new Error("offline"));
+  await store.getState().applyTransaction([{ type: "logic.rule.add", rule: { id: "blink", enabled: true, when: { kind: "timer", intervalMs: 500 }, if: [], do: [{ kind: "led", componentId: "led-1", operation: "toggle" }] } }]);
+  expect(store.getState().project!.document.metadata.updatedAt > legacy.metadata.updatedAt).toBe(true);
+  await store.getState().sync();
+  expect(store.getState().status).toBe("offline"); expect((await localProjectRepository.list())[0]).toMatchObject({ schemaVersion: 4, cloudDirty: true });
+  await store.getState().undo(); expect(store.getState().project!.document.logic).toEqual([]);
+  await store.getState().redo(); expect(store.getState().project!.document.logic).toHaveLength(1);
+  cloud.save.mockImplementation(async document => ({ ...remote, schema_version: 4, document, updated_at: document.metadata.updatedAt }));
+  await store.getState().sync(); expect(store.getState().status).toBe("synced"); expect((await localProjectRepository.list())[0].cloudDirty).toBe(false);
 });

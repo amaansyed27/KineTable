@@ -1,12 +1,15 @@
 import { getDefinition, getPin } from "../component-library/catalog.js";
 import { HardwareError, validateCompleteCircuit, validateElectricalSafety } from "./validation.js";
 export { HardwareError, validateCompleteCircuit, validateElectricalSafety, analyzeCircuit, validateProjectStructure } from "./validation.js";
-import { pinEndpoint, type ElectricalEndpoint, type KinetableProjectV3, type TerminalPlacement } from "../projects/v3.js";
+import { pinEndpoint, type ElectricalEndpoint, type TerminalPlacement } from "../projects/v3.js";
 import type { Endpoint } from "../projects/v2.js";
 import { BREADBOARD_ID, getHole } from "./breadboard.js";
 import { leadAnchors } from "../component-library/leadAnchors.js";
 import type { Transform } from "../projects/schema.js";
 import { layoutComponents } from "./layout.js";
+import { isLogic, type LogicRule } from "../logic/schema.js";
+import { validateLogic } from "../logic/compile.js";
+import type { CircuitProject } from "../projects/v4.js";
 
 export type ProjectCommand =
   | { type: "component.add"; instanceId: string; definitionId: string }
@@ -20,7 +23,12 @@ export type ProjectCommand =
   | { type: "wire.remove"; id: string }
   | { type: "terminal.place"; placement: TerminalPlacement }
   | { type: "terminal.unplace"; componentId: string; pinId: string }
-  | { type: "layout.move"; entityId: string; transform: Transform };
+  | { type: "layout.move"; entityId: string; transform: Transform }
+  | { type: "logic.rule.add"; rule: LogicRule }
+  | { type: "logic.rule.update"; rule: LogicRule }
+  | { type: "logic.rule.remove"; id: string }
+  | { type: "logic.rule.enable"; id: string; enabled: boolean }
+  | { type: "logic.rule.reorder"; id: string; index: number };
 const obj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const id = (v: unknown) => typeof v === "string" && /^[a-z][a-z0-9-]{0,63}$/.test(v);
 const keys = (v: Record<string, unknown>, expected: string[]) => Object.keys(v).sort().join() === expected.sort().join();
@@ -42,18 +50,24 @@ export function parseCommands(value: unknown): ProjectCommand[] {
       case "terminal.place": if (keys(v, ["type", "placement"]) && obj(v.placement) && keys(v.placement, ["componentId", "pinId", "breadboardId", "holeId"]) && id(v.placement.componentId) && id(v.placement.breadboardId) && typeof v.placement.pinId === "string" && typeof v.placement.holeId === "string") return v as ProjectCommand; break;
       case "terminal.unplace": if (keys(v, ["type", "componentId", "pinId"]) && id(v.componentId) && typeof v.pinId === "string") return v as ProjectCommand; break;
       case "layout.move": if (keys(v, ["type", "entityId", "transform"]) && id(v.entityId) && transform(v.transform)) return v as ProjectCommand; break;
+      case "logic.rule.add": case "logic.rule.update": if (keys(v, ["type", "rule"]) && isLogic([v.rule])) return v as ProjectCommand; break;
+      case "logic.rule.remove": if (keys(v, ["type", "id"]) && id(v.id)) return v as ProjectCommand; break;
+      case "logic.rule.enable": if (keys(v, ["type", "id", "enabled"]) && id(v.id) && typeof v.enabled === "boolean") return v as ProjectCommand; break;
+      case "logic.rule.reorder": if (keys(v, ["type", "id", "index"]) && id(v.id) && Number.isInteger(v.index) && (v.index as number) >= 0 && (v.index as number) < 16) return v as ProjectCommand; break;
     }
     throw new HardwareError("COMMAND_SCHEMA", "Invalid project command.");
   });
 }
 const refersTo = (e: ElectricalEndpoint, id: string) => e.kind === "pin" ? e.componentId === id : e.breadboardId === id;
-function holePosition(project: KinetableProjectV3, breadboardId: string, holeId: string): [number, number, number] {
+const logicUses = (rules: LogicRule[], componentId: string) => rules.some(rule =>
+  ("componentId" in rule.when && rule.when.componentId === componentId) || rule.if.some(condition => condition.componentId === componentId) || rule.do.some(action => action.componentId === componentId));
+function holePosition(project: CircuitProject, breadboardId: string, holeId: string): [number, number, number] {
   const hole = getHole(holeId)!;
   const t = project.layout.entities[breadboardId];
   return [t.position[0] + hole.x * t.scale[0], t.position[1] - hole.y * t.scale[2], t.position[2] + .122 * t.scale[1]];
 }
 export const validateHardware = validateCompleteCircuit;
-export function executeCommands(current: KinetableProjectV3, input: unknown, updatedAt = new Date().toISOString(), mode: "complete" | "editor" = "complete"): KinetableProjectV3 {
+export function executeCommands<T extends CircuitProject>(current: T, input: unknown, updatedAt = new Date().toISOString(), mode: "complete" | "editor" = "complete"): T {
   validateElectricalSafety(current);
   const candidate = structuredClone(current);
   for (const command of parseCommands(input)) {
@@ -67,6 +81,7 @@ export function executeCommands(current: KinetableProjectV3, input: unknown, upd
       case "component.remove": {
         const target = candidate.components.find(c => c.id === command.instanceId);
         if (!target || target.kind === "board") throw new HardwareError("COMPONENT_MISSING", "Cannot remove this component.");
+        if (candidate.schemaVersion === 4 && logicUses(candidate.logic, target.id)) throw new HardwareError("LOGIC_REFERENCE", "Remove or update the behavior that uses this part first.");
         candidate.components = candidate.components.filter(c => c !== target);
         candidate.wires = candidate.wires.filter(w => !refersTo(w.from, target.id) && !refersTo(w.to, target.id));
         candidate.terminalPlacements = candidate.terminalPlacements.filter(p => p.componentId !== target.id);
@@ -76,6 +91,7 @@ export function executeCommands(current: KinetableProjectV3, input: unknown, upd
         const target = candidate.components.find(c => c.id === command.instanceId);
         const definition = getDefinition(command.definitionId);
         if (!target || target.kind === "board") throw new HardwareError("COMPONENT_MISSING", "Cannot replace this component.");
+        if (candidate.schemaVersion === 4 && logicUses(candidate.logic, target.id)) throw new HardwareError("LOGIC_REFERENCE", "Remove or update the behavior that uses this part before replacing it.");
         if (!definition || definition.kind !== "component") throw new HardwareError("UNKNOWN_COMPONENT", "Unsupported component definition.");
         if (candidate.components.some(c => c.id === command.replacementId)) throw new HardwareError("DUPLICATE_INSTANCE", "Replacement instance ID already exists.");
         target.id = command.replacementId;
@@ -175,11 +191,39 @@ export function executeCommands(current: KinetableProjectV3, input: unknown, upd
         } else if (candidate.terminalPlacements.some(p => p.componentId === command.entityId)) candidate.terminalPlacements = candidate.terminalPlacements.filter(p => p.componentId !== command.entityId);
         candidate.layout.entities[command.entityId] = command.transform; break;
       }
+      case "logic.rule.add": {
+        if (candidate.schemaVersion !== 4) throw new HardwareError("LOGIC_VERSION", "Upgrade this project before adding behavior.");
+        if (candidate.logic.some(rule => rule.id === command.rule.id)) throw new HardwareError("LOGIC_ID", "Behavior ID already exists.");
+        candidate.logic.push(command.rule); break;
+      }
+      case "logic.rule.update": {
+        if (candidate.schemaVersion !== 4) throw new HardwareError("LOGIC_VERSION", "Upgrade this project before editing behavior.");
+        const index = candidate.logic.findIndex(rule => rule.id === command.rule.id);
+        if (index < 0) throw new HardwareError("LOGIC_MISSING", "Behavior no longer exists.");
+        candidate.logic[index] = command.rule; break;
+      }
+      case "logic.rule.remove": {
+        if (candidate.schemaVersion !== 4 || !candidate.logic.some(rule => rule.id === command.id)) throw new HardwareError("LOGIC_MISSING", "Behavior no longer exists.");
+        candidate.logic = candidate.logic.filter(rule => rule.id !== command.id); break;
+      }
+      case "logic.rule.enable": {
+        if (candidate.schemaVersion !== 4) throw new HardwareError("LOGIC_VERSION", "Upgrade this project before editing behavior.");
+        const rule = candidate.logic.find(rule => rule.id === command.id);
+        if (!rule) throw new HardwareError("LOGIC_MISSING", "Behavior no longer exists.");
+        rule.enabled = command.enabled; break;
+      }
+      case "logic.rule.reorder": {
+        if (candidate.schemaVersion !== 4) throw new HardwareError("LOGIC_VERSION", "Upgrade this project before editing behavior.");
+        const index = candidate.logic.findIndex(rule => rule.id === command.id);
+        if (index < 0 || command.index >= candidate.logic.length) throw new HardwareError("LOGIC_MISSING", "Behavior no longer exists.");
+        candidate.logic.splice(command.index, 0, candidate.logic.splice(index, 1)[0]); break;
+      }
     }
   }
   candidate.layout.entities = layoutComponents(candidate.components, candidate.layout.entities);
   candidate.metadata.updatedAt = updatedAt;
   validateElectricalSafety(candidate);
+  if (candidate.schemaVersion === 4) validateLogic(candidate);
   if (mode === "complete") validateCompleteCircuit(candidate);
   return candidate;
 }

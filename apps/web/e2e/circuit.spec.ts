@@ -38,7 +38,7 @@ test("a guest builds a physical circuit, inspects its net, undoes a removal and 
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   await start(page);
   await page.getByRole("button", { name: "+ Breadboard" }).click();
-  await expect.poll(async () => (await saved(page)).schemaVersion).toBe(3);
+  await expect.poll(async () => (await saved(page)).schemaVersion).toBe(4);
   await expect.poll(async () => (await saved(page)).components.some(c => c.definitionId === "breadboard-half-400")).toBe(true);
   mkdirSync("../../output/playwright", { recursive: true });
   for (const [width, height] of [[390,844],[768,1024],[1440,900],[1600,1000],[1920,1080]]) {
@@ -161,7 +161,7 @@ test("an existing v2 AI assembly gains visible wires, keeps layout and upgrades 
   await page.getByRole("button", { name: "LED", exact: true }).click();
   const before = await page.locator(".workbench-surface canvas").screenshot();
   await page.keyboard.press("ArrowRight");
-  await expect.poll(async () => (await saved(page)).schemaVersion).toBe(3);
+  await expect.poll(async () => (await saved(page)).schemaVersion).toBe(4);
   expect((await saved(page)).wires).toHaveLength(3);
   expect(await page.locator(".workbench-surface canvas").screenshot()).not.toEqual(before);
   await expect(page.getByText("Circuit ready")).toBeVisible();

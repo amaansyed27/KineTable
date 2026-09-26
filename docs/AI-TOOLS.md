@@ -345,3 +345,7 @@ Add camera observations and digital-twin reconciliation.
 ## 17. Success criterion
 
 The best Kinetable AI interaction should often feel like **the table understood what the user meant**, not like the user had a long conversation with a chatbot.
+
+## Slice 10 command boundary
+
+Manual Visual Logic uses parsed `logic.rule.add/update/remove/enable/reorder` operations through the existing atomic project command/history/persistence pathway. Logic compilation validates canonical capabilities and physical topology. The Slice 06 planner contract remains hardware-only: AI responses containing logic commands are rejected. AI does not generate or bypass behavior validation in this slice. Project v4 stores the semantic IR; no executable code or raw model responses are persisted as logic.

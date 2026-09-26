@@ -4,17 +4,19 @@ import { analyzeCircuit, type ProjectCommand } from "../hardware-core/commands";
 import { holes } from "../hardware-core/breadboard";
 import { netFor, resolveNets } from "../hardware-core/nets";
 import type { Transform } from "../projects/schema";
-import { endpointKey, holeEndpoint, pinEndpoint, type ElectricalEndpoint, type KinetableProjectV3 } from "../projects/v3";
+import { endpointKey, holeEndpoint, pinEndpoint, type ElectricalEndpoint } from "../projects/v3";
+import type { KinetableProjectV4 } from "../projects/v4";
 import { useProjectStore } from "../state/projectStore";
 import type { CameraAction } from "../spatial/WorkbenchStage";
 import { endpointLabel, inspectComponent, inspectHole, inspectWire } from "./inspector";
 import { SimulationPanel } from "./SimulationPanel";
+import { LogicPanel } from "./LogicPanel";
 import { useSimulationStore } from "../state/simulationStore";
 
 const WorkbenchStage = lazy(() => import("../spatial/WorkbenchStage"));
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-export function Workbench({ document }: { document: KinetableProjectV3 }) {
+export function Workbench({ document }: { document: KinetableProjectV4 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
   const [selectedEndpoint, setSelectedEndpoint] = useState<ElectricalEndpoint | null>(null);
@@ -26,6 +28,7 @@ export function Workbench({ document }: { document: KinetableProjectV3 }) {
   const [tray, setTray] = useState<"add" | "replace" | null>(null);
   const [cameraAction, setCameraAction] = useState<CameraAction | null>(null);
   const [message, setMessage] = useState("");
+  const [logicReferences, setLogicReferences] = useState<string[]>([]);
   const sequence = useRef(0);
   const applyTransaction = useProjectStore(s => s.applyTransaction);
   const undo = useProjectStore(s => s.undo);
@@ -51,7 +54,7 @@ export function Workbench({ document }: { document: KinetableProjectV3 }) {
   function selectComponent(id: string | null) { setSelectedId(id); setSelectedWireId(null); setSelectedEndpoint(null); }
   function selectWire(id: string) { setSelectedWireId(id); setSelectedId(null); setSelectedEndpoint(null); setWireSource(null); }
   function camera(type: CameraAction["type"], entityId?: string) { setCameraAction({ sequence: ++sequence.current, type, entityId }); }
-  async function commit(commands: ProjectCommand[] | ((current: KinetableProjectV3) => ProjectCommand[]), nextSelection?: string | null): Promise<boolean> {
+  async function commit(commands: ProjectCommand[] | ((current: KinetableProjectV4) => ProjectCommand[]), nextSelection?: string | null): Promise<boolean> {
     try {
       await applyTransaction(commands);
       setMessage("");
@@ -123,10 +126,10 @@ export function Workbench({ document }: { document: KinetableProjectV3 }) {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   });
-  return <section className="workbench" aria-label="Circuit workbench">
-    <div className="workbench-modes" aria-label="Workbench modes"><button aria-current={mode === "build" ? "page" : undefined} onClick={() => useSimulationStore.getState().build()}>Build</button><button aria-current={mode === "simulate" ? "page" : undefined} onClick={() => useSimulationStore.getState().enter(document, "simulate")}>Simulate</button><button aria-current={mode === "explain" ? "page" : undefined} onClick={() => mode === "simulate" ? useSimulationStore.getState().explain() : useSimulationStore.getState().enter(document, "explain")}>Explain</button></div>
+  return <section className="workbench" data-mode={mode} aria-label="Circuit workbench">
+    <div className="workbench-modes" aria-label="Workbench modes"><button aria-current={mode === "build" ? "page" : undefined} onClick={() => useSimulationStore.getState().build()}>Build</button><button aria-current={mode === "logic" ? "page" : undefined} onClick={() => { selectComponent(null); setMessage(""); useSimulationStore.getState().logic(); }}>Logic</button><button aria-current={mode === "simulate" ? "page" : undefined} onClick={() => useSimulationStore.getState().enter(document, "simulate")}>Simulate</button><button aria-current={mode === "explain" ? "page" : undefined} onClick={() => mode === "simulate" ? useSimulationStore.getState().explain() : useSimulationStore.getState().enter(document, "explain")}>Explain</button></div>
     <div className="workbench-surface">
-      <Suspense fallback={<p className="scene-fallback">Opening your workbench…</p>}><WorkbenchStage project={document} selectedId={selectedId} selectedWireId={selectedWireId} selectedEndpointKey={selectedEndpoint ? endpointKey(selectedEndpoint) : null} highlightedKeys={highlightedKeys} wireSource={mode === "build" ? activeWireSource : null} wiring={mode === "build" && wiring} onSelect={selectComponent} onEndpoint={endpoint => mode === "build" ? void selectTarget(endpoint) : (setSelectedEndpoint(endpoint), setSelectedId(null))} onWire={selectWire} onMove={move} cameraAction={cameraAction} /></Suspense>
+      <Suspense fallback={<p className="scene-fallback">Opening your workbench…</p>}><WorkbenchStage project={document} selectedId={selectedId} referencedIds={mode === "logic" ? logicReferences : []} selectedWireId={selectedWireId} selectedEndpointKey={selectedEndpoint ? endpointKey(selectedEndpoint) : null} highlightedKeys={highlightedKeys} wireSource={mode === "build" ? activeWireSource : null} wiring={mode === "build" && wiring} onSelect={selectComponent} onEndpoint={endpoint => mode === "build" ? void selectTarget(endpoint) : (setSelectedEndpoint(endpoint), setSelectedId(null))} onWire={selectWire} onMove={move} cameraAction={cameraAction} /></Suspense>
       <div className="workbench-topline"><span>KINETABLE / WORKBENCH</span><span role="status">{partCount === 0 ? "Board ready" : diagnostics.length ? `Incomplete · ${diagnostics.length} ${diagnostics.length === 1 ? "issue" : "issues"}` : "Circuit ready"}</span></div>
       <div className="workbench-camera" aria-label="View controls"><button onClick={() => camera("zoom-in")} aria-label="Zoom in">+</button><button onClick={() => camera("zoom-out")} aria-label="Zoom out">−</button><button onClick={() => camera("reset")}>Reset view</button></div>
       <p className="workbench-gesture">{mode !== "build" ? "Select hardware to inspect · drag to orbit · scroll or pinch to zoom" : placingLead ? "Tap a breadboard hole to insert this lead" : wiring ? wireSource ? "Choose the other endpoint" : "Tap a pin or hole to start a wire" : "Drag a part to move · drag empty space to orbit · right drag to pan · scroll or pinch to zoom"}</p>
@@ -146,6 +149,7 @@ export function Workbench({ document }: { document: KinetableProjectV3 }) {
         <p>Choose a virtual part from the component library.</p><div className="workbench-tray-items">{catalog.filter(d => d.kind === "component").map(definition => <button key={definition.id} onClick={() => choose(definition.id)}><span className="part-glyph" data-visual={definition.visualId} aria-hidden="true" />{definition.name}</button>)}</div>
       </div>}
     </div>
+    {mode === "logic" && <LogicPanel document={document} onReference={id => setLogicReferences(id ? [id] : [])} onRule={setLogicReferences} />}
     <SimulationPanel selectedId={selectedId} />
     {mode === "build" && <div className="workbench-actions"><div><button className="workbench-add" onClick={() => setTray("add")}>+ Add part</button>{!document.components.some(c => c.kind === "breadboard") && <button onClick={() => void commit([{ type: "breadboard.add", id: "breadboard-1" }])}>+ Breadboard</button>}<button aria-pressed={wiring} onClick={() => { setWiring(value => !value); setWireSource(null); setPlacingLead(null); }}>Wire</button></div><div><button disabled={!canUndo} onClick={() => void undo()} aria-label="Undo">↶ Undo</button><button disabled={!canRedo} onClick={() => void redo()} aria-label="Redo">↷ Redo</button></div></div>}
     <div className="workbench-parts" aria-label="Parts on this table"><span>PARTS ON TABLE</span>{document.components.map(component => <button key={component.id} aria-pressed={selectedId === component.id} onClick={() => selectComponent(component.id)}>{getDefinition(component.definitionId)?.name}</button>)}</div>
