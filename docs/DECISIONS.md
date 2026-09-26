@@ -86,7 +86,7 @@ This enables undo/redo, validation, replay, and future collaboration.
 
 **Status:** accepted
 
-The first simulator focuses on digital state, common sensor inputs, simple analog values, display/output behaviour, timing, and visual explanation.
+The first simulator focuses on digital state, common sensor inputs, simple analog values where explicitly implemented, display/output behaviour, timing, and visual explanation.
 
 ## D-014 — BONK is the canonical first demo
 
@@ -146,6 +146,8 @@ All public Open Kinetable actions enter `/start`. A canonical board selection is
 
 ## D-023 — Optional Supabase boundary and Vercel SPA hosting
 
-**Status:** implemented foundation; hosted Supabase data deferred
+**Status:** implemented and active
 
-Use a validated, publishable-key-only Supabase client boundary. Missing or invalid configuration keeps onboarding local; configuration is not a cloud success claim. No cloud tables are created without a current data use case. Vercel builds the workspace web app and rewrites direct SPA routes. Auth is Slice 03, project persistence Slice 04.
+Slice 02 established a validated publishable-key-only Supabase boundary and Vercel SPA hosting while preserving local-only use when cloud configuration is absent. Slice 03 activated Supabase Auth/profile sync; Slice 04 activated owner-only project persistence; later project-schema migrations have preserved those ownership/RLS boundaries.
+
+No service-role credential belongs in the browser. New cloud tables are still created only when a current product slice has a real data use case.

@@ -2,24 +2,24 @@
 
 ## 1. Architectural goal
 
-Kinetable is an AI-native visual hardware workspace. The project/electrical model is the source of truth; UI, 3D rendering, AI, persistence, simulation and future physical-workbench vision operate through controlled domain boundaries.
+Kinetable is an AI-native visual hardware workspace. The versioned project/electrical model is the source of truth; UI, 3D rendering, AI, persistence, simulation and future physical-workbench vision operate through controlled domain boundaries.
 
 ```text
 ┌──────────────────────────────────────────────┐
 │                  UI / UX                     │
-│ landing · onboarding · table · parts · learn │
+│ landing · onboarding · table · logic · learn │
 ├──────────────────────────────────────────────┤
 │             Spatial interaction              │
 │ select · drag · snap · wire · camera         │
 ├──────────────────────────────────────────────┤
 │           Project / hardware model           │
-│ components · pins · wires · breadboards      │
+│ components · pins · wires · logic            │
 ├──────────────────────────────────────────────┤
 │           Derived electrical graph           │
 │ topology · nets · validation                 │
 ├──────────────────────────────────────────────┤
-│                Simulation                    │
-│ drivers · timing · virtual runtime state     │
+│          Behavior + simulation runtime       │
+│ logic compiler · drivers · clock · trace     │
 ├──────────────────────────────────────────────┤
 │                 AI layer                     │
 │ intent · planner · provider router           │
@@ -47,15 +47,17 @@ Core rule:
 - Three.js + React Three Fiber + Drei
 - Zustand
 - IndexedDB + Dexie
-- Radix UI
-- Tailwind CSS + custom Kinetable UI
+- semantic native controls + custom Kinetable UI
+- Tailwind CSS
 - Motion
+
+The current app does not depend on a separate component-primitives framework; add one only when it reduces real UI complexity.
 
 ### Cloud
 
 - Supabase PostgreSQL
 - Supabase Auth
-- Supabase Storage
+- Supabase Storage when asset use requires it
 - Vercel Functions
 - Vercel previews/hosting
 
@@ -68,7 +70,7 @@ The optional Kinetable Local Bridge binds to loopback and supports approved loca
 - Vitest for deterministic domain/unit tests
 - Playwright for browser and deployed flows
 - hosted Supabase ownership/RLS checks
-- deterministic simulation tests from Slice 09 onward
+- deterministic simulation/logic tests
 
 ## 3. Runtime topology
 
@@ -91,13 +93,13 @@ The optional Kinetable Local Bridge binds to loopback and supports approved loca
                                       vLLM / local CLIs
 ```
 
-Cloud never sits in the high-frequency workbench render/input loop.
+Cloud never sits in the high-frequency workbench, simulation or visual-logic interaction loop.
 
 ## 4. Main domain boundaries
 
 ### `projects`
 
-Owns versioned project schemas and migrations.
+Owns versioned project schemas and deterministic migrations.
 
 Current editable format: **Project v4**.
 
@@ -115,15 +117,17 @@ Responsibilities:
 - electrical safety;
 - circuit completeness;
 - deterministic mutations;
-- history helpers.
+- bounded history helpers.
 
 It must not depend on React, Three.js, Zustand, Vercel, Supabase or AI provider SDKs.
 
 ### `component-library`
 
-Owns canonical definitions and stable definition IDs.
+Owns canonical component definitions and stable definition IDs.
 
 Current records include electrical models, pins, supply metadata, descriptions and visual IDs. Visual pin/lead anchors remain presentation metadata keyed by the same stable electrical pin IDs.
+
+Slice 11 expands this into the provenance-aware hardware platform and should reduce remaining board/catalog metadata duplication rather than creating another parallel definition source.
 
 ### `spatial`
 
@@ -141,32 +145,32 @@ Spatial geometry never determines electrical truth.
 
 ### `ai`
 
-Owns planner contracts, provider routing and provider-independent assembly orchestration.
+Owns planner contracts, provider routing and provider-independent hardware assembly orchestration.
 
-AI returns strict Kinetable operations. It never directly edits the DOM, Three.js scene or arbitrary project JSON.
+AI returns strict Kinetable operations. It never directly edits the DOM, Three.js scene or arbitrary project JSON. The current planner deliberately rejects `logic.*` commands; Visual Logic is manual/deterministic in Slice 10.
 
-### `simulation` — Slice 09
+### `simulation`
 
-Simulation is implemented independently from rendering and persistence. `compileCircuit.ts` caches the validated physical graph by a topology-only key, `drivers.ts` binds canonical component semantics, `recipes.ts` matches supported demonstrations, `runtime.ts` advances a logical clock and records causal events, and `explain.ts` derives X-Ray paths and explanations from that same graph and trace. `state/simulationStore.ts` exposes an ephemeral UI snapshot without project writes.
+Simulation is independent from rendering and persistence. `compileCircuit.ts` caches the validated physical graph by project + topology key, `drivers.ts` binds canonical electrical models, `recipes.ts` matches logic-empty demonstrations, `runtime.ts` advances a logical clock and records causal events, and `explain.ts` derives X-Ray paths and explanations from the same graph/trace.
 
 Responsibilities:
 
 - compile a project/net graph into simulation-ready state;
 - deterministic logical clock;
-- event queue;
-- component drivers;
+- bounded event queue;
+- component-driver bindings;
 - net/signal runtime state;
 - causal trace used by Explain/X-Ray.
 
-The simulator must reuse a compiled graph rather than recomputing the 400-hole breadboard topology every tick.
+The simulator reuses a compiled graph rather than recomputing breadboard topology every tick.
 
-### `visual-logic` — Slice 10
+### `logic`
 
-`logic/schema.ts` parses strict tagged WHEN/IF/DO unions. `logic/compile.ts` validates and binds them to the compiled physical circuit. `LogicPanel.tsx` sends explicit project commands; domain truth stays outside React. No WAIT language or arbitrary executable source is supported.
+`logic/schema.ts` owns the strict persistent WHEN/IF/DO IR. `logic/compile.ts` validates component references and binds authored behavior to the compiled physical circuit. `LogicPanel.tsx` emits explicit project commands; React does not own behavior truth.
+
+No arbitrary script, expression language, WAIT/REPEAT program or executable source exists in the current logic IR.
 
 ## 5. Current project format — v4
-
-Project v4 stores physical circuit facts and authored semantic behavior.
 
 Conceptually:
 
@@ -177,7 +181,7 @@ interface KinetableProjectV4 {
   name: string
   intent?: { text: string }
   boardIds: string[]
-  components: ComponentInstanceV3[]
+  components: ComponentInstance[]
   wires: Wire[]
   terminalPlacements: TerminalPlacement[]
   logic: LogicRule[]
@@ -194,9 +198,9 @@ type ElectricalEndpoint =
   | { kind: 'breadboard-hole'; breadboardId: string; holeId: string }
 ```
 
-A wire joins two physical endpoints. A terminal placement inserts a supported lead into a breadboard hole. Breadboard internal conductivity is defined by the breadboard topology engine.
+A wire joins two physical endpoints. A terminal placement inserts a supported lead into a breadboard hole. Breadboard internal conductivity is defined by the topology engine.
 
-Derived nets are **not persisted**.
+Derived nets are **not persisted**:
 
 ```text
 pins
@@ -207,14 +211,14 @@ pins
 → electrical nets
 ```
 
-This avoids storing a stale second representation of connectivity.
+Simulation outputs, logical time and traces are also ephemeral and are not project data.
 
 ## 6. Project migration
 
 - v1: board-first starter/intention format;
-- v2: board + canonical component instances + direct component pin connections;
-- v3: explicit physical wires, breadboard-hole endpoints and terminal placements; historical logic stays empty.
-- v4: the same physical document plus strict persistent logic rules.
+- v2: board + canonical components + direct component-pin connections;
+- v3: explicit physical wires, breadboard-hole endpoints and terminal placements; historical logic stays empty;
+- v4: v3 physical document + strict persistent semantic behavior rules.
 
 Migration is deterministic:
 
@@ -222,9 +226,9 @@ Migration is deterministic:
 v1 → v2 → v3 → v4
 ```
 
-Old documents migrate in memory on load. Reading alone does not force a cloud rewrite. An intentional edit/checkpoint persists the newest version.
+Old documents migrate in memory on load. Reading alone does not force a cloud rewrite. An intentional edit/checkpoint persists the newest version. Supabase accepts schema versions 1–4 so historical rows remain recoverable.
 
-Supabase currently accepts schema versions 1, 2, 3 and 4 so old documents remain recoverable during migration.
+Historical schema modules are intentionally retained for parsing/migration; they are not duplicate current project models.
 
 ## 7. Validation layers
 
@@ -232,23 +236,27 @@ Validation is intentionally layered.
 
 ### Structural validity
 
-Rejects malformed documents, unknown definitions, invalid IDs/endpoints and malformed transforms.
+Rejects malformed documents, unknown definitions, invalid IDs/endpoints/transforms and malformed logic syntax.
 
 ### Electrical safety
 
-Rejects states that Kinetable must never commit, including supported power shorts, incompatible rails and prohibited output conflicts.
+Rejects states Kinetable must never commit, including supported power shorts, incompatible rails and prohibited output conflicts.
 
 ### Circuit completeness
 
-Returns structured incomplete diagnostics for missing required connections or supported topology rules.
+Returns structured diagnostics for missing required connections or supported topology rules. Manual editing may save a **safe incomplete** project. AI Assembly must pass the stricter complete-circuit gate before claiming success.
 
-Manual editing may save a **safe incomplete** project.
+### Simulation compatibility
 
-AI Assembly must pass the stricter complete-circuit gate before claiming success.
+A circuit may be structurally/electrically valid yet unsupported by the semantic simulator. Simulation compatibility checks canonical drivers/topology separately.
 
-### Future simulation compatibility
+### Logic validity
 
-Slice 09 adds a separate compatibility/runtime layer. A circuit that is electrically complete is not automatically a proof of analog, timing, thermal or firmware correctness.
+Authored rules must reference compatible, physically bound components. Hardware changes that would leave persisted behavior invalid are rejected atomically until the user updates/removes the relevant logic.
+
+### Physical verification — later
+
+Simulation does not prove a real circuit is physically built correctly. Slice 14 telemetry and Slice 15 camera observations add separate evidence.
 
 ## 8. Breadboard and nets
 
@@ -261,14 +269,7 @@ The current canonical breadboard is `breadboard-half-400`:
 
 Topology is pure domain data, not derived from mesh position.
 
-`resolveNets` uses deterministic graph/union-find resolution across:
-
-- component pins;
-- physical wires;
-- inserted leads;
-- breadboard strips/rails.
-
-A net can therefore connect a board pin to a component through several breadboard holes without requiring a direct edge.
+`resolveNets` performs deterministic graph/union-find resolution across component pins, physical wires, inserted leads and breadboard strips/rails.
 
 ## 9. Command-based mutations
 
@@ -278,20 +279,23 @@ Current command families include:
 
 ```text
 component.add / remove / replace
-connection.create / remove   # compatibility for AI/direct pin plans
+connection.create / remove   # compatibility for AI/direct-pin plans
 breadboard.add / remove
 wire.add / remove
 terminal.place / unplace
 layout.move
+logic.rule.add / update / remove / enable / reorder
 ```
+
+`connection.*` remains deliberately as the AI/direct-pin compatibility surface while `wire.*` represents the current physical conductor model. It should not be removed merely because the names overlap.
 
 Each transaction:
 
 ```text
 current project
 → commands
-→ candidate
-→ structural + electrical-safety validation
+→ candidate copy
+→ structural / electrical / logic validation as applicable
 → atomic local save
 → optional cloud checkpoint
 ```
@@ -305,10 +309,11 @@ Persistent project truth:
 - components;
 - wires;
 - terminal placements;
+- authored logic;
 - layout;
 - project metadata.
 
-Transient UI state:
+Transient UI/runtime state:
 
 - selection;
 - hover;
@@ -316,13 +321,15 @@ Transient UI state:
 - wire preview;
 - camera state;
 - inspector visibility;
-- simulation playback state.
+- simulation playback/state;
+- causal trace;
+- X-Ray selection.
 
-Transient interaction state must not be written to IndexedDB or Supabase each frame.
+Transient state must not be written to IndexedDB or Supabase each frame.
 
 ## 11. History and persistence
 
-Manual edits are local-first.
+Manual edits are local-first:
 
 ```text
 interaction
@@ -332,7 +339,7 @@ interaction
 → debounced/coalesced cloud checkpoint
 ```
 
-Undo/redo history is bounded and session-local. Undo/redo restores content but creates a new current revision timestamp.
+Undo/redo history is bounded and session-local. Restoring old content creates a new current revision timestamp.
 
 Current multi-device sync remains last-successful-write oriented. Conflict-safe project versioning belongs to Slice 12 — Personal Workspace.
 
@@ -349,63 +356,51 @@ LOCAL_CLI
 
 Routing supports multiple credentials for a provider and ordered provider fallback.
 
-BYOK credentials are device-local by default. They are never stored in project JSON or Supabase project rows. Remote calls may send the selected credential through the Vercel function only for that request.
+BYOK credentials are device-local by default. They are never stored in project JSON or Supabase project rows. Remote calls may send the selected credential through a Vercel function only for that request.
 
 Local Bridge handles supported localhost runtimes and authenticated CLIs with explicit bounded adapters rather than arbitrary command execution.
 
-## 13. Simulation architecture — implemented
-
-Slice 09 — Living Circuit combines simulation and Explain/X-Ray.
-
-Required design:
+## 13. Simulation + Visual Logic architecture
 
 ```text
-Project v4 physical document + authored logic
-→ validate simulation compatibility
-→ compile topology once
+Project v4 physical document
+→ validate physical graph / simulation compatibility
+→ CompiledCircuit
+
+Project v4.logic
+→ validate semantic references + physical bindings
+→ CompiledBehaviorProgram
+
+CompiledCircuit + behavior/recipe
 → SimulationRuntime
     ├─ logical clock
     ├─ component state
     ├─ net/signal state
-    └─ event/causal trace
+    ├─ bounded event queue
+    └─ causal trace
 → UI observation
 → Explain / X-Ray
 ```
 
-Rendering must observe simulation state; animation frames must not determine simulation correctness.
+Authored Visual Logic suppresses demonstration recipes. Logic-empty projects may still use the Slice 09 recipes. Rendering observes runtime state; animation-frame rate never determines simulation correctness.
 
-Explain/X-Ray should consume the same runtime/net facts rather than recomputing a second interpretation.
-
-## 14. Visual Logic — Slice 10
-
-Visual Logic persists a semantic behavior IR such as:
-
-```text
-WHEN button.pressed
-DO oled.text = "BONK!"
-AND led.state = ON
-AND buzzer.beep(count=2)
-```
-
-That IR compiles into `CompiledBehaviorProgram` beside `CompiledCircuit` and drives the existing Slice 09 runtime. Authored logic suppresses demonstration recipes. Enabled released-button rules establish deterministic initial released states; timer rules first fire after their interval. Conditions are ANDed; trace facts carry stable rule IDs and action indices. The semantic IR remains suitable for later firmware generation, which is not implemented here.
-
-## 15. Physical runtime — Slice 14
+## 14. Physical runtime — Slice 14
 
 Future path:
 
 ```text
-project + visual logic
+Project v4 + Visual Logic
 → firmware generation
 → compile API
 → isolated Arduino CLI / ESP-IDF / Pico SDK worker
 → .bin / .uf2
-→ Web Serial / WebUSB / supported local bridge
+→ Web Serial / WebUSB / supported Local Bridge
 → live telemetry
 ```
 
 Heavy compilation must not run in Supabase Edge Functions.
 
-## 16. Digital twin — Slice 15
+## 15. Digital twin — Slice 15
 
 Vision/camera reconstruction must map observations into the same project entities:
 
@@ -415,11 +410,9 @@ observed wire → project electrical endpoints
 observed breadboard hole → canonical hole ID
 ```
 
-There must not be a second incompatible “camera circuit model.”
+There must not be a second incompatible camera circuit model.
 
-## 17. Canonical roadmap
-
-Current canonical roadmap:
+## 16. Canonical roadmap
 
 ```text
 01 Landing                     ✅
@@ -441,14 +434,12 @@ Current canonical roadmap:
 
 See [ROADMAP.md](ROADMAP.md) for full slice scope.
 
-## 18. Reliability principle
+## 17. Reliability principle
 
-Users must be able to trust statements like:
+Users must be able to trust statements such as:
 
 > This power connection is unsafe.
 
 Those claims come from deterministic metadata, topology and runtime rules—not model improvisation or visual proximity.
 
-Operational details are in [BACKEND.md](BACKEND.md). Current implementation evidence is in [SLICE-06.md](SLICE-06.md), [SLICE-07.md](SLICE-07.md), and [SLICE-08.md](SLICE-08.md).
-
-Slice 10 details, bounds and verification: [SLICE-10.md](SLICE-10.md).
+Operational details are in [BACKEND.md](BACKEND.md). Slice-specific implementation evidence is recorded in [SLICE-06.md](SLICE-06.md), [SLICE-07.md](SLICE-07.md), [SLICE-08.md](SLICE-08.md), [SLICE-09.md](SLICE-09.md) and [SLICE-10.md](SLICE-10.md).

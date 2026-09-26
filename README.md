@@ -23,7 +23,7 @@ Core rules:
 
 ## Current status
 
-**Slices 01–10 implemented. Slice 11 — Hardware Platform is next.**
+**Slices 01–10 are implemented. Slice 11 — Hardware Platform is next.**
 
 Kinetable currently supports:
 
@@ -33,16 +33,18 @@ Kinetable currently supports:
 - intent-first New Build;
 - real AI assembly through BYOK/local/CLI providers with structured commands and deterministic validation;
 - an interactive 3D workbench with camera controls, direct manipulation, add/remove/replace, undo/redo and autosave;
-- Project v4 physical circuit data;
+- Project v4 circuit + behaviour data;
 - explicit pin and breadboard-hole endpoints;
 - a deterministic 400-hole half-size breadboard topology;
 - physical wires and through-hole lead placement;
 - derived electrical nets;
 - net-aware safety/completeness checks;
 - component, pin, wire and breadboard-hole inspection;
-- accessible wiring controls, touch interaction and WebGL fallback.
+- deterministic simulation, virtual inputs, causal Explain and Power/Signals/Data X-Ray;
+- persistent WHEN / IF / DO Visual Logic running through the same physical compiler and runtime;
+- accessible wiring/logic controls, touch interaction and WebGL fallback.
 
-Deterministic simulation, runtime recipes, virtual inputs, causal Explain and Power/Signals/Data X-Ray are available for supported complete circuits. Manual Visual Logic edits persistent WHEN / IF / DO rules and runs them through the same physical compiler and runtime. Personal inventory, physical-board runtime and digital-twin features remain future slices.
+Personal inventory, the expanded verified component platform, project versioning, physical-board runtime and digital-twin features remain future slices.
 
 ## Architecture
 
@@ -63,7 +65,7 @@ Deterministic simulation, runtime recipes, virtual inputs, causal Explain and Po
                           │
                      Project v4
                           │
-        components · wires · lead placements · layout · behavior IR
+       components · wires · lead placements · layout · logic
                           │
                     hardware-core
                           │
@@ -73,7 +75,7 @@ Deterministic simulation, runtime recipes, virtual inputs, causal Explain and Po
                           │
              ┌────────────┴─────────────┐
              │                          │
-     IndexedDB local-first     simulation compiler
+     IndexedDB local-first     simulation + logic compiler
                                        │
                                 logical runtime
                                        │
@@ -109,7 +111,7 @@ component pins
 → resolved nets
 ```
 
-Older v1/v2/v3 projects migrate deterministically in memory to v4 with empty authored logic. Reading does not rewrite cloud data; the next intentional edit/checkpoint saves v4.
+Older v1/v2/v3 projects migrate deterministically in memory to v4 with empty authored logic. Reading alone does not rewrite cloud data; the next intentional edit/checkpoint saves v4.
 
 ## AI architecture
 
@@ -134,7 +136,7 @@ intent
 → atomic project update
 ```
 
-Provider credentials never belong in project JSON or Supabase project documents.
+Provider credentials never belong in project JSON or Supabase project documents. The current AI planner remains hardware-assembly-only; Visual Logic is authored deterministically in the workbench.
 
 ## Canonical 15-slice roadmap
 
@@ -150,8 +152,8 @@ The earlier 22-slice plan was compressed after Slice 07. Historical Slice 01–0
 | 06 — AI Assembly | ✅ | Provider-independent AI → validated hardware graph |
 | 07 — Core 3D Workbench | ✅ | Spatial editor, history, autosave |
 | 08 — Physical Circuit Editor | ✅ | Breadboard, wires, nets, inspectors |
-| 09 — Living Circuit | Implemented | Simulation + Explain/X-Ray |
-| 10 — Visual Logic | Planned | Editable semantic behaviour |
+| 09 — Living Circuit | ✅ | Simulation + Explain/X-Ray |
+| 10 — Visual Logic | ✅ | Editable persistent semantic behaviour |
 | 11 — Hardware Platform | Planned | My Parts + canonical Component Library |
 | 12 — Personal Workspace | Planned | Projects/versioning + Explore |
 | 13 — Learn | Planned | Interactive topology-aware missions |
@@ -173,7 +175,7 @@ BUTTON PRESS
    └── BUZZER: BEEP ×2
 ```
 
-The target product loop is:
+The current virtual product loop is:
 
 1. choose ESP32;
 2. describe the build;
@@ -182,7 +184,9 @@ The target product loop is:
 5. simulate it;
 6. use Explain/X-Ray;
 7. change `BEEP ×2` to `BEEP ×3` through Visual Logic;
-8. compile and run it on the real board.
+8. rerun and observe the changed deterministic behavior.
+
+Compiling and running the same behavior on a physical board belongs to Slice 14.
 
 ## Stack
 
@@ -192,7 +196,7 @@ The target product loop is:
 | 3D | Three.js + React Three Fiber + Drei |
 | UI state | Zustand |
 | Local persistence | IndexedDB + Dexie |
-| UI primitives | Radix UI |
+| UI controls | semantic native controls + custom Kinetable UI |
 | Styling | Tailwind CSS + custom Kinetable design system |
 | Motion | Motion |
 | Cloud | Supabase PostgreSQL + Auth + Storage |
@@ -243,6 +247,3 @@ For hosted Supabase features, copy `.env.example` to `apps/web/.env.local` and p
 - [Slice 10 — Visual Logic](docs/SLICE-10.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
-
-Slices 01–10 implemented.
-Slice 11 — Hardware Platform is next.

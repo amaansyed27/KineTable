@@ -1,6 +1,6 @@
 # Kinetable Backend and Deployment
 
-Kinetable is browser-first and local-first, but not frontend-only. Each product slice ships the persistence/server work actually required by that capability rather than leaving fake success states behind.
+Kinetable is browser-first and local-first, but not frontend-only. Each product slice ships the persistence/server work required by that capability rather than leaving fake success states behind.
 
 ## Platform choices
 
@@ -13,7 +13,7 @@ Kinetable is browser-first and local-first, but not frontend-only. Each product 
 | Authentication | Supabase Auth |
 | Future canonical asset storage | Supabase Storage |
 | Realtime/collaboration | Later, only where justified |
-| Fast local state | Zustand |
+| Fast local UI state | Zustand |
 | Local/offline persistence | IndexedDB + Dexie |
 | Local AI/device bridge | loopback Node/TypeScript bridge |
 | Heavy firmware compilation | later isolated container worker |
@@ -40,19 +40,19 @@ Kinetable is browser-first and local-first, but not frontend-only. Each product 
                                       local HTTP / CLI
 ```
 
-Cloud must never sit in the workbench render/input loop.
+Cloud never sits in the high-frequency workbench, logic or simulation loop.
 
 ## Local-first rule
 
-High-frequency operations happen locally:
+High-frequency or ephemeral operations stay local:
 
 - selecting and manipulating hardware;
 - wire preview and pin/hole interaction;
-- simulation playback/state;
 - temporary camera/selection state;
-- future visual-logic editing feedback.
+- simulation playback, virtual inputs and causal traces;
+- in-progress UI interaction before a validated project transaction commits.
 
-Persistent project edits are written to IndexedDB at meaningful transaction boundaries. Signed-in users receive deliberate/debounced cloud checkpoints. Simulation tick state is ephemeral and must not be written to IndexedDB or Supabase every tick.
+Persistent project edits—including Visual Logic edits—are written to IndexedDB at meaningful transaction boundaries. Signed-in users receive debounced cloud checkpoints. Simulation state never creates project revisions or cloud writes.
 
 ## Cloud data model
 
@@ -63,7 +63,7 @@ profiles
 projects
 ```
 
-Planned when their compressed slices arrive:
+Planned when their canonical slices arrive:
 
 ```text
 hardware_inventory     # Slice 11 — Hardware Platform
@@ -71,32 +71,31 @@ component_catalog      # Slice 11 — Hardware Platform
 project_versions       # Slice 12 — Personal Workspace
 ```
 
-The complete workbench graph remains a versioned JSONB project document. Relational columns hold searchable ownership/metadata such as project ID, owner, name, primary board, schema version and timestamps.
+The complete workbench graph remains a versioned JSONB project document. Relational columns hold ownership/search metadata such as project ID, owner, name, primary board, schema version and timestamps.
 
-## Current project persistence — schema v3
+## Current project persistence — schema v4
 
-The current editable document is Project v3.
-
-It stores:
+The current editable document is **Project v4**. It stores:
 
 ```text
 components
 physical wires
 through-hole terminal placements
 layout
+persistent WHEN / IF / DO logic
 intent
 metadata
 ```
 
-Electrical nets are derived at runtime from wires, placements and breadboard topology. Nets are not separately persisted.
+Electrical nets are derived at runtime from wires, placements and breadboard topology. Nets are not separately persisted. Simulation state is also not persisted.
 
-Older documents remain supported:
+Historical documents remain supported:
 
 ```text
-v1 → v2 → v3
+v1 → v2 → v3 → v4
 ```
 
-Load performs deterministic in-memory migration. An intentional edit/checkpoint persists v3. Supabase currently accepts schema versions 1, 2 and 3 so old cloud rows remain recoverable during migration.
+Load performs deterministic in-memory migration. Reading an old project does not by itself rewrite the cloud row. The next intentional project mutation/checkpoint persists v4. Supabase accepts schema versions 1, 2, 3 and 4 so historical rows remain recoverable during migration.
 
 ## `public.projects`
 
@@ -111,7 +110,7 @@ The project table stores:
 - archive flag;
 - server timestamps.
 
-RLS restricts project operations to the owner. Client grants prevent reassignment of ownership, project ID and server-owned timestamps. The Slice 08 migration expanded the schema-version constraint without weakening RLS.
+RLS restricts project operations to the owner. Client grants prevent reassignment of ownership, project ID and server-owned timestamps. Schema-version migrations only widen the accepted version set; they do not weaken RLS.
 
 ## Authentication
 
@@ -124,27 +123,22 @@ Open Kinetable
 → sign in only when cloud sync is useful
 ```
 
-Current development auth uses email/password. Google/GitHub integrations are prepared but disabled until credentials and production-ready account flows are configured.
+Current development auth uses email/password. Google/GitHub integrations remain disabled until their production account flows and credentials are configured.
 
-Local guest projects are preserved. Signing in intentionally adopts eligible guest work instead of silently discarding or retargeting projects from another account.
+Local guest projects are preserved. Signing in adopts eligible guest work instead of silently discarding it or retargeting projects from another account.
 
 ## Project reconciliation
 
 The local project repository is authoritative for immediate interaction.
 
-Current flow:
-
 ```text
-edit
-→ validate
+validated project edit
 → IndexedDB save
 → visible state updates
 → signed-in cloud checkpoint
 ```
 
-Cloud failure leaves the valid local project dirty and retryable. A fresh authenticated browser can restore the most recent cloud project.
-
-Current simultaneous multi-device writes are not conflict-safe; the last successful cloud write can win. **Slice 12 — Personal Workspace** owns project versions, checkpoints and conflict-safe sync rules.
+Cloud failure leaves the valid local project dirty and retryable. A fresh authenticated browser can restore the most recent cloud project. Current simultaneous multi-device writes are still last-successful-write oriented; conflict-safe project versioning belongs to **Slice 12 — Personal Workspace**.
 
 ## AI backend and BYOK
 
@@ -177,38 +171,37 @@ Custom remote endpoints are constrained to validated public HTTPS destinations. 
 
 The Local Bridge exposes bounded known-provider actions rather than arbitrary shell execution. It supports local HTTP runtimes and approved headless CLI adapters.
 
-There is not yet a shared distributed public rate limiter for the BYOK proxy; this is a production-hardening requirement before broad public launch.
+There is not yet a shared distributed public rate limiter for the BYOK proxy; this remains a production-hardening requirement before broad public launch.
 
 ## AI mutation boundary
 
-AI does not replace arbitrary project JSON.
+AI never replaces arbitrary project JSON.
 
-The planner produces strict project operations that flow through hardware-core. Current command families include component, layout and connection operations, while the physical editor additionally uses wire/breadboard/terminal-placement commands.
+The Slice 06 planner emits strict hardware project operations that flow through hardware-core and remains hardware-assembly-only. Visual Logic is currently authored manually through deterministic `logic.rule.*` project commands. If AI behavior editing is added later, it must use the same validated command/logic compiler boundary rather than bypassing it.
 
 AI Assembly still requires the complete-circuit validation gate before claiming success.
 
-## Simulation backend ownership — Slice 09
+## Simulation and Visual Logic ownership — Slices 09–10
 
-**Living Circuit is primarily a local deterministic runtime, not a cloud service.**
-
-Slice 09 uses a local deterministic runtime and adds no server dependency.
-
-Required boundary:
+Living Circuit and Visual Logic are local deterministic product runtimes, not cloud services.
 
 ```text
-Project v3
-→ simulation compatibility check
-→ compile topology/runtime graph once per relevant project revision
-→ deterministic simulation clock
+Project v4
+→ physical validation / simulation compatibility
+→ compile physical topology once
+→ compile authored logic when present
+→ deterministic logical runtime
 → component/net state + causal trace
 → UI / Explain / X-Ray
 ```
 
-Simulation playback, virtual sensor inputs and causal traces are ephemeral. They should not generate cloud writes each tick.
+Logic-empty projects may use explicit Slice 09 demonstration recipes. Projects with authored Visual Logic run their saved `Project Logic`; hidden recipes do not run alongside it.
 
-Explain/X-Ray should consume deterministic runtime/net evidence first. AI may later translate structured evidence, but correctness must not depend on a model request.
+Playback, virtual sensor inputs, output state and trace history are ephemeral. Authored logic itself is project data and therefore participates in normal IndexedDB persistence, undo/redo and cloud checkpoints.
 
-## Backend ownership by compressed slice
+Explain/X-Ray consumes deterministic runtime/net evidence first. Correctness does not depend on an AI model request.
+
+## Backend ownership by canonical slice
 
 ```text
 01–02  local persistence + deployment foundation
@@ -216,12 +209,12 @@ Explain/X-Ray should consume deterministic runtime/net evidence first. AI may la
 04–05  project persistence and real creation
 06     provider-independent AI orchestration
 07–08  local-first workbench + physical circuit persistence
-09     local deterministic simulation/runtime; no backend required unless real need appears
-10     persistent visual-logic model if required by implementation
+09     local deterministic simulation/runtime
+10     Project v4 persistent Visual Logic; no new runtime service
 11     inventory + canonical component catalog/storage
 12     project versions, cloud restore and conflict-safe sync
 13     learning progress only if product flow needs persistence
-14     compile jobs, artifact worker, board transport and runtime telemetry
+14     compile jobs, artifacts, board transport and runtime telemetry
 15     media/vision processing/storage for digital twin
 ```
 
@@ -232,10 +225,10 @@ Do not build unused future infrastructure early.
 Heavy compilation must stay behind a replaceable worker interface:
 
 ```text
-project + generated firmware
+Project v4 + Visual Logic
+→ firmware generation
 → Vercel orchestration API
-→ isolated compile worker
-→ Arduino CLI / ESP-IDF / Pico SDK
+→ isolated Arduino CLI / ESP-IDF / Pico SDK worker
 → .bin / .uf2 artifact
 → browser/local bridge board transport
 ```
@@ -259,10 +252,11 @@ Browser-safe public Supabase values are documented in `.env.example`. Secrets mu
 - owner-only RLS for user cloud data;
 - no Supabase service-role credential in the browser;
 - provider secrets outside project documents/cloud rows;
-- runtime validation for cloud-loaded project JSON;
-- deterministic hardware validation before AI/manual commits;
+- runtime validation for local/cloud-loaded project JSON;
+- deterministic electrical and logic validation before commits;
 - no unrestricted custom remote proxy;
 - no arbitrary Local Bridge shell endpoint;
+- simulation never mutates persistent project state;
 - cloud/network failure never destroys valid local work.
 
-Current implementation details and verification are recorded in [Slice 06](SLICE-06.md), [Slice 07](SLICE-07.md), and [Slice 08](SLICE-08.md). The canonical roadmap is [ROADMAP.md](ROADMAP.md).
+Implementation evidence is recorded in the slice documents, especially [Slice 06](SLICE-06.md), [Slice 08](SLICE-08.md), [Slice 09](SLICE-09.md) and [Slice 10](SLICE-10.md). The canonical roadmap is [ROADMAP.md](ROADMAP.md).

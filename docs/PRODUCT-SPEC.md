@@ -10,14 +10,14 @@ The default user mental model is:
 
 > **I have these parts. I want this behaviour. Show me how it works.**
 
-Kinetable handles board configuration, part compatibility, wiring logic, project structure, and generated code underneath that experience.
+Kinetable handles board setup, part compatibility, wiring logic, project structure and later generated firmware underneath that experience.
 
 ## 2. Core audience
 
 ### Primary
 
-- Students learning ESP32, Arduino, Raspberry Pi Pico, and physical computing.
-- Makers who understand the idea they want but struggle with wiring, breadboards, pin mapping, or setup.
+- Students learning ESP32, Arduino, Raspberry Pi Pico and physical computing.
+- Makers who understand the idea they want but struggle with wiring, breadboards, pin mapping or setup.
 - People who want to prototype electronics without beginning from source code.
 
 ### Secondary
@@ -29,7 +29,7 @@ Kinetable handles board configuration, part compatibility, wiring logic, project
 
 ## 3. Product promise
 
-Kinetable should allow a new user to go from opening the product to interacting with a working simulated circuit with almost no setup.
+Kinetable should allow a new user to go from opening the product to interacting with a working supported simulated circuit with almost no setup.
 
 Ideal first-run path:
 
@@ -38,108 +38,99 @@ Open
 → choose ESP32
 → table appears
 → type "make a motion alarm"
-→ components assemble
+→ validated components assemble
+→ inspect/edit wiring
 → press simulate
 → see motion travel through the system
 ```
 
-The user should not need to understand package managers, libraries, board managers, COM ports, or firmware frameworks to reach this point.
+The user should not need to understand package managers, libraries, board managers, COM ports or firmware frameworks to reach this point.
 
 ## 4. Product pillars
 
 ### 4.1 Personalized workbench
 
-Kinetable maintains a persistent representation of hardware the user actually owns.
+Kinetable is designed around three distinct concepts:
 
-Three distinct concepts:
+- **My Parts** — what the user owns. Slice 11.
+- **Project** — the persistent circuit and behavior being built. Implemented.
+- **Table** — the spatial arrangement and active workbench. Implemented.
 
-- **My Parts** — what the user owns.
-- **Project** — what is currently being built.
-- **Table** — the spatial arrangement of objects and active work.
-
-Recommendations and generated projects should prefer owned components whenever possible.
+Once inventory arrives, recommendations and AI-generated projects should prefer owned components whenever possible.
 
 ### 4.2 Spatial hardware
 
 Components are live 3D objects, not decorative illustrations.
 
-Objects can be:
-
-- selected;
-- moved;
-- rotated;
-- inspected;
-- connected;
-- removed;
-- simulated;
-- highlighted by signal state;
-- associated with electrical metadata.
+Current objects can be selected, moved, rotated, inspected, connected, removed, simulated and highlighted by electrical/runtime state. Their physical visuals are linked to canonical electrical metadata through stable IDs.
 
 ### 4.3 Visual logic
 
 Project behaviour is represented in human-readable cause/effect structures before code.
 
-Example:
+Current Slice 10 subset:
 
 ```text
-BUTTON PRESSED
-      ↓
-     BONK
-   ↙   ↓   ↘
- LED  OLED  BUZZER
- ON   BONK! BEEP ×2
+WHEN button pressed
+IF optional DHT11 comparisons
+DO OLED "BONK!"
+AND LED ON
+AND BEEP ×2
 ```
 
-This representation is editable and remains synchronized with project behaviour.
+The current language supports bounded WHEN / IF / DO rules, timers, button/PIR/DHT triggers, DHT comparisons and LED/OLED/buzzer actions. WAIT, REPEAT, OR trees and arbitrary expressions are future language extensions, not current capabilities.
 
 ### 4.4 Simulation
 
-Simulation should prioritize common practical physical-computing behaviour rather than trying to become a complete SPICE replacement in V1.
+Simulation prioritizes common practical physical-computing behaviour rather than trying to become a complete SPICE replacement.
 
-Initial simulation should cover:
+Currently implemented semantic simulation includes:
 
-- HIGH/LOW digital signals;
-- buttons and switches;
-- ADC values;
-- PWM-like output behaviour where useful;
-- LEDs;
+- HIGH/LOW digital states for supported topologies;
+- buttons with supported pull-up semantics;
+- PIR virtual motion;
+- DHT11 virtual temperature/humidity data;
+- LEDs through the supported resistor topology;
 - buzzers;
-- potentiometers;
-- common sensors with virtual inputs;
-- OLED output;
-- simple timing and logic.
+- OLED text over semantic I²C;
+- deterministic timers and Visual Logic;
+- causal traces and Explain/X-Ray.
+
+Potential later simulation extensions include ADC, PWM, potentiometers and additional protocols/components when their canonical models/drivers are implemented. Do not present those as current functionality.
 
 ### 4.5 Explain mode
 
-Kinetable can isolate a component, connection, or behaviour and show the user what is happening spatially.
+Kinetable can isolate a component, connection or behaviour and show what is happening spatially.
 
 Example:
 
 ```text
 PIR OUT
   ↓
-wire lights up
+connected net
   ↓
 ESP32 GPIO27
   ↓
-logic node activates
+authored rule
   ↓
 BUZZER ON
 ```
 
+Explain uses the same compiled physical graph and causal runtime trace; it does not invent a parallel explanation model.
+
 ### 4.6 Code as progressive disclosure
 
-Code exists and can be generated or edited, but it is not the default surface.
+Code exists as a future advanced deployment layer, but it is not the default surface.
 
 Three abstraction levels:
 
 1. **Visual** — build and understand without source code.
-2. **Technical** — pins, protocols, values, graph state, live data.
-3. **Code** — generated/editable firmware for advanced users.
+2. **Technical** — pins, protocols, values, graph state and runtime evidence.
+3. **Code** — generated/editable firmware in Slice 14.
 
 ### 4.7 Real hardware deployment
 
-Primary wording should be human:
+Primary wording should remain human:
 
 > **Run on my ESP32**
 
@@ -147,11 +138,11 @@ not:
 
 > Compile → select port → upload.
 
-Technical details remain available behind an expandable advanced view.
+Physical compilation/flashing/live telemetry belong to Slice 14 and are not current product claims.
 
 ### 4.8 Real workbench digital twin — later
 
-Future versions can use camera input to recognize the user's physical workbench and maintain a synchronized digital twin.
+Slice 15 may use camera input to recognize the user's physical workbench and maintain a synchronized digital twin.
 
 Potential capabilities:
 
@@ -162,7 +153,7 @@ Potential capabilities:
 - verify completed actions;
 - reconcile camera observations with firmware/runtime state.
 
-This is a future extension of the same project model, not a separate mode built on unrelated data.
+This extends the same project model rather than creating a separate camera-only circuit representation.
 
 ## 5. Top-level navigation
 
@@ -172,68 +163,57 @@ Keep navigation deliberately small:
 Table     Projects     Parts     Learn
 ```
 
-Secondary destinations are contextual or live under profile/settings.
+Secondary destinations are contextual or live under profile/settings. Workbench modes live inside Table:
 
-## 6. Complete page map
+```text
+Build     Logic     Simulate     Explain
+```
 
-### Public / outside the app
+## 6. Product surface map
 
-1. **Landing** — concise product story and entry point. Build in code after the product design system is established.
-2. **Sign in / Continue** — optional account path; local use remains possible.
+### Public / entry
 
-### Onboarding
+1. Landing.
+2. Optional sign in / continue locally.
+3. Board selection.
+4. Table ready.
 
-3. **Welcome** — single action to begin.
-4. **Board selection** — ESP32 / Pico / Arduino / Other.
-5. **Board detection** — optional USB-assisted identification.
-6. **Table ready** — selected board appears; first prompt is immediately available.
+### Main workbench — implemented core
 
-### Main product
+5. Table / Home.
+6. New Build / intent.
+7. AI assembly.
+8. Build mode — manipulation and physical connections.
+9. Component/connection inspection.
+10. Logic mode — bounded editable WHEN / IF / DO behavior.
+11. Simulate mode — deterministic semantic runtime.
+12. Explain / X-Ray — Power / Signals / Data / All.
 
-7. **Table / Home** — the user's persistent spatial workbench.
-8. **Build prompt** — describe what to make.
-9. **AI assembly state** — parts and connections appear physically.
-10. **Workbench: Build** — manipulation and connections.
-11. **Workbench: Simulate** — live virtual behaviour.
-12. **Workbench: Explain** — spatial explanation and isolation.
-13. **Component inspector** — selected object's purpose and controls.
-14. **Connection inspector** — source, destination, signal type, explanation.
-15. **Visual Logic** — behaviour graph connected to physical objects.
-16. **Logic Editor** — editable WHEN / IF / DO / WAIT / REPEAT behaviours.
-17. **X-Ray** — Power / Signals / Data views.
-18. **Run on Board** — compile/flash abstraction.
-19. **Live Data** — friendly sensor/runtime state.
-20. **Advanced Code** — generated/editable source and raw technical details.
+### Personal platform — planned
 
-### Personalization
+13. My Parts.
+14. Add Hardware.
+15. Component Library / Component Detail.
+16. Projects / Project Detail / versions.
+17. Explore recommendations.
+18. Learn / Guided Mission / Concept Playground.
 
-21. **My Parts** — owned hardware.
-22. **Add Hardware** — search, browse, scan, USB detect.
-23. **Component Library** — supported canonical components.
-24. **Component Detail** — 3D object, purpose, compatibility, technical data.
+### Physical/runtime — planned
 
-### Project management
+19. Run on Board.
+20. Live Data.
+21. Advanced Code.
 
-25. **Projects** — saved 3D project dioramas.
-26. **Project Detail** — summary, parts, logic, notes, versions.
-27. **Explore** — recommendations based on owned hardware.
+### Digital twin — later
 
-### Learning
-
-28. **Learn** — mission selection.
-29. **Guided Mission** — solve a physical/electrical task.
-30. **Concept Playground** — breadboards, voltage, ground, PWM, ADC, I2C, SPI, UART.
-
-### Future spatial bridge
-
-31. **Workbench Scan** — detect and confirm real hardware.
-32. **Digital Twin Calibration** — align recognized physical objects with project state.
-33. **Live Workbench** — camera-guided physical build/debug loop.
+22. Workbench Scan.
+23. Digital Twin Calibration.
+24. Live Workbench.
 
 ### Utility
 
-34. **Settings** — account, appearance, hardware, AI, privacy, advanced.
-35. **Command/Search overlay** — open project, find part, ask AI, execute action.
+25. Settings, including AI providers/privacy/advanced options.
+26. Optional command/search surface later if it materially improves navigation.
 
 ## 7. Key user stories
 
@@ -241,39 +221,37 @@ Secondary destinations are contextual or live under profile/settings.
 
 > I have an ESP32 kit and want to understand how to make a button control an LED without first learning Arduino syntax.
 
-Kinetable should let the user manipulate those objects, simulate the behaviour, see the signal path, and reveal code only if requested.
+Kinetable should let the user manipulate those objects, wire them, simulate the behaviour, see the signal path and edit the behavior visually.
 
 ### Maker
 
-> I own an ESP32, OLED, DHT11, PIR, buzzer, and relay. Tell me what I can build without ordering anything.
+> I own an ESP32, OLED, DHT11, PIR, buzzer and relay. Tell me what I can build without ordering anything.
 
-Explore should prioritize projects whose required inventory is already satisfied.
+Slice 11/12 should make inventory-aware planning and Explore prioritize projects whose requirements are already satisfied.
 
 ### Advanced developer
 
-> I want to change a pin in code and understand what physical connection that affects.
+> I want to change behavior or a pin and understand what physical connection that affects.
 
-The advanced editor should highlight the matching pin/object/net in the 3D scene.
+Current Visual Logic already links authored behavior to physical components. Slice 14 adds the code/firmware mapping.
 
 ### Future physical-workbench user
 
 > I followed a wiring step but the project does not work. Tell me what is physically wrong.
 
-The live workbench can combine camera observations, expected net topology, board metadata, and runtime evidence to identify likely mismatches.
+The live workbench can later combine camera observations, expected net topology, board metadata and runtime evidence to identify likely mismatches.
 
-## 8. Canonical MVP project
-
-### BONK
+## 8. Canonical MVP project — BONK
 
 Hardware:
 
 - ESP32
-- small breadboard
 - push button
 - LED
-- 220 ohm resistor
+- 220 Ω resistor
 - active buzzer
-- 0.96 inch I2C OLED
+- 0.96 inch I²C OLED
+- optional breadboard routing in the editor
 
 Behaviour:
 
@@ -288,43 +266,36 @@ DO OLED show "READY"
 AND LED turn off
 ```
 
-This project is ideal because it exercises:
+The current virtual product proves this flow end-to-end: validated physical topology, deterministic simulation, Explain/X-Ray and Visual Logic editing from `BEEP ×2` to `BEEP ×3`. Real-board compilation/execution remains Slice 14.
 
-- breadboard topology;
-- digital input;
-- digital output;
-- I2C;
-- multiple outputs from one event;
-- visual logic;
-- simulation;
-- explain mode;
-- code mapping.
+## 9. Current MVP boundary
 
-## 9. MVP boundary
+Already real:
 
-### Must be real
-
+- board-first onboarding;
+- optional accounts and owner-only cloud project sync;
+- local project persistence;
+- provider-independent real AI assembly;
 - spatial component interaction;
-- project state;
-- electrical graph;
-- breadboard connectivity;
-- pin anchors and wire connections;
-- basic simulation;
-- visual logic;
-- component definitions;
-- local persistence.
+- project schemas/migrations;
+- electrical graph and breadboard connectivity;
+- pin anchors and physical wires;
+- deterministic supported simulation;
+- Visual Logic;
+- Explain/X-Ray;
+- canonical component definitions for the current small catalog.
 
-### Can initially be mocked
+Still intentionally deferred:
 
-- actual AI provider calls;
-- cloud accounts;
-- real firmware flashing;
-- camera recognition;
+- large verified component catalog and personal inventory;
+- conflict-safe project versioning;
+- firmware generation/compilation/flashing;
+- live physical-board telemetry;
+- camera recognition/digital twin;
 - collaborative editing;
-- huge component catalog;
 - community sharing.
 
-A convincing prototype must not fake the core spatial/electrical model.
+A convincing Kinetable build must never fake the core spatial/electrical/behavior model.
 
 ## 10. Non-goals for V1
 
@@ -337,19 +308,19 @@ A convincing prototype must not fake the core spatial/electrical model.
 - Production manufacturing workflows.
 - Replacing professional EDA tools.
 
-## 11. Success criteria for the first product demo
+## 11. Success criteria for the core product demo
 
-A user with no explanation should be able to:
+A user with no documentation should be able to:
 
 1. select ESP32;
 2. understand that the table is interactive;
 3. request the BONK build;
-4. watch the components assemble;
-5. press the virtual button;
-6. observe LED/OLED/buzzer response;
-7. switch to Explain and follow the signal;
-8. open Visual Logic and understand the behaviour;
+4. inspect the assembled physical circuit;
+5. enter simulation;
+6. press the virtual button and observe LED/OLED/buzzer response;
+7. switch to Explain and follow the causal path;
+8. open Visual Logic and understand the behavior;
 9. change `BEEP ×2` to `BEEP ×3` visually;
-10. rerun and observe three beeps.
+10. rerun and observe exactly three deterministic pulses.
 
-If any of those steps requires reading documentation, the UX needs simplification.
+Slices 01–10 implement this virtual core. If any of these steps still requires documentation in normal use, the UX needs simplification before treating the core experience as polished.

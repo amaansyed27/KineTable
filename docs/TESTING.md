@@ -2,83 +2,93 @@
 
 ## Goal
 
-Kinetable combines UI, 3D interaction, electrical rules, simulation, AI tools, and later real hardware. Testing should keep deterministic logic separate from visual/manual verification.
+Kinetable combines UI, 3D interaction, electrical rules, simulation, AI tools and later real hardware. Testing keeps deterministic domain logic separate from visual/manual verification and external integration checks.
 
 ## Test layers
 
-### 1. Pure unit tests
+### 1. Pure unit/domain tests
 
-Primary tools: Vitest.
+Primary tool: **Vitest**.
 
-Highest priority areas:
+Highest-priority areas:
 
+- project schema parsing and migration;
 - breadboard conductive groups;
 - pin capability validation;
 - net creation/removal;
 - voltage/direction constraints;
-- project command reducer/executor;
-- serialization and migrations;
-- simulation timing;
-- visual-logic compilation;
-- component schema validation;
+- project command executor;
+- simulation compilation/timing;
+- Visual Logic schema/compilation/runtime;
+- component-definition validation;
 - AI tool-call validation.
 
 These tests should not require a browser or Three.js canvas.
 
-### 2. UI/component tests
+### 2. Browser UI and accessibility tests
 
-Primary tools: React Testing Library + Vitest.
+Primary current tool: **Playwright**.
+
+The repo does not currently depend on React Testing Library. Add a component-test library only when it provides clearer value than the existing pure-domain + browser split.
 
 Cover:
 
-- onboarding state;
-- board selection;
+- onboarding and board selection;
 - contextual inspector visibility;
-- mode switching;
-- My Parts interactions;
-- logic editor controls;
-- error/validation messaging;
-- accessibility states.
+- Build / Logic / Simulate / Explain switching;
+- logic editor controls and validation;
+- keyboard/touch interaction;
+- WebGL fallback;
+- error/accessibility states.
 
 ### 3. Spatial interaction tests
 
 Use a combination of:
 
-- pure transform/anchor unit tests;
-- small integration tests;
+- pure transform/anchor tests;
+- deterministic hardware-core tests;
 - Playwright for critical pointer flows;
-- manual visual verification for rendering quality.
+- manual screenshot/visual inspection for rendering quality.
 
 Do not rely only on screenshot snapshots for 3D correctness.
 
-### 4. End-to-end tests
+### 4. Hosted integration tests
 
-Primary tool: Playwright.
+Use opt-in Playwright/REST checks for:
 
-First canonical E2E flow:
+- Supabase Auth;
+- owner-only project RLS;
+- old project version compatibility;
+- local/offline → cloud reconciliation;
+- fresh-browser restore;
+- deployed Vercel routes;
+- Local Bridge/real provider checks where environment-specific.
+
+Do not make deterministic unit tests depend on external services.
+
+## Canonical E2E flow
 
 ```text
 fresh app
 → select ESP32
-→ table ready
-→ load/request BONK fixture
-→ start simulation
+→ load/request BONK
+→ inspect physical circuit
+→ create/restore BONK Visual Logic
+→ simulate
 → press button
-→ LED state on
-→ OLED says BONK!
-→ buzzer action count = 2
-→ edit visual logic to beep 3 times
+→ LED ON / OLED BONK! / buzzer ×2
+→ change beep count to ×3
 → rerun
-→ buzzer action count = 3
+→ exactly three pulses
+→ refresh/restore
+→ ×3 persists
 ```
 
-Slice 09 recipe regression tests retain the two deterministic beeps. Slice 10 authored BONK tests edit only beep count from two to three and assert exact logical pulse timing, local refresh and authenticated cloud restore. `src/simulation/simulation.test.ts` asserts the pure compiler, logical clock, recipes, causal trace and X-Ray; `e2e/simulation.spec.ts` asserts rendered guest flows, refresh isolation and mobile controls. The test may assert project/simulation state directly in addition to visible UI.
+Slice 09 recipe regressions retain their deterministic demonstration behavior. Slice 10 project-logic tests prove the persistent behavior IR supersedes hidden recipes once authored.
 
 ## Core deterministic fixtures
 
-Keep small reference projects under test fixtures.
-
-Suggested:
+Keep small reference circuits/fixtures for concepts such as:
 
 ```text
 empty-esp32-table
@@ -89,7 +99,7 @@ motion-alarm
 dht11-oled
 ```
 
-Fixtures should use the same project schema as real saved projects.
+Fixtures should use the same project models as real saved projects rather than parallel mock schemas.
 
 ## Breadboard tests
 
@@ -97,84 +107,110 @@ Minimum cases:
 
 - A1–E1 connected;
 - F1–J1 connected;
-- left and right sides separated across center trench;
-- adjacent rows not connected;
-- power-rail grouping matches selected breadboard variant;
-- split rails remain split when the model defines a break;
-- moving a lead from E17 to E18 changes connectivity;
+- both sides separated across the center trench;
+- adjacent numbered rows not connected;
+- power-rail grouping matches the selected breadboard definition;
+- moving a lead to another strip changes connectivity;
 - multiple leads in one conductive group share a net.
 
 ## Simulation tests
 
-Use a deterministic logical clock.
+Use the deterministic logical clock.
 
-Test examples:
+Current examples:
 
 ### Button
 
-- press emits correct logical state;
-- release restores state;
-- pull-up semantics are represented correctly in supported reference project.
+- press/release state;
+- supported pull-up semantics;
+- authored button triggers use actual compiled physical bindings.
 
 ### BONK buzzer
 
-- exactly two beeps;
-- each beep uses expected duration;
-- changing visual logic to three beeps produces exactly three;
-- pause/reset restores expected runtime state.
+- exactly two pulses for the initial rule;
+- exact ON/gap timing;
+- changing Visual Logic to three beeps produces exactly three;
+- pause/reset behavior remains deterministic.
 
 ### OLED
 
-- startup text;
-- button press text;
-- button release text.
+- generic semantic display output;
+- startup/release READY via authored rule;
+- button-press BONK!;
+- DHT condition output.
 
-### Potentiometer
+### PIR / DHT11
 
-- 0.0 maps to minimum;
-- 1.0 maps to maximum;
-- midpoint maps within expected tolerance.
+- deterministic PIR HIGH interval;
+- DHT11 bounded virtual temperature/humidity;
+- condition boundaries and AND semantics.
+
+ADC/PWM/potentiometer tests belong with those future simulation drivers; they should not appear as current coverage until implemented.
 
 ## Project serialization tests
 
-Every project schema version should test:
+Every supported project schema version should test:
 
-- round-trip save/load;
-- stable entity IDs;
-- missing optional fields;
+- parser acceptance/rejection;
+- migration into current schema;
+- stable project/entity IDs;
 - invalid references;
-- future migration path when schema version changes.
+- deliberate no-rewrite-on-read behavior for old cloud/local documents.
+
+Current migration chain:
+
+```text
+v1 → v2 → v3 → v4
+```
+
+## Visual Logic tests
+
+`src/logic/logic.test.ts` covers:
+
+- v1/v2/v3 → v4 migration;
+- strict language bounds;
+- stale/capability/topology rejection;
+- real GPIO/net binding;
+- layout invariance;
+- BONK ×2 → ×3 timing;
+- timer/PIR/DHT behavior;
+- causal chains;
+- disabled logic;
+- reorder and runaway bounds;
+- conflicting board-pin roles;
+- project-logic input initialization without legacy recipe trace leakage.
+
+Project repository/store tests cover migration, local persistence, offline/reconnect and history.
 
 ## AI tests
 
-Do not make most tests depend on live model calls.
-
-Test the AI layer using fixture plans/tool calls.
+Most tests use fixture planner responses/tool calls, not live models.
 
 Examples:
 
-- model requests valid `addComponent` → accepted;
-- model requests LED on input-only GPIO → rejected by hardware core;
-- model references unknown component ID → rejected;
-- model asks to mutate arbitrary JSON → no supported tool exists;
-- inventory-aware planner fixture prefers owned part;
-- unsupported goal yields explicit unsupported result.
+- valid component command accepted;
+- invalid pin/capability rejected by hardware core;
+- unknown component rejected;
+- arbitrary JSON mutation unavailable;
+- unsupported goal returns explicit unsupported result;
+- logic commands remain outside the current Slice 06 planner contract.
 
-Live-provider tests, when added, should be optional/integration-only and not required for deterministic CI.
+Live-provider/CLI tests are optional integration checks and are not deterministic CI gates.
 
 ## Visual QA checklist
 
 For each major spatial slice verify manually:
 
 - object scale feels physically coherent;
-- selected object is obvious without excessive glow;
-- labels do not overlap important hardware;
+- selection is obvious without excessive glow;
+- labels do not cover important hardware;
 - shadows aid depth instead of obscuring pins;
 - wires remain attached while objects move;
 - camera orbit/zoom cannot easily lose the project;
 - UI chrome does not dominate the table;
-- reduced-motion mode remains usable;
-- common 16:9 and 16:10 desktop sizes work.
+- Logic/Simulation panels remain secondary to the workbench;
+- reduced-motion remains usable;
+- common desktop/tablet/mobile viewports do not overflow.
 
 ## Performance checks
 
@@ -182,12 +218,11 @@ Track at minimum:
 
 - first useful scene time;
 - model load time;
-- frame rate on canonical BONK scene;
+- frame rate on canonical BONK;
 - selection response latency;
 - wire update cost while moving components;
-- memory use after repeated project opens.
-
-Performance regressions should be checked before the component library grows large.
+- memory use after repeated project/simulation opens;
+- build chunk-size warnings before the component/platform catalog grows substantially.
 
 ## Release gate for each roadmap slice
 
@@ -195,15 +230,19 @@ A slice is ready when:
 
 - deterministic tests pass;
 - lint/build pass;
-- manual checklist passes;
-- product behaviour matches the slice spec;
+- relevant Playwright/integration tests pass;
+- visual/browser QA passes;
+- product behavior matches the slice spec;
 - known limitations are documented;
 - no temporary fake state has become a hidden dependency for later slices.
 
-## Slice 10 verification
+Core commands:
 
-`src/logic/logic.test.ts` covers v1/v2/v3 → v4 migration, historical v3 parsing, strict limits, stale/capability/topology validation, physical GPIO/net bindings, layout invariance, deterministic BONK timing, timer/PIR/DHT conditions, causal chains, disabled logic, reorder and runaway bounds. Project repository/store tests cover migration without cloud overwrite, offline logic, reconnect and history.
+```bash
+pnpm lint
+pnpm test
+pnpm build
+pnpm test:e2e
+```
 
-`e2e/logic.spec.ts` exercises manual editing, BONK ×2 → ×3, reload, validation, hardware edit rejection, undo/redo, keyboard, WebGL fallback, DHT conditions and required viewports. Hosted `e2e/hosted-logic.spec.ts` uses disposable accounts to prove v3 read compatibility, intentional v4 checkpoint, fresh restore, offline reload/reconnect, timestamp isolation and A/B RLS. Run with `KINETABLE_HOSTED_LOGIC_QA=1`. Historical hosted v3 REST checks remain available with `KINETABLE_HOSTED_QA=1`. No credentials or screenshots are committed.
-
-Run all four gates: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm test:e2e`. Deployed route tests cover `/`, `/start`, `/auth`, `/table`, `/new` and `/settings/providers`. Detailed evidence and intentional limits are in [SLICE-10.md](SLICE-10.md).
+External hosted/provider checks remain explicit opt-in runs with disposable credentials/data. Detailed Slice 10 evidence is in [SLICE-10.md](SLICE-10.md).

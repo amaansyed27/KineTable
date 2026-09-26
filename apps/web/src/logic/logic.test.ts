@@ -86,6 +86,19 @@ it("runs saved BONK ×2 then only the edited ×3, including initial and release 
   expect(second.snapshot().trace.filter(e => e.code === "buzzer.state" && e.value === "OFF").map(e => e.timeMs)).toEqual([120,340,560]);
   expect(migrateProject(JSON.parse(JSON.stringify(edited))).logic[0].do[2]).toEqual(edited.logic[0].do[2]);
 });
+it("initializes authored inputs once instead of leaking legacy recipe setup into the causal trace", () => {
+  const p = bonk(); p.logic = [press,release];
+  const initial = run(p).snapshot().trace;
+  const buttonInputs = initial.filter(event => event.code === "gpio.input" && event.pinId === "gpio18");
+  expect(initial.filter(event => event.code === "button.release" && event.componentId === "button-1")).toHaveLength(1);
+  expect(buttonInputs).toHaveLength(1);
+  expect(buttonInputs[0].causedBy).toBeDefined();
+
+  const alarm = fixture([...pir,...buzzer],[...pirLinks,...buzzerLinks]);
+  alarm.logic = [{ id: "motion", enabled: true, when: { kind: "pir", componentId: "pir-1" }, if: [], do: [{ kind: "buzzer", componentId: "buzzer-1", count: 1, onMs: 120, gapMs: 100 }] }];
+  const pirInputs = run(alarm).snapshot().trace.filter(event => event.code === "gpio.input" && event.pinId === "gpio27");
+  expect(pirInputs).toHaveLength(1);
+});
 it("runs timer, PIR and DHT conditions on the same logical clock and physical bindings", () => {
   const blink = fixture(led,ledLinks); blink.logic = [{ id: "blink", enabled: true, when: { kind: "timer", intervalMs: 500 }, if: [], do: [{ kind: "led", componentId: "led-1", operation: "toggle" }] }];
   const a = run(blink), b = run(blink); a.advanceTo(1500); b.advanceBy(200); b.advanceBy(1300);

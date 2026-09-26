@@ -24,14 +24,7 @@ export class SimulationRuntime {
       this.signals.set(net.id, power === "ground" ? { kind: "ground" } : typeof power === "number" ? { kind: "voltage", volts: power } : { kind: "unknown" });
     }
     for (const binding of circuit.bindings) this.outputs[binding.id] = {};
-    if (recipe.button && recipe.buttonPin) this.setInput(recipe.buttonPin, 1);
-    if (recipe.pir && recipe.pirPin) this.setInput(recipe.pirPin, 0);
-    if (recipe.dht) this.outputs[recipe.dht.id] = { temperatureC: 24, humidityPct: 50 };
-    if (recipe.led) this.outputs[recipe.led.id] = { on: false };
-    if (recipe.buzzer) this.outputs[recipe.buzzer.id] = { on: false };
-    if (recipe.oled) this.outputs[recipe.oled.id] = { text: recipe.id === "bonk" ? "READY" : "" };
-    if (recipe.id === "blink-led") this.schedule(500, "blink");
-    if (recipe.id === "dht11-oled") this.setEnvironment(24, 50);
+
     if (recipe.id === "project-logic") {
       for (const button of recipe.inputs.buttons) this.outputs[button.id] = { pressed: false };
       for (const pir of recipe.inputs.pirs) { this.outputs[pir.id] = { motion: false }; this.setInput(recipe.inputPins[pir.id], 0); }
@@ -44,6 +37,15 @@ export class SimulationRuntime {
         const pin = recipe.inputPins[button.id];
         if (pin) this.runRules("button", button.id, "released", this.setInput(pin, 1, this.record("button.release", { componentId: button.id, value: "RELEASED" })));
       }
+    } else {
+      if (recipe.button && recipe.buttonPin) this.setInput(recipe.buttonPin, 1);
+      if (recipe.pir && recipe.pirPin) this.setInput(recipe.pirPin, 0);
+      if (recipe.dht) this.outputs[recipe.dht.id] = { temperatureC: 24, humidityPct: 50 };
+      if (recipe.led) this.outputs[recipe.led.id] = { on: false };
+      if (recipe.buzzer) this.outputs[recipe.buzzer.id] = { on: false };
+      if (recipe.oled) this.outputs[recipe.oled.id] = { text: recipe.id === "bonk" ? "READY" : "" };
+      if (recipe.id === "blink-led") this.schedule(500, "blink");
+      if (recipe.id === "dht11-oled") this.setEnvironment(24, 50);
     }
   }
   private record(code: string, data: Omit<TraceEvent, "id" | "timeMs" | "code"> = {}): number {
