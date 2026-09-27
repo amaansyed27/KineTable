@@ -32,9 +32,13 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
  await expect(page.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
  await page.getByRole("button",{name:"Account",exact:true}).click(); await expect(page.locator(".account-menu [role=status]")).toHaveText("● Synced",{timeout:20000});
  await expect.poll(async()=>{const r=await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/projects?id=eq.${projectId}&select=*`,{headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`}});const rows=await r.json();return rows[0]?.document?.boardIds?.[0];}).toBe('raspberry-pi-pico');
+ await page.keyboard.press("Escape");
+ await page.getByRole("button",{name:"Rename project"}).click();await page.getByLabel("Project name",{exact:true}).fill("Hosted renamed bench");await page.keyboard.press("Enter");
+ await expect.poll(async()=>{const r=await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/projects?id=eq.${projectId}&select=name,document`,{headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`}});const rows=await r.json();return [rows[0]?.name,rows[0]?.document?.name];}).toEqual(["Hosted renamed bench","Hosted renamed bench"]);
+ await page.goto("/settings/account");await expect(page.getByRole("heading",{name:"Account",exact:true})).toBeVisible();await expect(page.getByText(account.email,{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Sign out",exact:true}).click();
  await expect(page.getByRole("button",{name:"Guest account"})).toBeVisible();
- await expect(page.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
+ await page.goto(`/projects/${projectId}`);await expect(page.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
  const context = await browser.newContext({storageState:process.env.E2E_STORAGE_STATE});
  const fresh = await context.newPage();
  await fresh.goto(new URL(`/auth?next=/projects/${projectId}`,page.url()).toString());
@@ -42,6 +46,7 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
  await fresh.getByRole("button",{name:"Sign in",exact:true}).click();
  await expect(fresh.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible({timeout:20000});
  await expect(fresh.locator('[data-project-id]')).toHaveAttribute('data-project-id',projectId!);
+ await expect(fresh.getByRole("button",{name:"Rename project"})).toContainText("Hosted renamed bench");
  await fresh.route('https://*.supabase.co/**', route=>route.abort());
  await fresh.reload(); await expect(fresh.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
  await fresh.goto(new URL("/start",page.url()).toString());

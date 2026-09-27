@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Component, Suspense, useMemo, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
 import { CameraControls, Environment, Lightformer, type CameraControls as CameraControlsType } from "@react-three/drei";
 import { useReducedMotion } from "motion/react";
@@ -13,6 +13,7 @@ import { PartObject } from "./PartObject";
 import { Breadboard } from "./Breadboard";
 import { PinTargets } from "./PinTargets";
 import { WireMesh } from "./WireMesh";
+import { jumperColors, headerDirection } from "./jumpers";
 import { endpointWorld } from "./anchors";
 import { useSimulationStore } from "../state/simulationStore";
 import { causalChain, xrayNets } from "../simulation/explain";
@@ -101,6 +102,7 @@ function World({ project, preview = false, selectedId, referencedIds = [], selec
   const previewTransforms = useRef<Record<string, Transform>>({});
   const pointer = useRef<Vector3 | null>(null);
   const spatialProject = () => ({ ...projectRef.current, layout: { entities: { ...projectRef.current.layout.entities, ...previewTransforms.current } } });
+  const colors = useMemo(() => jumperColors(project), [project]);
   const highlighted = new Set(highlightedKeys);
   if (mode === "explain" && circuit) {
     for (const net of xrayNets(circuit, snapshot, xray)) for (const key of net.endpoints) highlighted.add(key);
@@ -141,7 +143,7 @@ function World({ project, preview = false, selectedId, referencedIds = [], selec
     <Environment resolution={64} frames={1}><Lightformer position={[-3, 4, 5]} scale={[8, 8, 1]} intensity={2} color="#fffdf5" /></Environment>
     <CameraControls ref={controls} enabled={!preview && !dragging && !wireSource} minZoom={minZoom} maxZoom={maxZoom} minDistance={5} maxDistance={22} minAzimuthAngle={-1.1} maxAzimuthAngle={1.1} minPolarAngle={.45} maxPolarAngle={2.6} />
     <mesh position={[0, 0, -1]} onPointerDown={() => { if (!wiring) onSelect(null); }}><planeGeometry args={[100, 100]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
-    {project.wires.map(wire => <WireMesh key={wire.id} from={endpointWorld(project, wire.from)} to={endpointWorld(project, wire.to)} anchors={()=>[endpointWorld(spatialProject(),wire.from),endpointWorld(spatialProject(),wire.to)]} dimmed={mode==="explain" && !highlighted.has(endpointKey(wire.from))} color={wire.color} selected={selectedWireId === wire.id} highlighted={highlighted.has(endpointKey(wire.from))} onSelect={() => onWire(wire.id)} />)}
+    {project.wires.map((wire, index) => <WireMesh key={wire.id} from={endpointWorld(project, wire.from)} to={endpointWorld(project, wire.to)} anchors={()=>[endpointWorld(spatialProject(),wire.from),endpointWorld(spatialProject(),wire.to)]} dimmed={mode==="explain" && !highlighted.has(endpointKey(wire.from))} color={colors.get(wire.id)} lane={index} start={headerDirection(project,wire.from)} end={headerDirection(project,wire.to)} selected={selectedWireId === wire.id} highlighted={highlighted.has(endpointKey(wire.from))} onSelect={() => onWire(wire.id)} />)}
     {wireSource && <WireMesh from={endpointWorld(project,wireSource)} to={endpointWorld(project,wireSource)} anchors={()=>pointer.current ? [endpointWorld(spatialProject(),wireSource),pointer.current] : null} preview />}
     {project.components.map(component => {
       const definition = getDefinition(component.definitionId)!;

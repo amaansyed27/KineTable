@@ -28,7 +28,7 @@ async function openTable(page: Page) {
   await expect(page).toHaveURL(/\/home$/);
   await page.goto("/table");
   await expect(page.locator("[data-project-id]")).toBeVisible({timeout:20000});
-  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.getByText("Parts & wires", {exact:true}).click();
   await expect(page).toHaveURL(/\/projects\/[^/]+$/, { timeout: 20000 });
   await expect(page.locator(".workbench-surface canvas")).toBeVisible({ timeout: 15000 });
 }
@@ -43,7 +43,7 @@ async function load(page: Page, parts: Part[], links: Link[]) {
   p.wires = links.map(([a,ap,b,bp],i) => ({ id: `wire-${i}`, from: pinEndpoint(a,ap), to: pinEndpoint(b,bp) }));
   p.metadata.updatedAt = new Date(Date.now() + 2000).toISOString();
   await page.evaluate(document => new Promise<void>((resolve,reject) => { const req = indexedDB.open("kinetable"); req.onerror = () => reject(req.error); req.onsuccess = () => { const tx = req.result.transaction("projects", "readwrite"); tx.objectStore("projects").put({ id: document.id, name: document.name, schemaVersion: document.schemaVersion, document, createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt, cloudDirty: false }); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }; }), p);
-  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible({timeout:20000}); await page.getByText("Parts & connections",{exact:true}).click();
+  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible({timeout:20000}); await page.getByText("Parts & wires",{exact:true}).click();
   await expect(page.getByText("Connections complete")).toBeVisible();
   return p;
 }
@@ -68,7 +68,7 @@ test("button LED responds, explains its cause, and leaves the project unchanged"
     await page.screenshot({ path: `../../output/playwright/simulation-explain-${width}.png`, fullPage: true });
   }
   await expect.poll(async () => (await stored(page)).metadata.updatedAt).toBe(original.metadata.updatedAt);
-  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible({timeout:20000}); await page.getByText("Parts & connections",{exact:true}).click();
+  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible({timeout:20000}); await page.getByText("Parts & wires",{exact:true}).click();
   await expect(page.getByRole("button", { name: "Build", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(page.getByText("Connections complete")).toBeVisible();
 });
@@ -125,7 +125,7 @@ test("simulation and Why remain usable without WebGL", async ({ page }) => {
   await expect(page).toHaveURL(/\/home$/);
   await page.goto("/table");
   await expect(page.locator("[data-project-id]")).toBeVisible({timeout:20000});
-  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.getByText("Parts & wires", {exact:true}).click();
   await expect(page.getByText("3D editing is unavailable.")).toBeVisible();
   await load(page, [...button,...led], [...buttonLinks,...ledLinks]);
   await simulate(page,"Button controls LED");

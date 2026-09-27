@@ -249,6 +249,8 @@ External hosted/provider checks remain explicit opt-in runs with disposable cred
 
 ## Pre-Slice-11 correction acceptance
 
+The screenshot follow-up adds `interaction-refinement.spec.ts` and `spatial/jumpers.test.ts`: click-to-rename persistence/history, real Account settings, aligned/bounded menus, responsive dock/inspector clearance, keyboard tooltips and physical wire continuity. Hosted auth also verifies renamed row/document cloud restore. See [interaction refinement](UI-INTERACTION-REFINEMENT.md).
+
 Build before E2E: Playwright serves compiled output. Required gates: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm exec tsc --noEmit`, `pnpm --filter @kinetable/web exec tsc -b`, `pnpm test:e2e`.
 
 `product-correction.spec.ts` checks real BONK, exact/missing/legacy routes, project retrieval, blank creation, persisted guidance, System/explicit themes, account focus, AI Logic preview/Apply, unchanged failure paths and masked vault credentials outside project storage. Rendered screenshots cover 390×844, 768×1024, 1440×900, 1600×1000, 1920×1080 and dark Home/Build/Logic. Physical anchors/safety, logic compilation/pulse timing, history/offline/auth/owner and provider security remain regression gates.

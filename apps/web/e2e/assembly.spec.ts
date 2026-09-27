@@ -11,7 +11,7 @@ test("signed-out users keep their intent and can configure a provider", async ({
   await expect(page).toHaveURL(/\/home$/);
   await page.goto("/table");
   await expect(page.locator("[data-project-id]")).toBeVisible();
-  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.getByText("Parts & wires", {exact:true}).click();
   await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make a motion alarm");
   await page.getByRole("button", { name: "Create project" }).click();
@@ -39,7 +39,7 @@ test("fresh account browser restores hosted v2, applies validated commands, and 
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", projectId, { timeout: 20000 });
   await expect(page.getByText("Connections complete")).toBeVisible();
-  await page.getByText("Parts & connections",{exact:true}).click(); await expect(page.getByRole("button",{name:"HC-SR501 PIR",exact:true})).toBeVisible(); await expect(page.getByRole("button",{name:"Grove Buzzer V1.1",exact:true})).toBeVisible();
+  await page.getByText("Parts & wires",{exact:true}).click(); await expect(page.getByRole("button",{name:"HC-SR501 PIR",exact:true})).toBeVisible(); await expect(page.getByRole("button",{name:"Grove Buzzer V1.1",exact:true})).toBeVisible();
   await expect(page.locator(".workbench-surface canvas")).toBeVisible();
   await page.waitForTimeout(800); // Capture the settled arrival animation.
   mkdirSync("../../output/playwright", { recursive: true });
@@ -138,7 +138,7 @@ test("table assembly controls fit required viewports", async ({ page }) => {
   await expect(page).toHaveURL(/\/home$/);
   await page.goto("/table");
   await expect(page.locator("[data-project-id]")).toBeVisible();
-  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.getByText("Parts & wires", {exact:true}).click();
   await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make a motion alarm");
   await page.getByRole("button", { name: "Create project" }).click();

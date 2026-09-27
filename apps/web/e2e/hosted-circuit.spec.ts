@@ -35,19 +35,19 @@ test("hosted v3 circuit restores fresh, survives offline edit and reconnects", a
   await expect(page).toHaveURL(/\/home$/);
   await page.goto("/table");
   await expect(page.locator("[data-project-id]")).toBeVisible();
-  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.getByText("Parts & wires", {exact:true}).click();
   const id = (await page.locator("[data-project-id]").getAttribute("data-project-id"))!;
   await page.getByRole("button", { name: "+ Breadboard" }).click();
-  await page.getByText("Accessible connection controls").click();
+  await page.getByText("Connect pins").click();
   await page.getByLabel("From part").selectOption("board-main"); await page.getByLabel("From", { exact: true }).selectOption("pin:board-main:gnd");
   await page.getByLabel("To part").selectOption("breadboard-1"); await page.getByLabel("To row or rail").selectOption("L-"); await page.getByLabel("To", { exact: true }).selectOption("hole:breadboard-1:L-1");
   await page.getByRole("button", { name: "Create wire" }).click();
   await page.getByRole("button", { name: "+ Part" }).click();
   await page.getByRole("dialog", { name: "Add part" }).getByRole("button", { name: "LED", exact: true }).click();
-  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & wires",{exact:true}).click();
   await page.getByRole("button", { name: "LED", exact: true }).click();
   await page.getByLabel("LED inspector").getByRole("listitem").filter({ hasText: "CATHODE" }).getByRole("button", { name: "Insert lead" }).click();
-  if (!await page.locator(".workbench-connection-controls").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Accessible connection controls",{exact:true}).click(); await page.getByLabel("To part").selectOption("breadboard-1"); await page.getByLabel("To row or rail").selectOption("L-"); await page.getByLabel("To", { exact: true }).selectOption("hole:breadboard-1:L-14");
+  if (!await page.locator(".workbench-connection-controls").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Connect pins",{exact:true}).click(); await page.getByLabel("To part").selectOption("breadboard-1"); await page.getByLabel("To row or rail").selectOption("L-"); await page.getByLabel("To", { exact: true }).selectOption("hole:breadboard-1:L-14");
   await page.getByRole("button", { name: "Place lead in destination hole" }).click();
   expect((await saved(page,id)).terminalPlacements).toHaveLength(1);
   await signIn(page);
@@ -70,7 +70,7 @@ test("hosted v3 circuit restores fresh, survives offline edit and reconnects", a
     expect((await saved(restored,id)).terminalPlacements).toHaveLength(1);
   } finally { await fresh.close(); }
   await page.route("https://*.supabase.co/**", route => route.abort());
-  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & wires",{exact:true}).click();
   await page.getByLabel("Wires on this table").getByRole("button").click();
   await page.getByRole("button", { name: "Remove wire" }).click();
   await expect.poll(async () => (await saved(page,id)).wires.length).toBe(0);

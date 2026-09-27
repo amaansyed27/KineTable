@@ -66,23 +66,25 @@ export function Workbench({ document }: { document: KinetableProjectV4 }) {
   },[document,nets,wireSource,wiring]);
   useEffect(() => { if (selectedId && !document.components.some(c => c.id === selectedId)) setSelectedId(null); }, [document, selectedId]);
   useEffect(() => { if (wireSource && !activeWireSource) setWireSource(null); }, [wireSource, activeWireSource]);
-  function selectComponent(id: string | null) { if(objectList.current)objectList.current.open=false; setSelectedId(id); setSelectedWireId(null); setSelectedEndpoint(null); }
-  function selectWire(id: string) { if(objectList.current)objectList.current.open=false; setSelectedWireId(id); setSelectedId(null); setSelectedEndpoint(null); setWireSource(null); }
+  function closeTools() { if(objectList.current)objectList.current.open=false; if(connectionControls.current)connectionControls.current.open=false; }
+  function selectComponent(id: string | null) { closeTools(); setSelectedId(id); setSelectedWireId(null); setSelectedEndpoint(null); }
+  function selectWire(id: string) { closeTools(); setSelectedWireId(id); setSelectedId(null); setSelectedEndpoint(null); setWireSource(null); }
   function camera(type: CameraAction["type"], entityId?: string) { setCameraAction({ sequence: ++sequence.current, type, entityId }); }
   async function commit(commands: ProjectCommand[] | ((current: KinetableProjectV4) => ProjectCommand[]), nextSelection?: string | null): Promise<boolean> {
     try {
       await applyTransaction(commands);
       setMessage("");
-      if (nextSelection !== undefined) { setSelectedId(nextSelection); setSelectedEndpoint(null); setSelectedWireId(null); }
+      if (nextSelection !== undefined) selectComponent(nextSelection);
       return true;
     } catch (error) { setMessage(error instanceof Error ? error.message : "Couldn’t save this edit."); return false; }
   }
   async function selectTarget(endpoint: ElectricalEndpoint) {
     if (placingLead) {
       if (endpoint.kind !== "breadboard-hole") { setMessage("Choose a breadboard hole for this lead."); return; }
-      if (await commit([{ type: "terminal.place", placement: { ...placingLead, breadboardId: endpoint.breadboardId, holeId: endpoint.holeId } }])) { setPlacingLead(null); setSelectedId(null); setSelectedEndpoint(endpoint); }
+      if (await commit([{ type: "terminal.place", placement: { ...placingLead, breadboardId: endpoint.breadboardId, holeId: endpoint.holeId } }])) { closeTools(); setPlacingLead(null); setSelectedId(null); setSelectedEndpoint(endpoint); }
       return;
     }
+    closeTools();
     setSelectedEndpoint(endpoint); setSelectedId(null); setSelectedWireId(null);
     if (!wiring) return;
     if (!activeWireSource) { setWireSource(endpoint); setMessage(""); return; }
@@ -144,9 +146,9 @@ export function Workbench({ document }: { document: KinetableProjectV4 }) {
   return <section className="workbench" data-mode={mode} aria-label="Circuit workbench">
 
     <div className="workbench-surface">
-      <Suspense fallback={<p className="scene-fallback">Opening your workbench…</p>}><WorkbenchStage project={document} selectedId={selectedId} referencedIds={mode === "logic" ? logicReferences : []} selectedWireId={selectedWireId} selectedEndpointKey={selectedEndpoint ? endpointKey(selectedEndpoint) : null} highlightedKeys={wiring && activeWireSource ? [endpointKey(activeWireSource),...compatibleTargets] : highlightedKeys} wireSource={mode === "build" ? activeWireSource : null} wiring={mode === "build" && wiring} onSelect={selectComponent} onEndpoint={endpoint => mode === "build" ? void selectTarget(endpoint) : (setSelectedEndpoint(endpoint), setSelectedId(null))} onWire={selectWire} onMove={move} cameraAction={cameraAction} /></Suspense>
+      <Suspense fallback={<p className="scene-fallback">Opening your workbench…</p>}><WorkbenchStage project={document} selectedId={selectedId} referencedIds={mode === "logic" ? logicReferences : []} selectedWireId={selectedWireId} selectedEndpointKey={selectedEndpoint ? endpointKey(selectedEndpoint) : null} highlightedKeys={wiring && activeWireSource ? [endpointKey(activeWireSource),...compatibleTargets] : highlightedKeys} wireSource={mode === "build" ? activeWireSource : null} wiring={mode === "build" && wiring} onSelect={selectComponent} onEndpoint={endpoint => mode === "build" ? void selectTarget(endpoint) : (closeTools(), setSelectedEndpoint(endpoint), setSelectedId(null), setSelectedWireId(null))} onWire={selectWire} onMove={move} cameraAction={cameraAction} /></Suspense>
       <div className="workbench-topline"><span role="status">{partCount === 0 ? "Board ready" : diagnostics.length ? `Incomplete · ${diagnostics.length} ${diagnostics.length === 1 ? "issue" : "issues"}` : "Connections complete"}</span></div>
-      <div className="workbench-camera" aria-label="View controls"><button onClick={() => camera("zoom-in")} aria-label="Zoom in">+</button><button onClick={() => camera("zoom-out")} aria-label="Zoom out">−</button><button onClick={() => camera("reset")}>Fit</button></div>
+      <div className="workbench-camera" aria-label="View controls"><button data-tooltip="Zoom in" onClick={() => camera("zoom-in")} aria-label="Zoom in">+</button><button data-tooltip="Zoom out" onClick={() => camera("zoom-out")} aria-label="Zoom out">−</button><button data-tooltip="Fit all hardware in view" onClick={() => camera("reset")}>Fit</button></div>
       {mode === "build" && (placingLead || wiring) && <p className="workbench-gesture">{placingLead ? "Tap a breadboard hole to insert this lead" : activeWireSource ? `Connect ${endpointLabel(document,activeWireSource)} · choose a target` : "Select a pin to begin."}</p>}
       {(mode === "build" || mode === "simulate") && <CoachMark step={mode === "simulate" ? "simulate" : wiring ? "wire" : "move"} />}
       {mode === "build" && <BuildAssistant document={document} />}
@@ -168,13 +170,13 @@ export function Workbench({ document }: { document: KinetableProjectV4 }) {
     </div>
     {mode === "logic" && <LogicPanel document={document} onReference={id => setLogicReferences(id ? [id] : [])} onRule={setLogicReferences} />}
     <SimulationPanel selectedId={selectedId} />
-    {mode === "build" && <div className="workbench-actions"><div><button className="workbench-add" onClick={() => setTray("add")}>+ Part</button>{!document.components.some(c => c.kind === "breadboard") && <button onClick={() => void commit([{ type: "breadboard.add", id: "breadboard-1" }])}>+ Breadboard</button>}<button aria-pressed={wiring} onClick={() => { setWiring(value => !value); setWireSource(null); setPlacingLead(null); }}>Wire</button></div><div><button disabled={!canUndo} onClick={() => void undo()} aria-label="Undo">↶ Undo</button><button disabled={!canRedo} onClick={() => void redo()} aria-label="Redo">↷ Redo</button></div></div>}
-<details ref={objectList} name="workbench-tools" className="workbench-object-list"><summary>Parts &amp; connections</summary>
+    {mode === "build" && <div className="workbench-actions"><div><button className="workbench-add" data-tooltip="Choose a part for your circuit" onClick={() => { selectComponent(null); setTray("add"); }}>+ Part</button>{!document.components.some(c => c.kind === "breadboard") && <button onClick={() => void commit([{ type: "breadboard.add", id: "breadboard-1" }])}>+ Breadboard</button>}<button data-tooltip="Connect pins with a jumper wire" aria-pressed={wiring} onClick={() => { setWiring(value => !value); setWireSource(null); setPlacingLead(null); }}>Wire</button></div><div><button data-tooltip="Undo your last edit" disabled={!canUndo} onClick={() => void undo()} aria-label="Undo">↶ Undo</button><button data-tooltip="Redo your last edit" disabled={!canRedo} onClick={() => void redo()} aria-label="Redo">↷ Redo</button></div></div>}
+<div className="workbench-tool-dock"><details onToggle={event => { if(event.currentTarget.open){setSelectedId(null);setSelectedWireId(null);setSelectedEndpoint(null);} }} ref={objectList} name="workbench-tools" className="workbench-object-list"><summary>Parts &amp; wires</summary><div className="workbench-tool-body">
     <div className="workbench-parts" aria-label="Parts on this table"><span>PARTS ON TABLE</span>{document.components.map(component => <button key={component.id} aria-pressed={selectedId === component.id} onClick={() => selectComponent(component.id)}>{getDefinition(component.definitionId)?.name}</button>)}</div>
-    <div className="workbench-parts" aria-label="Wires on this table"><span>WIRES</span>{document.wires.map((wire, index) => <button key={wire.id} aria-pressed={selectedWireId === wire.id} onClick={() => selectWire(wire.id)}>{index + 1}. {endpointLabel(document, wire.from)} → {endpointLabel(document, wire.to)}</button>)}</div>
+    <div className="workbench-parts" aria-label="Wires on this table"><span>WIRES</span>{document.wires.map((wire, index) => <button key={wire.id} aria-pressed={selectedWireId === wire.id} onClick={() => selectWire(wire.id)}>{index + 1}. {endpointLabel(document, wire.from)} → {endpointLabel(document, wire.to)}</button>)}</div></div>
 </details>
-    {mode === "build" && <details ref={connectionControls} name="workbench-tools" className="workbench-connection-controls"><summary>Accessible connection controls</summary><div><EndpointPicker project={document} label="From" value={sourceKey} onChange={setSourceKey} /><EndpointPicker project={document} label="To" value={targetKey} onChange={setTargetKey} /><button disabled={!sourceKey || !targetKey} onClick={() => { const from = endpointMap.get(sourceKey), to = endpointMap.get(targetKey); if (from && to) void commit([{ type: "wire.add", id: `wire-${crypto.randomUUID()}`, from, to }]); }}>Create wire</button><button disabled={!sourceKey} onClick={() => { const endpoint = endpointMap.get(sourceKey); if (endpoint) void selectTarget(endpoint); }}>Inspect from</button>{placingLead && <button disabled={!targetKey || endpointMap.get(targetKey)?.kind !== "breadboard-hole"} onClick={() => { const endpoint = endpointMap.get(targetKey); if (endpoint) void selectTarget(endpoint); }}>Place lead in destination hole</button>}</div></details>}
-    {diagnostics.length > 0 && <details className="workbench-diagnostic"><summary>Connection guidance</summary><p>{diagnostics[0].message}</p></details>}
+    {mode === "build" && <details onToggle={event => { if(event.currentTarget.open){setSelectedId(null);setSelectedWireId(null);setSelectedEndpoint(null);} }} ref={connectionControls} name="workbench-tools" className="workbench-connection-controls"><summary>Connect pins</summary><div className="workbench-tool-body"><EndpointPicker project={document} label="From" value={sourceKey} onChange={setSourceKey} /><EndpointPicker project={document} label="To" value={targetKey} onChange={setTargetKey} /><button disabled={!sourceKey || !targetKey} onClick={() => { const from = endpointMap.get(sourceKey), to = endpointMap.get(targetKey); if (from && to) void commit([{ type: "wire.add", id: `wire-${crypto.randomUUID()}`, from, to }]); }}>Create wire</button><button disabled={!sourceKey} onClick={() => { const endpoint = endpointMap.get(sourceKey); if (endpoint) void selectTarget(endpoint); }}>Inspect from</button>{placingLead && <button disabled={!targetKey || endpointMap.get(targetKey)?.kind !== "breadboard-hole"} onClick={() => { const endpoint = endpointMap.get(targetKey); if (endpoint) void selectTarget(endpoint); }}>Place lead in destination hole</button>}</div></details>}
+    </div>{diagnostics.length > 0 && <details className="workbench-diagnostic"><summary>Connection guidance</summary><p>{diagnostics[0].message}</p></details>}
     {message && <p className="workbench-error" role="alert">{message}</p>}
   </section>;
 }

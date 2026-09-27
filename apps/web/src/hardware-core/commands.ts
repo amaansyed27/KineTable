@@ -10,8 +10,10 @@ import { layoutComponents } from "./layout.js";
 import { isLogic, type LogicRule } from "../logic/schema.js";
 import { validateLogic } from "../logic/compile.js";
 import type { CircuitProject } from "../projects/v4.js";
+import { validProjectName } from "../projects/schema.js";
 
 export type ProjectCommand =
+  | { type: "project.rename"; name: string }
   | { type: "component.add"; instanceId: string; definitionId: string }
   | { type: "component.remove"; instanceId: string }
   | { type: "component.replace"; instanceId: string; replacementId: string; definitionId: string }
@@ -40,6 +42,7 @@ export function parseCommands(value: unknown): ProjectCommand[] {
   return value.map((v: unknown) => {
     if (!obj(v)) throw new HardwareError("COMMAND_SCHEMA", "Invalid project command.");
     switch (v.type) {
+      case "project.rename": if (keys(v, ["type", "name"]) && validProjectName(v.name) && v.name === v.name.trim()) return v as ProjectCommand; break;
       case "component.add": if (keys(v, ["type", "instanceId", "definitionId"]) && id(v.instanceId) && id(v.definitionId)) return v as ProjectCommand; break;
       case "component.remove": if (keys(v, ["type", "instanceId"]) && id(v.instanceId)) return v as ProjectCommand; break;
       case "component.replace": if (keys(v, ["type", "instanceId", "replacementId", "definitionId"]) && id(v.instanceId) && id(v.replacementId) && id(v.definitionId)) return v as ProjectCommand; break;
@@ -72,6 +75,7 @@ export function executeCommands<T extends CircuitProject>(current: T, input: unk
   const candidate = structuredClone(current);
   for (const command of parseCommands(input)) {
     switch (command.type) {
+      case "project.rename": candidate.name = command.name; break;
       case "component.add": {
         const definition = getDefinition(command.definitionId);
         if (!definition || definition.kind !== "component") throw new HardwareError("UNKNOWN_COMPONENT", "Unsupported component definition.");

@@ -9,7 +9,7 @@ async function setup(page: import("@playwright/test").Page) {
   await expect(page).toHaveURL(/\/home$/);
   await page.goto("/table");
   await expect(page.locator("[data-project-id]")).toBeVisible();
-  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.getByText("Parts & wires", {exact:true}).click();
   await expect(page.locator('[data-board-id="esp32-dev-module"]')).toBeVisible();
 }
 
@@ -107,7 +107,7 @@ test("new build survives a real browser restart", async ({}, testInfo) => {
   await expect(page).toHaveURL(/\/home$/);
   await page.goto("/table");
   await expect(page.locator("[data-project-id]")).toBeVisible();
-  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.getByText("Parts & wires", {exact:true}).click();
     await page.goto("/projects/new");
     await page.getByLabel("Describe your idea").fill("Make a motion alarm");
     await page.getByRole("button", { name: "Create project" }).click();

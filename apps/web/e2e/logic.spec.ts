@@ -19,12 +19,13 @@ const oled: Part[] = [["oled-1","oled-ssd1306-i2c-3v3"]];
 const oledLinks: Link[] = [[board,"3v3","oled-1","vcc"],[board,"gnd","oled-1","gnd"],[board,"gpio21","oled-1","sda"],[board,"gpio22","oled-1","scl"]];
 const dht: Part[] = [["dht-1","dht11-module"]];
 const dhtLinks: Link[] = [[board,"3v3","dht-1","vcc"],[board,"gnd","dht-1","gnd"],[board,"gpio18","dht-1","data"]];
-async function start(page: Page) {
+async function start(page: Page, controlledClock = false) {
   await page.goto("/start"); await page.getByRole("radio", { name: "ESP32", exact: true }).check(); await page.getByRole("button", { name: /^Continue with/ }).click();
   await expect(page).toHaveURL(/\/home$/);
   await page.goto("/table");
+  if (controlledClock) await page.clock.runFor(500);
   await expect(page.locator("[data-project-id]")).toBeVisible();
-  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.getByText("Parts & wires", {exact:true}).click();
   await expect(page.locator("[data-project-id]")).toBeVisible();
 }
 async function saved(page: Page): Promise<KinetableProjectV4> {
@@ -38,23 +39,37 @@ async function load(page: Page, parts: Part[], links: Link[]) {
   p.wires = links.map(([a,ap,b,bp],i) => ({ id: `wire-${i}`, from: pinEndpoint(a,ap), to: pinEndpoint(b,bp) }));
   p.metadata.updatedAt = new Date(Date.now()+2000).toISOString();
   await page.evaluate(document => new Promise<void>((resolve,reject) => { const req = indexedDB.open("kinetable"); req.onerror = () => reject(req.error); req.onsuccess = () => { const tx = req.result.transaction("projects","readwrite"); tx.objectStore("projects").put({ id: document.id, name: document.name, schemaVersion: 4, document, createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt, cloudDirty: false }); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }; }), p);
-  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click(); await expect(page.getByText("Connections complete")).toBeVisible();
+  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & wires",{exact:true}).click(); await expect(page.getByText("Connections complete")).toBeVisible();
 }
 async function pulses(page: Page, count: number) {
   const output = page.locator(".simulation-outputs > span").filter({ hasText: /^Grove Buzzer V1.1:/ });
-  await expect(output).toContainText("ON");
-  const observed = await output.evaluate(async element => {
+  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now() + 100)));
+  const observation = await output.evaluateHandle(element => {
     const values = [element.querySelector("strong")?.textContent];
-    const observer = new MutationObserver(() => { const value = element.querySelector("strong")?.textContent; if (value !== values.at(-1)) values.push(value); });
-    observer.observe(element, { childList: true, subtree: true, characterData: true });
+    let ledOn = false;
+    const observer = new MutationObserver(() => {
+      const value = element.querySelector("strong")?.textContent;
+      if (value !== values.at(-1)) values.push(value);
+      ledOn ||= [...document.querySelectorAll('.simulation-outputs > span')].some(el => el.textContent?.startsWith("LED:") && el.querySelector("strong")?.textContent === "ON");
+    });
+    observer.observe(element.parentElement!, { childList: true, subtree: true, characterData: true });
+    const button = document.querySelector('.simulation-task button[aria-pressed]') as HTMLButtonElement;
+    button.click();
     (document.querySelector('.simulation-buttons button') as HTMLButtonElement).click();
-    await new Promise(resolve => setTimeout(resolve, 750)); observer.disconnect(); return values;
+    return {values, ledOn: () => ledOn, observer};
   });
-  expect(observed.filter(value => value === "ON")).toHaveLength(count);
+  await page.clock.runFor(900);
+  const observed = await observation.evaluate(value => { value.observer.disconnect(); return {values: value.values, ledOn: value.ledOn()}; });
+  await observation.dispose();
+  await page.clock.resume();
+  expect(observed.ledOn).toBe(true);
+  expect(observed.values.filter(value => value === "ON")).toHaveLength(count);
 }
 test("BONK rules persist, edit ×2 to ×3, and execute the saved behavior", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install();
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
-  await start(page); await load(page, [...button,...led,...buzzer,...oled], [...buttonLinks,...ledLinks,...buzzerLinks,...oledLinks]);
+  await start(page, true); await load(page, [...button,...led,...buzzer,...oled], [...buttonLinks,...ledLinks,...buzzerLinks,...oledLinks]);
   await page.getByRole("button", { name: "Logic", exact: true }).click();
   await expect(page.getByText("Tell the circuit what should happen.",{exact:true})).toBeVisible();
   await page.getByRole("button", { name: "Start from BONK" }).click();
@@ -63,8 +78,6 @@ test("BONK rules persist, edit ×2 to ×3, and execute the saved behavior", asyn
   if (!await page.locator(".simulation-recipe").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Scenario",{exact:true}).click();
   await expect(page.getByText("Project Logic · saved behavior")).toBeVisible();
   await expect(page.locator(".simulation-outputs > span").filter({ hasText: /^3.3 V SSD1306 I²C OLED:/ })).toContainText("READY");
-  await page.getByRole("button", { name: "Press button" }).click();
-  await expect(page.locator(".simulation-outputs > span").filter({ hasText: /^LED:/ })).toContainText("ON");
   await pulses(page,2); await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page.getByRole("button", { name: "Release button" }).click();
   await expect(page.locator(".simulation-outputs > span").filter({ hasText: /^3.3 V SSD1306 I²C OLED:/ })).toContainText("READY");
@@ -73,15 +86,14 @@ test("BONK rules persist, edit ×2 to ×3, and execute the saved behavior", asyn
   await expect.poll(async () => (await saved(page)).logic[0].do[2]).toMatchObject({ count: 3 });
   const authoredAt = (await saved(page)).metadata.updatedAt;
   await page.getByRole("button", { name: "Simulate", exact: true }).click();
-  await page.getByRole("button", { name: "Press button" }).click();
-  await pulses(page,3); expect((await saved(page)).metadata.updatedAt).toBe(authoredAt); await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click();
+  await pulses(page,3); expect((await saved(page)).metadata.updatedAt).toBe(authoredAt); await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & wires",{exact:true}).click();
   await page.getByRole("button", { name: "Logic", exact: true }).click();
   await expect(page.getByLabel("Action 3 beep count")).toHaveValue("3");
   await page.getByLabel("Action 3 beep count").fill("9");
   await expect(page.locator(".logic-rule").first().getByRole("alert")).toBeVisible();
   expect((await saved(page)).logic[0].do[2]).toMatchObject({ count: 3 });
   await page.getByRole("button", { name: "Build", exact: true }).click();
-  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & wires",{exact:true}).click();
   await page.getByLabel("Parts on this table").getByRole("button", { name: "LED", exact: true }).click();
   await page.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("behavior");
@@ -104,7 +116,7 @@ test("logic controls stay usable with keyboard and without WebGL", async ({ page
   await expect.poll(async () => (await saved(page)).logic[0].enabled).toBe(false);
   await page.keyboard.press("Space"); await expect.poll(async () => (await saved(page)).logic[0].enabled).toBe(true);
   if (!await page.locator(".logic-rule[data-selected=true] .logic-trigger-options").evaluate(el=>(el as HTMLDetailsElement).open)) await page.locator(".logic-rule[data-selected=true] .logic-trigger-options > summary").click();
-  await page.getByLabel("Behavior 1 trigger").focus(); await page.keyboard.press("End"); await page.keyboard.press("Enter");
+  const trigger = page.getByLabel("Behavior 1 trigger"); await expect(trigger).toBeVisible(); await trigger.focus(); await expect(trigger).toBeFocused(); await page.keyboard.press("Space"); await page.keyboard.press("End"); await page.keyboard.press("Enter"); await expect(trigger).toHaveValue("timer");
   await page.getByLabel("Timer interval milliseconds").fill("500");
   await page.getByLabel("Action 1 LED state").selectOption("toggle");
   await expect.poll(async () => (await saved(page)).logic[0].when).toMatchObject({ kind: "timer", intervalMs: 500 });

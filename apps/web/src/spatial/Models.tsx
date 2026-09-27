@@ -127,8 +127,8 @@ export function BoardModel({ pico = false }: { pico?: boolean }) {
         metalness={0.8}
       />
       <RepeatedBoxes
-        positions={pins.map(([x, , z]) => [x, 0.075, z])}
-        size={[0.032, 0.028, 0.032]}
+        positions={pins.map(([x, , z]) => [x, 0.13, z])}
+        size={[0.032, 0.15, 0.032]}
         color="#bc9e60"
         metalness={0.7}
       />

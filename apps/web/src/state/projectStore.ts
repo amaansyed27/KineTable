@@ -118,7 +118,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       if (!current || current.id !== document.id || current.document.metadata.updatedAt !== expectedRevision) throw new Error("STALE_PROJECT");
       const ownerId = useAuthStore.getState().session?.user.id;
       if (current.cloudUserId && current.cloudUserId !== ownerId) throw new Error("AUTH_REQUIRED");
-      const project: LocalProject = { ...current, document, schemaVersion: 4, updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: !!ownerId };
+      const project: LocalProject = { ...current, name: document.name, document, schemaVersion: 4, updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: !!ownerId };
       generation++;
       await local.save(project);
       if (!preserveHistory) history.reset(project.id);

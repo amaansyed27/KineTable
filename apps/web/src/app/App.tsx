@@ -2,6 +2,9 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from "react-router";
 import { LandingPage } from "../landing/LandingPage";
 import "../styles/app.css";
+import "../styles/interface.css";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Tooltips } from "./Tooltips";
 import { AuthBoundary } from "../auth/AuthBoundary";
 const AuthPage = lazy(() => import("../auth/AuthPage"));
 const AuthCallback = lazy(() => import("../auth/AuthCallback"));
@@ -11,14 +14,16 @@ const NewBuildPage = lazy(() => import("../new/NewBuildPage"));
 const ProviderSettingsPage = lazy(() => import("../ai/ProviderSettingsPage"));
 const ProjectsPage = lazy(() => import("../projects/ProjectsPage"));
 const AppearancePage = lazy(() => import("./AppearancePage"));
+const AccountPage = lazy(() => import("../auth/AccountPage"));
 function RoutePosition() {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); if (pathname === "/") document.title = "Kinetable — Small ideas, real things."; }, [pathname]);
   return null;
 }
-export function App() {
-  return <BrowserRouter><AuthBoundary><RoutePosition /><Suspense fallback={<div className="route-loading" role="status">Opening your table…</div>}>
-    <Routes>
+function RouteScenes() {
+  const location = useLocation(), reduced = useReducedMotion();
+  return <AnimatePresence initial={false} mode="wait"><motion.div className="route-scene" key={location.pathname} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : .12 }}><Suspense fallback={<div className="route-loading" role="status">Opening your table…</div>}>
+    <Routes location={location}>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
@@ -30,8 +35,12 @@ export function App() {
       <Route path="/projects/:projectId" element={<TablePage />} />
       <Route path="/new" element={<Navigate to="/projects/new" replace />} />
       <Route path="/settings/appearance" element={<AppearancePage />} />
+      <Route path="/settings/account" element={<AccountPage />} />
       <Route path="/settings/providers" element={<ProviderSettingsPage />} />
       <Route path="*" element={<main className="route-loading"><h1>This table isn’t here.</h1><Link to="/">Back to Kinetable</Link></main>} />
     </Routes>
-  </Suspense></AuthBoundary></BrowserRouter>;
+  </Suspense></motion.div></AnimatePresence>;
+}
+export function App() {
+  return <BrowserRouter><AuthBoundary><RoutePosition /><RouteScenes /><Tooltips /></AuthBoundary></BrowserRouter>;
 }

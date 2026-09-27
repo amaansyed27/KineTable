@@ -15,7 +15,7 @@ export function PinTargets({ componentId, definitionId, visible, highlighted, hi
     if (highlightedOnly && !lit) return null;
     const pick = (event: ThreeEvent<PointerEvent>) => { event.stopPropagation(); onPin(pinEndpoint(componentId, pin.id)); };
     return <group key={pin.id} position={anchor}>
-      <mesh onPointerDown={pick}><sphereGeometry args={[.045,10,8]} /><meshBasicMaterial color={lit ? "#b5d873" : "#bcc6ab"} depthTest={false} /></mesh>
+      <mesh onPointerDown={pick}><sphereGeometry args={[lit ? .035 : .025,10,8]} /><meshBasicMaterial color={lit ? "#b5d873" : "#bcc6ab"} depthTest={false} /></mesh>
       <mesh onPointerDown={pick}><sphereGeometry args={[.11,8,6]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
     </group>;
   })}</group>;

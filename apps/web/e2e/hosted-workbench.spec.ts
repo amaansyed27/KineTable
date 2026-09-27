@@ -22,7 +22,7 @@ test("manual layout checkpoints locally, survives offline reload, and restores f
   const cloud = async () => (await (await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/projects?id=eq.${projectId}&select=*`, { headers: { apikey: env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` } })).json())[0];
   const before = (await readLocal()).position[0];
   await page.route("https://*.supabase.co/**", route => route.abort());
-  await page.getByText("Parts & connections",{exact:true}).click(); await page.getByRole("button", { name: "HC-SR501 PIR", exact: true }).click();
+  await page.getByText("Parts & wires",{exact:true}).click(); await page.getByRole("button", { name: "HC-SR501 PIR", exact: true }).click();
   await page.keyboard.press("ArrowRight");
   await expect.poll(async () => (await readLocal()).position[0]).toBeGreaterThan(before);
   const moved = await readLocal();
