@@ -362,3 +362,7 @@ Slice 07 keeps the 3D work surface dominant. Selection uses a restrained lime ri
 ## Slice 08 circuit editor
 
 The 400-hole breadboard is a quiet physical object with restrained rail markings and sparse labels. Pin markers appear on hover, selection or in Wire mode; connected holes use a subtle highlight rather than permanent label clouds. Actual wires use conventional muted colors and exact anchors, with a larger invisible hit target. An on-table inspector names the selected component, wire or hole and offers technical detail on demand. Text names and diagnostics carry electrical meaning even when color or WebGL is unavailable. On mobile, the same From/To controls and part list provide touch-friendly access. See [Slice 08](SLICE-08.md).
+
+## Application material and themes — 2026-09-27
+
+Current semantic CSS tokens supersede earlier application color examples: Light background #eeeadf, paper #f5f1e7, raised #faf7ef, ink #1a1b18; Dark background #181916, paper #20211d, raised #272822, ink #f0eee5. Restrained lime #b7f000. Muted/border/focus/error/selection adapt together. Static grain opacity 0.018/0.012. Persistent System/Light/Dark initializes before rendering. Landing keeps its own direction. Compact headers, native disclosures and mobile task sheets replace permanent sidebars. [Correction](PRE-SLICE-11-UX-CORRECTION.md).

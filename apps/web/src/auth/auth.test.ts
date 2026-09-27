@@ -68,7 +68,7 @@ it("sign-out preserves the local table", async () => {
 it("rejects malformed cloud records and external redirect destinations", () => {
  expect(() => validateCloudProfile({ ...cloud, primary_board_id: "unknown" })).toThrow();
  expect(() => validateCloudProfile({ ...cloud, updated_at: "bad" })).toThrow();
- expect(safeDestination("https://evil.example")).toBe("/table");
+ expect(safeDestination("https://evil.example")).toBe("/home");
  expect(safeDestination("/start")).toBe("/start");
 });
 it("handles invalid callbacks and exchanges valid codes only once", async () => {

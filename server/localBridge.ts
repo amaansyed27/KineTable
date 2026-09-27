@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { parsePlanRequest } from "../apps/web/src/ai/contract.js";
 import { parsePlan } from "../apps/web/src/ai/contract.js";
+import { planBehavior } from "../apps/web/src/ai/behaviorPlanner.js";
 import { planHardware } from "../apps/web/src/ai/planner.js";
 import { HardwareError } from "../apps/web/src/hardware-core/commands.js";
 import { migrateProject } from "../apps/web/src/projects/v4.js";
@@ -66,7 +67,8 @@ export function createLocalBridge({ token, origins }: BridgeOptions) {
           ? cliModelProvider(validateCliId(body.providerId), typeof body.modelId === "string" ? body.modelId : undefined)
           : body.transport === "LOCAL_HTTP" ? localModelProvider(validateLocalConfig(body.config)) : null;
         if (!provider) throw new Error("INVALID_REQUEST");
-        const plan = await planHardware(provider, input, project);
+        if (body.task !== undefined && body.task !== "hardware" && body.task !== "logic") throw new Error("INVALID_REQUEST");
+        const plan = body.task === "logic" ? await planBehavior(provider,input,project) : await planHardware(provider, input, project);
         return send(res, 200, { ...plan, revision: input.revision });
       }
       return send(res, 404, { code: "NOT_FOUND" });

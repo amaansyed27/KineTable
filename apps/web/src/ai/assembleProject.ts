@@ -8,7 +8,7 @@ import { invokeProvider } from "./providerTransport";
 import { routePlan, type Attempt } from "./routing";
 
 export type AssemblyPhase = "planning" | "checking" | "placing";
-export async function assembleProject(onPhase: (phase: AssemblyPhase) => void): Promise<PlanResponse & { routeLabel: string; attempts: Attempt[] }> {
+export async function assembleProject(onPhase: (phase: AssemblyPhase) => void, apply = true): Promise<PlanResponse & { routeLabel: string; attempts: Attempt[] }> {
   const session = useAuthStore.getState().session;
   const settings = loadProviderSettings();
   if (!settings.profile.routes.some(route => route.enabled)) throw new Error("NO_PROVIDER");
@@ -30,8 +30,7 @@ export async function assembleProject(onPhase: (phase: AssemblyPhase) => void): 
   if (!latest || latest.id !== current.id || latest.document.metadata.updatedAt !== current.document.metadata.updatedAt) throw new Error("STALE_PROJECT");
   const timestamp = new Date(Math.max(Date.now(), Date.parse(current.document.metadata.updatedAt) + 1)).toISOString();
   const candidate = executeCommands(migrateProject(latest.document), plan.commands, timestamp);
-  onPhase("placing");
-  await useProjectStore.getState().saveDocument(candidate, current.document.metadata.updatedAt);
+  if (apply) { onPhase("placing"); await useProjectStore.getState().saveDocument(candidate, current.document.metadata.updatedAt); }
   return { ...plan, routeLabel, attempts: routed.attempts };
 }
 export function assemblyError(error: unknown): string {

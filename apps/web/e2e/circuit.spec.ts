@@ -12,7 +12,11 @@ test.beforeEach(async ({ context }) => protectPreview(context));
 async function start(page: Page) {
   await page.goto("/start");
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-  await page.getByRole("button", { name: "Set up my table" }).click();
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await page.getByText("Parts & connections", {exact:true}).click();
   await expect(page.locator(".workbench-surface canvas")).toBeVisible();
 }
 async function saved(page: Page) {
@@ -22,16 +26,17 @@ async function saved(page: Page) {
     request.onsuccess = () => { const tx = request.result.transaction("projects", "readonly"), row = tx.objectStore("projects").get(projectId!); row.onsuccess = () => resolve(row.result.document); row.onerror = () => reject(row.error); };
   }), id);
 }
-async function choose(page: Page, label: "From" | "To", key: string) { await page.getByLabel(label, { exact: true }).selectOption(key); }
+async function choose(page: Page, label: "From" | "To", key: string) { if(!await page.locator(".workbench-connection-controls").evaluate(el=>(el as HTMLDetailsElement).open))await page.getByText("Accessible connection controls",{exact:true}).click();const [kind,id,pin]=key.split(":");await page.getByLabel(`${label} part`,{exact:true}).selectOption(id);if(kind==="hole")await page.getByLabel(`${label} row or rail`).selectOption(pin.replace(/\d+$/, ""));await page.getByLabel(label, { exact: true }).selectOption(key); }
 async function connect(page: Page, from: string, to: string) {
   await choose(page, "From", from); await choose(page, "To", to);
   await page.getByRole("button", { name: "Create wire" }).click();
 }
 async function screenPoint(page: Page, endpoint: ElectricalEndpoint) {
   const project = await saved(page), box = (await page.locator(".workbench-surface canvas").boundingBox())!;
-  const zoom = Math.max(25, Math.min(160, Math.min(box.width / 11, box.height / 6.6)));
+  const bounds=project.components.reduce((b,c)=>{const t=project.layout.entities[c.id],x=(c.kind==="breadboard"?1.12:c.kind==="board"?.65:.55)*t.scale[0],y=(c.kind==="breadboard"?1.53:c.kind==="board"?1.2:.45)*(c.kind==="component"?t.scale[1]:t.scale[2]);return {left:Math.min(b.left,t.position[0]-x),right:Math.max(b.right,t.position[0]+x),bottom:Math.min(b.bottom,t.position[1]-y),top:Math.max(b.top,t.position[1]+y)};},{left:Infinity,right:-Infinity,bottom:Infinity,top:-Infinity});
+  const zoom=Math.max(20,Math.min(160,box.width/(bounds.right-bounds.left+1.4),box.height/(bounds.top-bounds.bottom+1.8)));
   const point = endpointWorld(project, endpoint);
-  return { x: box.x + box.width / 2 + point.x * zoom, y: box.y + box.height / 2 - point.y * zoom };
+  return { x: box.x+box.width/2+(point.x-(bounds.left+bounds.right)/2)*zoom,y:box.y+box.height/2-(point.y-(bounds.bottom+bounds.top)/2)*zoom };
 }
 
 test("a guest builds a physical circuit, inspects its net, undoes a removal and restores it", async ({ page }) => {
@@ -56,8 +61,9 @@ test("a guest builds a physical circuit, inspects its net, undoes a removal and 
   await expect(page.getByLabel("Breadboard hole inspector")).toContainText("ESP32 Dev Module GND");
   await page.screenshot({ path: "../../output/playwright/circuit-connected-hole-1440.png", fullPage: true });
 
-  await page.getByRole("button", { name: "+ Add part" }).click();
+  await page.getByRole("button", { name: "+ Part" }).click();
   await page.getByRole("dialog", { name: "Add part" }).getByRole("button", { name: "LED", exact: true }).click();
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByRole("button", { name: "LED", exact: true }).click();
   await expect(page.getByLabel("LED inspector")).toContainText("series resistor");
   await page.getByLabel("LED inspector").getByRole("listitem").filter({ hasText: "CATHODE" }).getByRole("button", { name: "Insert lead" }).click();
@@ -65,27 +71,28 @@ test("a guest builds a physical circuit, inspects its net, undoes a removal and 
   await page.getByRole("button", { name: "Place lead in destination hole" }).click();
   await expect.poll(async () => (await saved(page)).terminalPlacements).toHaveLength(1);
 
-  await page.getByRole("button", { name: "+ Add part" }).click();
+  await page.getByRole("button", { name: "+ Part" }).click();
   await page.getByRole("dialog", { name: "Add part" }).getByRole("button", { name: "220 Ω resistor" }).click();
   const parts = (await saved(page)).components;
   const led = parts.find(c => c.definitionId === "led-5mm")!.id;
   const resistor = parts.find(c => c.definitionId === "resistor-220r")!.id;
   await connect(page, "pin:board-main:gpio23", `pin:${resistor}:a`);
   await connect(page, `pin:${resistor}:b`, `pin:${led}:anode`);
-  await expect(page.getByText("Circuit ready")).toBeVisible();
+  await expect(page.getByText("Connections complete")).toBeVisible();
   await page.screenshot({ path: "../../output/playwright/circuit-complete-1440.png", fullPage: true });
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByLabel("Wires on this table").getByRole("button").first().click();
   await expect(page.getByLabel("Wire inspector")).toContainText("ESP32 Dev Module GND");
   await page.screenshot({ path: "../../output/playwright/circuit-wire-inspector-1440.png", fullPage: true });
   await page.getByRole("button", { name: "Remove wire" }).click();
-  await expect(page.getByText(/Incomplete ·/)).toBeVisible();
+  await expect(page.getByText("Connection guidance", {exact:true})).toBeVisible();
   await page.screenshot({ path: "../../output/playwright/circuit-incomplete-1440.png", fullPage: true });
   await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await expect(page.getByText("Circuit ready")).toBeVisible();
-  await page.reload();
+  await expect(page.getByText("Connections complete")).toBeVisible();
+  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click();
   await expect.poll(async () => (await saved(page)).wires).toHaveLength(3);
   await expect.poll(async () => (await saved(page)).terminalPlacements).toHaveLength(1);
-  await expect(page.getByText("Circuit ready")).toBeVisible();
+  await expect(page.getByText("Connections complete")).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -108,6 +115,7 @@ test("mobile and WebGL fallback keep circuit controls readable", async ({ browse
     await page.getByText("Accessible connection controls").click();
     await connect(page, "pin:board-main:gnd", "hole:breadboard-1:L-1");
     await expect.poll(async () => (await saved(page)).wires).toHaveLength(1);
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
     await page.getByLabel("Wires on this table").getByRole("button").click();
     await expect(page.getByLabel("Wire inspector")).toBeVisible();
     await page.getByRole("button", { name: "Close inspector" }).click();
@@ -125,7 +133,8 @@ test("canvas pin and hole clicks create a wire with live preview and strip selec
   await page.screenshot({ path: "../../output/playwright/circuit-pin-reveal-1440.png", fullPage: true });
   const source = await screenPoint(page, pinEndpoint("board-main","gnd"));
   await page.mouse.click(source.x, source.y);
-  await expect(page.getByText("Choose the other pin or hole.")).toBeVisible();
+  await expect(page.locator(".workbench-gesture")).toContainText("Connect ESP32 Dev Module GND");
+  await expect(page.getByRole("alert")).toHaveCount(0);
   const destination = await screenPoint(page, holeEndpoint("breadboard-1","L-1"));
   await page.mouse.move(destination.x, destination.y);
   await page.screenshot({ path: "../../output/playwright/circuit-wire-preview-1440.png", fullPage: true });
@@ -154,17 +163,19 @@ test("an existing v2 AI assembly gains visible wires, keeps layout and upgrades 
     const request = indexedDB.open("kinetable"); request.onerror = () => reject(request.error);
     request.onsuccess = () => { const tx = request.result.transaction("projects", "readwrite"); tx.objectStore("projects").put({ id: document.id, name: document.name, schemaVersion: 2, document, createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt, cloudDirty: false }); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); };
   }), old);
-  await page.reload();
-  await expect(page.getByText("Circuit ready")).toBeVisible();
+  await page.goto(`/projects/${old.id}`); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click();
+  await expect(page.getByText("Connections complete")).toBeVisible();
   await expect(page.getByLabel("Wires on this table").getByRole("button")).toHaveCount(3);
   expect((await saved(page)).schemaVersion).toBe(2);
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByRole("button", { name: "LED", exact: true }).click();
   const before = await page.locator(".workbench-surface canvas").screenshot();
   await page.keyboard.press("ArrowRight");
   await expect.poll(async () => (await saved(page)).schemaVersion).toBe(4);
   expect((await saved(page)).wires).toHaveLength(3);
   expect(await page.locator(".workbench-surface canvas").screenshot()).not.toEqual(before);
-  await expect(page.getByText("Circuit ready")).toBeVisible();
+  await expect(page.getByText("Connections complete")).toBeVisible();
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByLabel("Wires on this table").getByRole("button").first().click();
   await expect(page.getByLabel("Wire inspector")).toContainText("ESP32 Dev Module GPIO23");
 });

@@ -1,7 +1,9 @@
 import { ScrollStory } from "./ScrollStory";
 import { LearningTeaser } from "./LearningTeaser";
 import { FinalCTA } from "./FinalCTA";
+import { useAuthStore } from "../auth/authStore";
 export function LandingPage() {
+  const session=useAuthStore(s=>s.session);
   return (
     <>
       <a className="skip-link" href="#product">
@@ -18,8 +20,8 @@ export function LandingPage() {
           <a href="#parts">Parts</a>
         </nav>
         <div className="nav-actions">
-          <a href="/auth">Sign in</a>
-          <a className="button small" href="/start">
+          <a href={session ? "/home" : "/auth"}>{session ? "My projects" : "Sign in"}</a>
+          <a className="button small" href="/home">
             Open Kinetable <span>↗</span>
           </a>
         </div>

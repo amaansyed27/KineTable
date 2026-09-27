@@ -9,15 +9,19 @@ import { reconcileProjects } from "../sync/projectSyncService";
 import { useAuthStore } from "../auth/authStore";
 import { executeCommands, type ProjectCommand } from "../hardware-core/commands";
 import { restoreRevision, WorkbenchHistory } from "../hardware-core/history";
+import { bonkProject } from "../projects/starters";
 
 type ProjectState = { project: LocalProject | null; ready: boolean; status: "local" | "syncing" | "synced" | "offline"; error: string | null; canUndo: boolean; canRedo: boolean;
   open: (board: BoardId, session: Session | null) => Promise<void>; setBoard: (board: BoardId, session: Session | null) => Promise<void>;
+  openById: (id: string, board: BoardId, session: Session | null) => Promise<boolean>;
   createBuild: (board: BoardId, intent: string, name: string) => Promise<KinetableProjectV4>;
+  tryBonk: () => Promise<KinetableProjectV4>;
   saveDocument: (document: KinetableProjectV4, expectedRevision: string, preserveHistory?: boolean) => Promise<void>;
   applyTransaction: (commands: ProjectCommand[] | ((current: KinetableProjectV4) => ProjectCommand[])) => Promise<KinetableProjectV4>;
   undo: () => Promise<void>; redo: () => Promise<void>; sync: () => Promise<void> };
 export function createProjectStore(local = localProjectRepository, cloud = cloudProjectRepository) {
   let generation = 0;
+  let selection = 0;
   let syncing: Promise<void> | undefined;
   let checkpoint: ReturnType<typeof setTimeout> | undefined;
   let boardForStarter: BoardId | undefined;
@@ -31,6 +35,23 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
   };
   return create<ProjectState>((set, get) => ({
     project: null, ready: false, status: "local", error: null, canUndo: false, canRedo: false,
+    openById: async (id, board, session) => {
+      const request=++selection;
+      boardForStarter=board;
+      const eligible=(row:LocalProject)=>row.id===id && (!session || !row.cloudUserId || row.cloudUserId===session.user.id);
+      if (!(await local.list()).some(eligible)) await get().open(board,session);
+      return enqueue(async () => {
+        if (request!==selection) return false;
+        const row = (await local.list()).find(eligible);
+        if (!row) return false;
+        generation++;
+        history.ensure(row.id);
+        set({ project: row, ready: true, status: row.cloudUserId && !row.cloudDirty ? "synced" : "local", canUndo: history.canUndo, canRedo: history.canRedo });
+        try { localStorage.setItem("kinetable.current-project", row.id); localStorage.setItem(`kinetable.opened.${row.id}`, new Date().toISOString()); } catch { /* Optional navigation preference. */ }
+        if (session) void get().sync();
+        return true;
+      });
+    },
     open: async (board, session) => {
       boardForStarter = board;
       const current = ++generation;
@@ -42,7 +63,9 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
         const rows = await local.list();
         if (current !== generation) return;
         const eligible = rows.filter(row => !ownerId || !row.cloudUserId || row.cloudUserId === ownerId).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
-        let project = eligible[0] ?? null;
+        let remembered: string | null = null;
+        try { remembered = localStorage.getItem("kinetable.current-project"); } catch { /* Optional navigation preference. */ }
+        let project = (keepVisible ? eligible.find(row => row.id === visible.id) : null) ?? eligible.find(row => row.id === remembered) ?? eligible[0] ?? null;
         if (!project && !session) { project = starterRow(board); await local.save(project); }
         if (current !== generation) return;
         if (project) history.ensure(project.id);
@@ -77,6 +100,19 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       if (ownerId) { if (syncing) syncAgain = true; else void get().sync(); }
       return migrateProject(project.document);
     },
+    tryBonk: () => enqueue(async () => {
+      const ownerId = useAuthStore.getState().session?.user.id;
+      const row = starterRow("esp32-dev-module", ownerId);
+      const document = bonkProject({ ...migrateProject(row.document), name: "BONK", intent: { text: "A button, display, LED and buzzer build." } });
+      const project = { ...row, name: document.name, document, updatedAt: document.metadata.updatedAt };
+      await local.save(project);
+      generation++;
+      history.reset(project.id);
+      set({ project, ready: true, status: "local", error: null, canUndo: false, canRedo: false });
+      try { localStorage.setItem("kinetable.current-project", project.id); } catch { /* Optional navigation preference. */ }
+      if (ownerId) void get().sync();
+      return document;
+    }),
     saveDocument: async (document, expectedRevision, preserveHistory = false) => {
       const current = get().project;
       if (!current || current.id !== document.id || current.document.metadata.updatedAt !== expectedRevision) throw new Error("STALE_PROJECT");

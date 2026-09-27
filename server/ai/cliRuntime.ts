@@ -48,19 +48,19 @@ export function normalizeCliOutput(id: CliId, content: string): unknown {
   return id === "codex" ? parsed : parsed.structured_output ?? parsed.structuredOutput ?? (typeof parsed.result === "string" ? JSON.parse(parsed.result) as unknown : parsed);
 }
 export function cliModelProvider(id: CliId, modelId?: string): ModelProvider {
-  return { async generate(prompt) {
+  return { async generate(prompt, schema = planJsonSchema) {
     const started = Date.now();
     const cwd = await mkdtemp(join(tmpdir(), "kinetable-plan-"));
     try {
-      const schema = join(cwd, "schema.json"), output = join(cwd, "output.json");
-      await writeFile(schema, JSON.stringify(planJsonSchema));
+      const schemaPath = join(cwd, "schema.json"), output = join(cwd, "output.json");
+      await writeFile(schemaPath, JSON.stringify(schema));
       const file = await binary(id);
       if (modelId && !/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,159}$/.test(modelId)) throw new Error("INVALID_REQUEST");
       let args: string[];
       let env: NodeJS.ProcessEnv | undefined;
-      if (id === "codex") args = ["exec", "--ephemeral", "--ignore-user-config", "-s", "read-only", "-C", cwd, "--skip-git-repo-check", "--output-schema", schema, "-o", output, ...(modelId ? ["-m", modelId] : []), prompt];
-      else if (id === "agy") args = ["-p", prompt, "--output-format", "json", "--json-schema", schema, "--mode", "plan", "--sandbox", ...(modelId ? ["--model", modelId] : [])];
-      else if (id === "claude") args = ["-p", prompt, "--output-format", "json", "--json-schema", schema, "--permission-mode", "plan", "--disallowedTools", "Bash", "Edit", "Write", "NotebookEdit", "Read", "Glob", "Grep", "WebFetch", "WebSearch", "Task", ...(modelId ? ["--model", modelId] : [])];
+      if (id === "codex") args = ["exec", "--ephemeral", "--ignore-user-config", "-s", "read-only", "-C", cwd, "--skip-git-repo-check", "--output-schema", schemaPath, "-o", output, ...(modelId ? ["-m", modelId] : []), prompt];
+      else if (id === "agy") args = ["-p", prompt, "--output-format", "json", "--json-schema", schemaPath, "--mode", "plan", "--sandbox", ...(modelId ? ["--model", modelId] : [])];
+      else if (id === "claude") args = ["-p", prompt, "--output-format", "json", "--json-schema", schemaPath, "--permission-mode", "plan", "--disallowedTools", "Bash", "Edit", "Write", "NotebookEdit", "Read", "Glob", "Grep", "WebFetch", "WebSearch", "Task", ...(modelId ? ["--model", modelId] : [])];
       else if (id === "kimi") {
         const agent = join(cwd, "planner.md");
         await writeFile(agent, "---\nname: kinetable-planner\ndescription: Return a hardware plan without using tools\ntools: []\nsubagents: []\n---\nReturn only the requested JSON object. Never call tools.\n");

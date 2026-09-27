@@ -26,15 +26,15 @@ export async function localModels(runtime: LocalRuntime, port: number): Promise<
   return models.map(v => v && typeof v === "object" ? ((v as Record<string, unknown>)[runtime === "ollama" ? "name" : "id"]) : null).filter((v): v is string => typeof v === "string");
 }
 export function localModelProvider(config: LocalRuntimeConfig): ModelProvider {
-  return { async generate(prompt) {
+  return { async generate(prompt, schema = planJsonSchema) {
     const installed = await localModels(config.runtime, config.port);
     if (!installed.includes(config.modelId)) throw new Error("MODEL_UNAVAILABLE");
     const ollama = config.runtime === "ollama";
     const result = await limitedJson(`${base(config.port)}${ollama ? "/api/chat" : "/v1/chat/completions"}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(ollama
-        ? { model: config.modelId, stream: false, think: false, format: planJsonSchema, options: { num_predict: 2500 }, messages: [{ role: "user", content: prompt }] }
-        : { model: config.modelId, stream: false, max_tokens: 2500, response_format: { type: "json_schema", json_schema: { name: "kinetable_plan", strict: true, schema: planJsonSchema } }, messages: [{ role: "user", content: prompt }] }),
+        ? { model: config.modelId, stream: false, think: false, format: schema, options: { num_predict: 2500 }, messages: [{ role: "user", content: prompt }] }
+        : { model: config.modelId, stream: false, max_tokens: 2500, response_format: { type: "json_schema", json_schema: { name: "kinetable_plan", strict: true, schema } }, messages: [{ role: "user", content: prompt }] }),
     });
     const text = ollama ? (result.message as { content?: unknown } | undefined)?.content : (result.choices as { message?: { content?: unknown } }[] | undefined)?.[0]?.message?.content;
     if (typeof text !== "string" || text.length > 32000) throw new Error("INVALID_MODEL_RESPONSE");

@@ -48,12 +48,12 @@ export function describeTrace(event: TraceEvent, circuit: CompiledCircuit): stri
     case "dht.environment": return `${name} virtual environment changed to${value}.`;
     case "dht.read": return `${name} read DHT11 data:${value}.`;
     case "i2c.text": return `${name} sent OLED text over semantic I²C.`;
-    case "logic.rule.match": return `Project rule ${event.ruleId} matched.`;
-    case "logic.condition.false": return `Project rule ${event.ruleId} did not run: ${event.value}.`;
-    case "logic.condition.true": return `Project rule ${event.ruleId} passed its condition: ${event.value}.`;
-    case "logic.action": return `Project rule ${event.ruleId} applied ${event.value} to ${name}.`;
+    case "logic.rule.match": return `Your behavior matched.`;
+    case "logic.condition.false": return `Your behavior did not run: ${event.value}.`;
+    case "logic.condition.true": return `Your behavior passed its condition: ${event.value}.`;
+    case "logic.action": return `Your behavior applied ${event.value} to ${name}.`;
     case "logic.beep": return `${name} continued its saved beep sequence.`;
-    case "timer.tick": return `Timer for project rule ${event.ruleId} fired.`;
+    case "timer.tick": return `Your behavior’s timer fired.`;
     default: return event.code.startsWith("recipe.") ? `The ${event.code.slice(7)} recipe reacted.` : `${name}: ${event.code}${value}.`;
   }
 }

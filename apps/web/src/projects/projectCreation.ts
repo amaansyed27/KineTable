@@ -27,7 +27,8 @@ export function createBuildRow(selected: LocalProject, rows: LocalProject[], boa
   const current = migrateProject(selected.document);
   const { wires, terminalPlacements, ...legacy } = current;
   const v1 = current.components.length === 1 && !wires.length && !terminalPlacements.length && !current.logic.length ? parseProject({ ...legacy, schemaVersion: 1, connections: [] }) : null;
-  const document = migrateProject(projectFromIntent(v1, board, intent, name, new Date(latestTime).toISOString()));
+  const document = intent.trim() ? migrateProject(projectFromIntent(v1, board, intent, name, new Date(latestTime).toISOString())) :
+    { ...migrateProject(starterProject(board)), name: name.trim() || "Untitled project", metadata: { createdAt: new Date(latestTime).toISOString(), updatedAt: new Date(latestTime).toISOString() } };
   const promoted = document.id === selected.id;
   return { id: document.id, name: document.name, schemaVersion: 4, document,
     createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt,

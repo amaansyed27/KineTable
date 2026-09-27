@@ -22,6 +22,8 @@ const refresh = (runtime: SimulationRuntime) => ({ snapshot: runtime.snapshot(),
 export const useSimulationStore = create<State>((set, get) => ({
   ...initial,
   enter: (project, mode) => {
+    const state = get();
+    if (state.projectId === project.id && state.key === topologyKey(project) && state.revision === project.metadata.updatedAt && state.runtime) { set({ mode, playing: false }); return; }
     try {
       const circuit = compileCircuit(project);
       const compatible = analyzeSimulationCompatibility(project);

@@ -1,64 +1,39 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate } from "react-router";
-import { AppShell, ProfileGate } from "../app/AppShell";
+import { Link, Navigate, useParams } from "react-router";
+import { ProfileGate } from "../app/AppShell";
+import { AccountControl } from "../auth/AccountControl";
 import { getBoard } from "../hardware/boards";
 import { useProfileStore } from "../state/profileStore";
 import { useAuthStore } from "../auth/authStore";
 import { useProjectStore } from "../state/projectStore";
-import { assembleProject, assemblyError, type AssemblyPhase } from "../ai/assembleProject";
 import { migrateProject } from "../projects/v4";
-import { getDefinition } from "../component-library/catalog";
-import { starterProject } from "../projects/schema";
 import { Workbench } from "./Workbench";
-function ReadyTable() {
-  const [phase, setPhase] = useState<AssemblyPhase | null>(null);
-  const [assemblyMessage, setAssemblyMessage] = useState<string | null>(null);
-  const [unsupported, setUnsupported] = useState(false);
-  const [routeLabel, setRouteLabel] = useState<string | null>(null);
-  const profile = useProfileStore(s => s.profile);
-  const resolved = useAuthStore(s => s.resolved);
-  const syncStatus = useAuthStore(s => s.syncStatus);
-  const session = useAuthStore(s => s.session);
-  const ownerId = session?.user.id;
-  const syncProject = useProjectStore(s => s.sync);
-  const project = useProjectStore(s => s.project);
-  const ready = useProjectStore(s => s.ready);
-  const projectSync = useProjectStore(s => s.status);
-  const error = useProjectStore(s => s.error);
-  const open = useProjectStore(s => s.open);
-  const board = getBoard(profile?.primaryBoardId);
-  useEffect(() => { if (profile?.setupCompleted && board) void open(board.id, useAuthStore.getState().session); }, [profile?.setupCompleted, board, ownerId, open]);
-  useEffect(() => { if (!ownerId) return; const retry = () => { void syncProject(); }; window.addEventListener("online", retry); return () => window.removeEventListener("online", retry); }, [ownerId, syncProject]);
-  if (!profile?.setupCompleted && (!resolved || syncStatus === "syncing")) return <main id="app-main" className="route-loading" role="status">Opening your table…</main>;
+import { WorkbenchModes } from "./WorkbenchTools";
+import { useSimulationStore } from "../state/simulationStore";
+function ReadyProject() {
+  const { projectId } = useParams();
+  const profile = useProfileStore(s=>s.profile), session=useAuthStore(s=>s.session), resolved=useAuthStore(s=>s.resolved), authSync=useAuthStore(s=>s.syncStatus);
+  const project=useProjectStore(s=>s.project), status=useProjectStore(s=>s.status), error=useProjectStore(s=>s.error);
+  const [opening,setOpening]=useState(true), [missing,setMissing]=useState(false);
+  const board=getBoard(profile?.primaryBoardId);
+  useEffect(()=>{
+    if (!profile?.setupCompleted || !board) return;
+    let alive=true; setOpening(true); setMissing(false);
+    const store=useProjectStore.getState();
+    const task=projectId ? store.openById(projectId,board.id,session) : store.open(board.id,session).then(()=>true);
+    void task.then(found=>{if(alive){setMissing(!found);setOpening(false);}}).catch(()=>{if(alive){setMissing(true);setOpening(false);}});
+    return ()=>{alive=false;};
+  },[profile?.setupCompleted,board,session,projectId]);
+  useEffect(()=>{ const retry=()=>void useProjectStore.getState().sync(); window.addEventListener("online",retry); return ()=>window.removeEventListener("online",retry); },[]);
+  useEffect(()=>{globalThis.document.title=project ? `${project.name} · Kinetable` : "Workbench · Kinetable";},[project]);
+  useEffect(()=>{useSimulationStore.getState().build();},[projectId]);
+  if (!profile?.setupCompleted && (!resolved || authSync==="syncing")) return <main className="route-loading" role="status">Opening your projects…</main>;
   if (!profile?.setupCompleted || !board) return <Navigate to="/start" replace />;
-  if (!ready || !project) return <main id="app-main" className="route-loading"><p role={error ? "alert" : "status"}>{error ?? "Opening your table…"}</p>{error && <button className="button" onClick={() => void open(board.id, session)}>Try again</button>}</main>;
-  const activeBoard = getBoard(project.document.boardIds[0]) ?? board;
-  const document = migrateProject(project.document);
-  const assembled = document.components.length > 1;
-  const partCount = document.components.filter(c => c.kind === "component").length;
-  const buildSummary = [partCount ? `${partCount} ${partCount === 1 ? "part" : "parts"}` : null,
-    document.components.some(c => c.kind === "breadboard") ? "breadboard" : null,
-    `${document.wires.length} saved connections`].filter(Boolean).join(" · ");
-  const initialBoard = starterProject(activeBoard.id).layout.entities["board-main"];
-  const canAssemble = !!document.intent && !assembled && !document.wires.length && !document.terminalPlacements.length &&
-    JSON.stringify(document.layout.entities["board-main"]) === JSON.stringify(initialBoard);
-  async function build() {
-    if (phase) return;
-    setAssemblyMessage(null); setUnsupported(false);
-    try {
-      const plan = await assembleProject(setPhase);
-      setRouteLabel(plan.routeLabel);
-      if (plan.status === "unsupported") { setUnsupported(true); setAssemblyMessage(`Kinetable can’t build that reliably yet. ${plan.unsupportedReason}`); }
-    } catch (failure) { setAssemblyMessage(assemblyError(failure)); }
-    finally { setPhase(null); }
-  }
-  return <main id="app-main" className="my-table" data-board-id={activeBoard.id} data-project-id={project.id}>
-    <div className="my-table-heading"><div><p className="eyebrow">YOUR TABLE <span aria-hidden="true">/</span> BUILD</p><h1>{assembled ? "Your build is on the table." : "What do you want to make?"}</h1><p>{assembled ? buildSummary : "Your board is here whenever you’re ready."}</p></div><Link className="table-new-build button" to="/new">New Build <span aria-hidden="true">↗</span></Link>
-      {canAssemble && <div className="table-assembly"><button className="button" disabled={!!phase} onClick={() => void build()}>{phase ? "Building…" : "Build with Kinetable"}</button><Link className="table-provider-link" to="/settings/providers">Provider settings ↗</Link>
-        <p role={assemblyMessage ? "alert" : "status"} className={unsupported ? "assembly-message unsupported" : "assembly-message"}>{phase === "planning" ? "Planning your build…" : phase === "checking" ? "Checking the connections…" : phase === "placing" ? "Putting it on the table…" : assemblyMessage}</p></div>}
-    </div>
-    <Workbench key={document.id} document={document} />
-    <div className="table-foot"><div className="project-identity"><span className="project-identity-mark" aria-hidden="true" /><div><span className="project-overline">CURRENT PROJECT</span><strong>{project.name}</strong>{document.intent && <span className="project-intent">“{document.intent.text}”</span>}{assembled && <span className="project-parts">{document.components.filter(c => c.kind === "component").map(c => getDefinition(c.definitionId)!.name).join(" · ")}</span>}{routeLabel && <span className="project-meta">Built with {routeLabel}</span>}<span className="project-meta">Saved {new Date(project.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {projectSync === "synced" ? "On this device and your account" : projectSync === "offline" ? "On this device · cloud unavailable" : "On this device"}</span></div></div><Link className="change-board-link" to="/start">Change board <span aria-hidden="true">↗</span></Link></div>
-  </main>;
+  if(opening) return <main className="route-loading" role="status">Opening your project…</main>;
+  if(missing || !project) return <main id="app-main" className="route-loading"><h1>This project isn’t here.</h1><p>{error || "It may be on another device or account. Your other projects are safe."}</p><Link className="button" to="/projects">Go to Projects</Link><Link to="/home">Home</Link></main>;
+  if(!projectId) return <Navigate to={`/projects/${project.id}`} replace />;
+  if(project.id!==projectId) return <main className="route-loading" role="status">Opening your project…</main>;
+  const document=migrateProject(project.document);
+  return <><header className="project-header"><Link className="project-back" to="/projects">← <span>Projects</span></Link><div className="project-title"><h1>{project.name}</h1><span className="project-save" role="status">● {status === "syncing" ? "Saved here · syncing" : status === "offline" ? "Saved here · offline" : "Saved"}</span></div><WorkbenchModes document={document} /><AccountControl /></header><main id="app-main" className="project-workspace" data-project-id={project.id} data-board-id={document.boardIds[0]}><Workbench key={document.id} document={document} /></main></>;
 }
-export default function TablePage() { return <AppShell title="Your table" tableNav><ProfileGate><ReadyTable /></ProfileGate></AppShell>; }
+export default function TablePage() { return <div className="product-app project-app"><a className="skip-link" href="#app-main">Skip to workbench</a><ProfileGate><ReadyProject /></ProfileGate></div>; }

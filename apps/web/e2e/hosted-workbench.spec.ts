@@ -8,8 +8,8 @@ test("manual layout checkpoints locally, survives offline reload, and restores f
   test.setTimeout(120000);
   const { a, projectId } = JSON.parse(readFileSync("../../output/slice-06-hosted-v2.json", "utf8"));
   const env = Object.fromEntries(readFileSync(".env.local", "utf8").split(/\r?\n/).filter(line => line.includes("=")).map(line => { const i = line.indexOf("="); return [line.slice(0, i), line.slice(i + 1)]; }));
-  await page.goto("/auth");
-  await page.getByLabel("Your email").fill(a.email);
+  await page.goto(`/auth?next=/projects/${projectId}`);
+  await page.getByLabel("Email",{exact:true}).fill(a.email);
   await page.getByLabel("Password", { exact: true }).fill(a.password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", projectId, { timeout: 20000 });
@@ -22,7 +22,7 @@ test("manual layout checkpoints locally, survives offline reload, and restores f
   const cloud = async () => (await (await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/projects?id=eq.${projectId}&select=*`, { headers: { apikey: env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` } })).json())[0];
   const before = (await readLocal()).position[0];
   await page.route("https://*.supabase.co/**", route => route.abort());
-  await page.getByRole("button", { name: "HC-SR501 PIR", exact: true }).click();
+  await page.getByText("Parts & connections",{exact:true}).click(); await page.getByRole("button", { name: "HC-SR501 PIR", exact: true }).click();
   await page.keyboard.press("ArrowRight");
   await expect.poll(async () => (await readLocal()).position[0]).toBeGreaterThan(before);
   const moved = await readLocal();
@@ -36,8 +36,8 @@ test("manual layout checkpoints locally, survives offline reload, and restores f
   try {
     await protectPreview(fresh);
     const restored = await fresh.newPage();
-    await restored.goto(new URL("/auth", page.url()).toString());
-    await restored.getByLabel("Your email").fill(a.email);
+    await restored.goto(new URL(`/auth?next=/projects/${projectId}`, page.url()).toString());
+    await restored.getByLabel("Email",{exact:true}).fill(a.email);
     await restored.getByLabel("Password", { exact: true }).fill(a.password);
     await restored.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(restored.locator("[data-project-id]")).toHaveAttribute("data-project-id", projectId, { timeout: 20000 });

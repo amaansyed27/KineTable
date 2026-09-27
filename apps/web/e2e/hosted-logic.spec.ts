@@ -27,7 +27,7 @@ test("hosted v3 upgrades intentionally, BONK ×3 restores fresh, and offline log
   const path=`/rest/v1/projects?id=eq.${old.id}`;
   const cloud=async () => (await request(path+"&select=*","GET",a.token))[0];
   const saved=async (p: Page): Promise<KinetableProjectV4> => p.evaluate(id=>new Promise((resolve,reject)=>{ const open=indexedDB.open("kinetable"); open.onerror=()=>reject(open.error); open.onsuccess=()=>{const row=open.result.transaction("projects","readonly").objectStore("projects").get(id); row.onsuccess=()=>resolve(row.result.document);}; }),old.id);
-  const signIn=async (p: Page) => { await p.goto("/auth"); await p.getByLabel("Your email").fill(a.email); await p.getByLabel("Password",{exact:true}).fill(a.password); await p.getByRole("button",{name:"Sign in",exact:true}).click(); await expect(p.locator("[data-project-id]")).toHaveAttribute("data-project-id",old.id,{timeout:20000}); };
+  const signIn=async (p: Page) => { await p.goto(`/auth?next=/projects/${old.id}`); await p.getByLabel("Email",{exact:true}).fill(a.email); await p.getByLabel("Password",{exact:true}).fill(a.password); await p.getByRole("button",{name:"Sign in",exact:true}).click(); await expect(p.locator("[data-project-id]")).toHaveAttribute("data-project-id",old.id,{timeout:20000}); };
   await request("/rest/v1/projects","POST",a.token,{ id:old.id,name:old.name,primary_board_id:old.boardIds[0],schema_version:3,document:old });
   try {
     await signIn(page);
@@ -46,8 +46,10 @@ test("hosted v3 upgrades intentionally, BONK ×3 restores fresh, and offline log
     const fresh=await browser.newContext({storageState:process.env.E2E_STORAGE_STATE});
     try { await protectPreview(fresh); const restored=await fresh.newPage(); await signIn(restored); await restored.getByRole("button",{name:"Logic",exact:true}).click(); await expect(restored.getByLabel("Action 3 beep count")).toHaveValue("3"); expect((await saved(restored)).logic).toEqual(before.document.logic); } finally { await fresh.close(); }
     await page.getByRole("button",{name:"Logic",exact:true}).click(); await page.route("https://*.supabase.co/**",r=>r.abort());
+  if (!await page.locator(".logic-rule[data-selected=true] .logic-timing").evaluate(el=>(el as HTMLDetailsElement).open)) await page.locator(".logic-rule[data-selected=true] .logic-timing > summary").click();
     await page.getByLabel("Action 3 on duration").fill("140"); await expect.poll(async ()=>(await saved(page)).logic[0].do[2]).toMatchObject({count:3,onMs:140});
-    await page.reload(); await page.getByRole("button",{name:"Logic",exact:true}).click(); await expect(page.getByLabel("Action 3 on duration")).toHaveValue("140"); expect((await cloud()).document.logic[0].do[2].onMs).toBe(120);
+  if (!await page.locator(".logic-rule[data-selected=true] .logic-timing").evaluate(el=>(el as HTMLDetailsElement).open)) await page.locator(".logic-rule[data-selected=true] .logic-timing > summary").click();
+    await page.reload(); await page.getByRole("button",{name:"Logic",exact:true}).click(); await page.locator(".logic-rule[data-selected=true] .logic-timing > summary").click(); await expect(page.getByLabel("Action 3 on duration")).toHaveValue("140"); expect((await cloud()).document.logic[0].do[2].onMs).toBe(120);
     await page.unrouteAll(); await page.evaluate(()=>window.dispatchEvent(new Event("online")));
     await expect.poll(async ()=>(await cloud()).document.logic[0].do[2].onMs,{timeout:30000}).toBe(140);
   } finally { await page.unrouteAll(); await request(path,"DELETE",a.token); }

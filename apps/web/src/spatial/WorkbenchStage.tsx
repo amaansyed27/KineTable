@@ -18,7 +18,7 @@ import { useSimulationStore } from "../state/simulationStore";
 import { causalChain, xrayNets } from "../simulation/explain";
 
 export type CameraAction = { sequence: number; type: "focus" | "reset" | "zoom-in" | "zoom-out"; entityId?: string };
-type Props = { project: CircuitProject; selectedId: string | null; referencedIds?: string[]; selectedWireId: string | null; selectedEndpointKey: string | null;
+type Props = { preview?: boolean; project: CircuitProject; selectedId: string | null; referencedIds?: string[]; selectedWireId: string | null; selectedEndpointKey: string | null;
   highlightedKeys: string[]; wireSource: ElectricalEndpoint | null; wiring: boolean;
   onSelect(id: string | null): void; onEndpoint(endpoint: ElectricalEndpoint): void; onWire(id: string): void;
   onMove(id: string, transform: Transform): void; cameraAction: CameraAction | null };
@@ -87,10 +87,10 @@ function Entity({ id, kind, definitionId, visualId, transform, selected, referen
   </>;
 }
 
-function World({ project, selectedId, referencedIds = [], selectedWireId, selectedEndpointKey, highlightedKeys, wireSource, wiring, onSelect, onEndpoint, onWire, onMove, cameraAction, reduced }: Props & { reduced: boolean }) {
-  const mode = useSimulationStore(s => s.mode);
-  const circuit = useSimulationStore(s => s.circuit);
-  const snapshot = useSimulationStore(s => s.snapshot);
+function World({ project, preview = false, selectedId, referencedIds = [], selectedWireId, selectedEndpointKey, highlightedKeys, wireSource, wiring, onSelect, onEndpoint, onWire, onMove, cameraAction, reduced }: Props & { reduced: boolean }) {
+  const mode = useSimulationStore(s => preview ? "build" : s.mode);
+  const circuit = useSimulationStore(s => preview ? null : s.circuit);
+  const snapshot = useSimulationStore(s => preview ? null : s.snapshot);
   const xray = useSimulationStore(s => s.xray);
   const selectedTraceId = useSimulationStore(s => s.selectedTraceId);
   const controls = useRef<CameraControlsType>(null);
@@ -98,52 +98,56 @@ function World({ project, selectedId, referencedIds = [], selectedWireId, select
   projectRef.current = project;
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [previewTransforms, setPreviewTransforms] = useState<Record<string, Transform>>({});
-  const [pointer, setPointer] = useState<Vector3 | null>(null);
-  const spatialProject = Object.keys(previewTransforms).length ? { ...project, layout: { entities: { ...project.layout.entities, ...previewTransforms } } } : project;
+  const previewTransforms = useRef<Record<string, Transform>>({});
+  const pointer = useRef<Vector3 | null>(null);
+  const spatialProject = () => ({ ...projectRef.current, layout: { entities: { ...projectRef.current.layout.entities, ...previewTransforms.current } } });
   const highlighted = new Set(highlightedKeys);
   if (mode === "explain" && circuit) {
     for (const net of xrayNets(circuit, snapshot, xray)) for (const key of net.endpoints) highlighted.add(key);
     const event = snapshot?.trace.find(e => e.id === selectedTraceId);
+    if (event?.netId) highlighted.clear();
     if (event && snapshot) for (const step of causalChain(snapshot.trace, event.id)) if (step.netId) for (const endpoint of circuit.nets.find(n => n.id === step.netId)?.endpoints ?? []) highlighted.add(endpointKey(endpoint));
   }
   const { camera, gl, invalidate, size } = useThree();
   useEffect(() => {
-    if (!wireSource) { setPointer(null); return; }
+    if (!wireSource) { pointer.current=null; invalidate(); return; }
     const ray = new Raycaster(), plane = new Plane(new Vector3(0, 0, 1), -.35);
     const move = (event: PointerEvent) => {
       const rect = gl.domElement.getBoundingClientRect();
       ray.setFromCamera(new Vector2((event.clientX - rect.left) / rect.width * 2 - 1, 1 - (event.clientY - rect.top) / rect.height * 2), camera);
       const point = ray.ray.intersectPlane(plane, new Vector3());
-      if (point) setPointer(point);
+      if (point) {pointer.current=point;invalidate();}
     };
     gl.domElement.addEventListener("pointermove", move);
     return () => gl.domElement.removeEventListener("pointermove", move);
-  }, [wireSource, camera, gl]);
-  const assembled = project.components.length > 1;
-  const fitZoom = clamp(Math.min(size.width / (assembled ? size.width < 600 ? 12 : 11 : 4), size.height / (assembled ? 6.6 : 3.5)), 25, 160);
+  }, [wireSource, camera, gl, invalidate]);
+  const bounds = project.components.reduce((b,c) => {const t=project.layout.entities[c.id];const x=(c.kind==="breadboard" ? 1.12 : c.kind==="board" ? .65 : .55)*t.scale[0], y=(c.kind==="breadboard" ? 1.53 : c.kind==="board" ? 1.2 : .45)*(c.kind==="component" ? t.scale[1] : t.scale[2]);return {left:Math.min(b.left,t.position[0]-x),right:Math.max(b.right,t.position[0]+x),bottom:Math.min(b.bottom,t.position[1]-y),top:Math.max(b.top,t.position[1]+y)};}, {left:Infinity,right:-Infinity,bottom:Infinity,top:-Infinity});
+  const centerX=(bounds.left+bounds.right)/2, centerY=(bounds.bottom+bounds.top)/2;
+  const fitZoom = clamp(Math.min(size.width / (bounds.right-bounds.left+1.4), size.height / (bounds.top-bounds.bottom+1.8)), 20, 160);
   const minZoom = Math.max(20, fitZoom * .6), maxZoom = Math.min(180, fitZoom * 1.5);
-  useLayoutEffect(() => { camera.zoom = fitZoom; camera.updateProjectionMatrix(); void controls.current?.zoomTo(fitZoom, false); invalidate(); }, [camera, fitZoom, invalidate]);
+  const fitted = useRef("");
+  const fitKey = `${project.id}:${project.components.length}:${size.width}:${size.height}`;
+  useLayoutEffect(() => { if(fitted.current===fitKey)return; fitted.current=fitKey; camera.zoom = fitZoom; camera.position.set(centerX,centerY,12); camera.lookAt(centerX,centerY,0); camera.updateProjectionMatrix(); void controls.current?.setLookAt(centerX,centerY,12,centerX,centerY,0,false); void controls.current?.zoomTo(fitZoom, false); invalidate(); }, [camera, fitZoom, centerX,centerY,invalidate,fitKey]);
   useEffect(() => {
     if (!cameraAction || !controls.current) return;
     const target = cameraAction.entityId && projectRef.current.layout.entities[cameraAction.entityId]?.position;
     if (cameraAction.type === "focus" && target) void controls.current.setLookAt(target[0], target[1], 12, target[0], target[1], 0, !reduced);
-    if (cameraAction.type === "reset") { void controls.current.setLookAt(0, 0, 12, 0, 0, 0, !reduced); void controls.current.zoomTo(fitZoom, !reduced); }
+    if (cameraAction.type === "reset") { void controls.current.setLookAt(centerX, centerY, 12, centerX, centerY, 0, !reduced); void controls.current.zoomTo(fitZoom, !reduced); }
     if (cameraAction.type === "zoom-in" || cameraAction.type === "zoom-out") void controls.current.zoomTo(clamp(camera.zoom * (cameraAction.type === "zoom-in" ? 1.25 : .8), minZoom, maxZoom), !reduced);
     invalidate();
-  }, [cameraAction, camera, reduced, invalidate, fitZoom, minZoom, maxZoom]);
+  }, [cameraAction, camera, reduced, invalidate, fitZoom, minZoom, maxZoom,centerX,centerY]);
   return <>
     <ambientLight intensity={1.8} /><directionalLight position={[-3, 6, 8]} intensity={3} /><directionalLight position={[5, -2, 4]} intensity={1} />
     <Environment resolution={64} frames={1}><Lightformer position={[-3, 4, 5]} scale={[8, 8, 1]} intensity={2} color="#fffdf5" /></Environment>
-    <CameraControls ref={controls} enabled={!dragging && !wireSource} minZoom={minZoom} maxZoom={maxZoom} minDistance={5} maxDistance={22} minAzimuthAngle={-1.1} maxAzimuthAngle={1.1} minPolarAngle={.45} maxPolarAngle={2.6} />
+    <CameraControls ref={controls} enabled={!preview && !dragging && !wireSource} minZoom={minZoom} maxZoom={maxZoom} minDistance={5} maxDistance={22} minAzimuthAngle={-1.1} maxAzimuthAngle={1.1} minPolarAngle={.45} maxPolarAngle={2.6} />
     <mesh position={[0, 0, -1]} onPointerDown={() => { if (!wiring) onSelect(null); }}><planeGeometry args={[100, 100]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
-    {project.wires.map(wire => <WireMesh key={wire.id} from={endpointWorld(spatialProject, wire.from)} to={endpointWorld(spatialProject, wire.to)} color={wire.color} selected={selectedWireId === wire.id} highlighted={highlighted.has(endpointKey(wire.from))} onSelect={() => onWire(wire.id)} />)}
-    {wireSource && pointer && <WireMesh from={endpointWorld(spatialProject, wireSource)} to={pointer} preview />}
+    {project.wires.map(wire => <WireMesh key={wire.id} from={endpointWorld(project, wire.from)} to={endpointWorld(project, wire.to)} anchors={()=>[endpointWorld(spatialProject(),wire.from),endpointWorld(spatialProject(),wire.to)]} dimmed={mode==="explain" && !highlighted.has(endpointKey(wire.from))} color={wire.color} selected={selectedWireId === wire.id} highlighted={highlighted.has(endpointKey(wire.from))} onSelect={() => onWire(wire.id)} />)}
+    {wireSource && <WireMesh from={endpointWorld(project,wireSource)} to={endpointWorld(project,wireSource)} anchors={()=>pointer.current ? [endpointWorld(spatialProject(),wireSource),pointer.current] : null} preview />}
     {project.components.map(component => {
       const definition = getDefinition(component.definitionId)!;
       return <Entity key={component.id} id={component.id} kind={component.kind} definitionId={component.definitionId} visualId={definition.visualId} transform={project.layout.entities[component.id]}
-        selected={selectedId === component.id} referenced={referencedIds.includes(component.id)} hovered={hovered === component.id} highlighted={highlighted} selectedEndpointKey={selectedEndpointKey} wiring={wiring} editable={mode === "build"} xrayVisible={mode === "explain"} output={snapshot?.outputs[component.id]}
-        onSelect={id => { onSelect(id); if (mode === "simulate" && definition.electricalModel === "momentary-switch") useSimulationStore.getState().button(id, !snapshot?.outputs[id]?.pressed); }} onEndpoint={onEndpoint} onHover={setHovered} onMove={onMove} onPreview={(id, transform) => setPreviewTransforms(current => { const next = { ...current }; if (transform) next[id] = transform; else delete next[id]; return next; })} onDragging={setDragging} reduced={reduced} />;
+        selected={selectedId === component.id} referenced={referencedIds.includes(component.id)} hovered={!preview && hovered === component.id} highlighted={highlighted} selectedEndpointKey={selectedEndpointKey} wiring={wiring} editable={!preview && mode === "build"} xrayVisible={mode === "explain"} output={snapshot?.outputs[component.id]}
+        onSelect={id => { onSelect(id); if (mode === "simulate" && definition.electricalModel === "momentary-switch") useSimulationStore.getState().button(id, !snapshot?.outputs[id]?.pressed); }} onEndpoint={onEndpoint} onHover={setHovered} onMove={onMove} onPreview={(id, transform) => { if(transform)previewTransforms.current[id]=transform;else delete previewTransforms.current[id]; invalidate(); }} onDragging={setDragging} reduced={reduced} />;
     })}
   </>;
 }

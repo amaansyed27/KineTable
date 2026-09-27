@@ -117,7 +117,7 @@ export function executeCommands<T extends CircuitProject>(current: T, input: unk
       case "breadboard.add": {
         if (candidate.components.some(c => c.id === command.id || c.kind === "breadboard")) throw new HardwareError("DUPLICATE_INSTANCE", "This table already has a breadboard.");
         candidate.components.push({ id: command.id, kind: "breadboard", definitionId: BREADBOARD_ID });
-        candidate.layout.entities[command.id] = { position: [-3.5, 0, .12], rotation: [Math.PI / 2, 0, 0], scale: [1.8, 1.8, 1.8] }; break;
+        candidate.layout.entities[command.id] = { position: [-2.3, 0, .12], rotation: [Math.PI / 2, 0, 0], scale: [1.4, 1.4, 1.4] }; break;
       }
       case "breadboard.remove": {
         if (!candidate.components.some(c => c.id === command.id && c.kind === "breadboard")) throw new HardwareError("COMPONENT_MISSING", "Breadboard does not exist.");

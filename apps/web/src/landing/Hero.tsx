@@ -33,7 +33,7 @@ export function Hero({
         <p className="subcopy">
           Describe an idea. Watch it become something real.
         </p>
-        <a className="button" href="/start">
+        <a className="button" href="/home">
           Open Kinetable <span>↗</span>
         </a>
       </motion.div>

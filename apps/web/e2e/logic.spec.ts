@@ -20,7 +20,11 @@ const oledLinks: Link[] = [[board,"3v3","oled-1","vcc"],[board,"gnd","oled-1","g
 const dht: Part[] = [["dht-1","dht11-module"]];
 const dhtLinks: Link[] = [[board,"3v3","dht-1","vcc"],[board,"gnd","dht-1","gnd"],[board,"gpio18","dht-1","data"]];
 async function start(page: Page) {
-  await page.goto("/start"); await page.getByRole("radio", { name: "ESP32", exact: true }).check(); await page.getByRole("button", { name: "Set up my table" }).click();
+  await page.goto("/start"); await page.getByRole("radio", { name: "ESP32", exact: true }).check(); await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await page.getByText("Parts & connections", {exact:true}).click();
   await expect(page.locator("[data-project-id]")).toBeVisible();
 }
 async function saved(page: Page): Promise<KinetableProjectV4> {
@@ -34,7 +38,7 @@ async function load(page: Page, parts: Part[], links: Link[]) {
   p.wires = links.map(([a,ap,b,bp],i) => ({ id: `wire-${i}`, from: pinEndpoint(a,ap), to: pinEndpoint(b,bp) }));
   p.metadata.updatedAt = new Date(Date.now()+2000).toISOString();
   await page.evaluate(document => new Promise<void>((resolve,reject) => { const req = indexedDB.open("kinetable"); req.onerror = () => reject(req.error); req.onsuccess = () => { const tx = req.result.transaction("projects","readwrite"); tx.objectStore("projects").put({ id: document.id, name: document.name, schemaVersion: 4, document, createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt, cloudDirty: false }); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }; }), p);
-  await page.reload(); await expect(page.getByText("Circuit ready")).toBeVisible();
+  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click(); await expect(page.getByText("Connections complete")).toBeVisible();
 }
 async function pulses(page: Page, count: number) {
   const output = page.locator(".simulation-outputs > span").filter({ hasText: /^Grove Buzzer V1.1:/ });
@@ -52,10 +56,11 @@ test("BONK rules persist, edit ×2 to ×3, and execute the saved behavior", asyn
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   await start(page); await load(page, [...button,...led,...buzzer,...oled], [...buttonLinks,...ledLinks,...buzzerLinks,...oledLinks]);
   await page.getByRole("button", { name: "Logic", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Tell the circuit what should happen." })).toBeVisible();
+  await expect(page.getByText("Tell the circuit what should happen.",{exact:true})).toBeVisible();
   await page.getByRole("button", { name: "Start from BONK" }).click();
   await expect.poll(async () => (await saved(page)).logic.length).toBe(2);
   await page.getByRole("button", { name: "Simulate", exact: true }).click();
+  if (!await page.locator(".simulation-recipe").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Scenario",{exact:true}).click();
   await expect(page.getByText("Project Logic · saved behavior")).toBeVisible();
   await expect(page.locator(".simulation-outputs > span").filter({ hasText: /^3.3 V SSD1306 I²C OLED:/ })).toContainText("READY");
   await page.getByRole("button", { name: "Press button" }).click();
@@ -69,13 +74,14 @@ test("BONK rules persist, edit ×2 to ×3, and execute the saved behavior", asyn
   const authoredAt = (await saved(page)).metadata.updatedAt;
   await page.getByRole("button", { name: "Simulate", exact: true }).click();
   await page.getByRole("button", { name: "Press button" }).click();
-  await pulses(page,3); expect((await saved(page)).metadata.updatedAt).toBe(authoredAt); await page.reload();
+  await pulses(page,3); expect((await saved(page)).metadata.updatedAt).toBe(authoredAt); await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByRole("button", { name: "Logic", exact: true }).click();
   await expect(page.getByLabel("Action 3 beep count")).toHaveValue("3");
   await page.getByLabel("Action 3 beep count").fill("9");
   await expect(page.locator(".logic-rule").first().getByRole("alert")).toBeVisible();
   expect((await saved(page)).logic[0].do[2]).toMatchObject({ count: 3 });
   await page.getByRole("button", { name: "Build", exact: true }).click();
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByLabel("Parts on this table").getByRole("button", { name: "LED", exact: true }).click();
   await page.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("behavior");
@@ -93,9 +99,11 @@ test("logic controls stay usable with keyboard and without WebGL", async ({ page
   await expect.poll(async () => (await saved(page)).logic.length).toBe(1);
   await page.getByRole("button", { name: "Undo logic edit" }).click(); await expect.poll(async () => (await saved(page)).logic.length).toBe(0);
   await page.getByRole("button", { name: "Redo logic edit" }).click(); await expect.poll(async () => (await saved(page)).logic.length).toBe(1);
+  if (!await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced").evaluate(el=>(el as HTMLDetailsElement).open)) await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced > summary").click();
   await page.getByRole("checkbox", { name: "Enabled" }).focus(); await page.keyboard.press("Space");
   await expect.poll(async () => (await saved(page)).logic[0].enabled).toBe(false);
   await page.keyboard.press("Space"); await expect.poll(async () => (await saved(page)).logic[0].enabled).toBe(true);
+  if (!await page.locator(".logic-rule[data-selected=true] .logic-trigger-options").evaluate(el=>(el as HTMLDetailsElement).open)) await page.locator(".logic-rule[data-selected=true] .logic-trigger-options > summary").click();
   await page.getByLabel("Behavior 1 trigger").focus(); await page.keyboard.press("End"); await page.keyboard.press("Enter");
   await page.getByLabel("Timer interval milliseconds").fill("500");
   await page.getByLabel("Action 1 LED state").selectOption("toggle");
@@ -104,6 +112,7 @@ test("logic controls stay usable with keyboard and without WebGL", async ({ page
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.locator(".simulation-outputs > span").filter({ hasText: /^LED:/ })).toContainText("ON", { timeout: 3000 });
   await page.getByRole("button", { name: "Logic", exact: true }).click();
+  if (!await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced").evaluate(el=>(el as HTMLDetailsElement).open)) await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced > summary").click();
   await page.getByRole("button", { name: "Delete behavior 1" }).click(); await expect.poll(async () => (await saved(page)).logic.length).toBe(0);
 });
 test("DHT IF and timer Blink edit through the visible controls", async ({ page }) => {
@@ -122,6 +131,7 @@ test("DHT IF and timer Blink edit through the visible controls", async ({ page }
   await expect.poll(async () => (await saved(page)).logic[0].if[0].operator).toBe("==");
   await page.getByRole("button", { name: "Remove condition 1" }).click();
   await expect.poll(async () => (await saved(page)).logic[0].if.length).toBe(0);
+  if (!await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced").evaluate(el=>(el as HTMLDetailsElement).open)) await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced > summary").click();
   await page.getByRole("button", { name: "Delete behavior 1" }).click();
   await expect.poll(async () => (await saved(page)).logic.length).toBe(0);
 });
@@ -133,11 +143,15 @@ test("touch editing can add, reorder and remove rules and actions", async ({ bro
     await expect.poll(async ()=>(await saved(page)).logic.length).toBe(1);
     await page.getByRole("button",{name:"+ Action",exact:true}).tap(); await expect.poll(async ()=>(await saved(page)).logic[0].do.length).toBe(2);
     await page.getByLabel("Action 2 LED state").selectOption("off"); await expect.poll(async ()=>(await saved(page)).logic[0].do[1]).toMatchObject({operation:"off"});
+  for(const detail of await page.locator(".logic-rule[data-selected=true] .logic-action-management").all()) if(!await detail.evaluate(el=>(el as HTMLDetailsElement).open)) await detail.locator("summary").click();
     await page.getByRole("button",{name:"Move action 2 up",exact:true}).tap(); await expect.poll(async ()=>(await saved(page)).logic[0].do[0]).toMatchObject({operation:"off"});
+  for(const detail of await page.locator(".logic-rule[data-selected=true] .logic-action-management").all()) if(!await detail.evaluate(el=>(el as HTMLDetailsElement).open)) await detail.locator("summary").click();
     await page.getByRole("button",{name:"Remove action 2",exact:true}).tap(); await expect.poll(async ()=>(await saved(page)).logic[0].do.length).toBe(1);
     const firstId=(await saved(page)).logic[0].id;
     await page.getByRole("button",{name:"+ Add behavior",exact:true}).tap(); await expect.poll(async ()=>(await saved(page)).logic.length).toBe(2);
+  if (!await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced").evaluate(el=>(el as HTMLDetailsElement).open)) await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced > summary").click();
     await page.getByRole("button",{name:"Move behavior 2 up",exact:true}).tap(); await expect.poll(async ()=>(await saved(page)).logic[1].id).toBe(firstId);
+  if (!await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced").evaluate(el=>(el as HTMLDetailsElement).open)) await page.locator(".logic-rule[data-selected=true] .logic-rule-advanced > summary").click();
     await page.getByRole("button",{name:"Delete behavior 1",exact:true}).tap(); await expect.poll(async ()=>(await saved(page)).logic.length).toBe(1);
     await expect(page.getByRole("button",{name:"Select behavior 1",exact:true})).toBeFocused();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);

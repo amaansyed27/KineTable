@@ -332,7 +332,7 @@ Slice 06 implements strict structured output, shared command validation, and a p
 
 Allow natural-language requests that map to supported components and behaviours.
 
-The current contract covers component selection and electrical connections, not executable behavior logic. The remote BYOK endpoint checks an authenticated owner's cloud project or a validated guest document; the bridge checks a validated local document. Both check intent, board and revision. The model sees the canonical catalog and returns only commands or an unsupported result. Hardware-core executes against a copy at the inference boundary and again in the browser. Only a fully validated document is saved. The browser cannot inject definitions or identity. A custom remote URL is allowed only after public HTTPS SSRF checks; local URLs stay behind the loopback bridge. See [Slice 06](SLICE-06.md).
+The hardware contract covers component selection/connections. The separate behavior contract is documented below. The remote BYOK endpoint checks an authenticated owner's cloud project or a validated guest document; the bridge checks a validated local document. Both check intent, board and revision. The model sees the canonical catalog and returns only commands or an unsupported result. Hardware-core executes against a copy at the inference boundary and again in the browser. Only a fully validated document is saved. The browser cannot inject definitions or identity. A custom remote URL is allowed only after public HTTPS SSRF checks; local URLs stay behind the loopback bridge. See [Slice 06](SLICE-06.md).
 
 ### Stage C — explanation/debugging
 
@@ -349,3 +349,9 @@ The best Kinetable AI interaction should often feel like **the table understood 
 ## Slice 10 command boundary
 
 Manual Visual Logic uses parsed `logic.rule.add/update/remove/enable/reorder` operations through the existing atomic project command/history/persistence pathway. Logic compilation validates canonical capabilities and physical topology. The Slice 06 planner contract remains hardware-only: AI responses containing logic commands are rejected. AI does not generate or bypass behavior validation in this slice. Project v4 stores the semantic IR; no executable code or raw model responses are persisted as logic.
+
+## Pre-Slice-11 AI behavior contract
+
+Hardware assembly retains its vocabulary. Separate task logic supports bounded logic.rule.add/update/remove over canonical physically bound components. Strict keys, 16-command/16000-character limits, revision/identity and deterministic compilation reject unsafe output. Unsupported requires zero commands. Requests/display text are untrusted data.
+
+Natural preview requires Apply, which revalidates in the shared queue and creates one history checkpoint. Router/fallback, bridge token/origin, JWT/owner checks, SSRF and vault behavior remain. No raw response, secret or source code is saved as logic. Real Codex CLI behavior and browser initial assembly were verified. Incremental hardware AI and generated Explain/scenarios remain deferred. [Correction](PRE-SLICE-11-UX-CORRECTION.md).

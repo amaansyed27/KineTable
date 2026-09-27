@@ -3,7 +3,7 @@ import type { CircuitProject } from "../projects/v4.js";
 import { parsePlan, type Plan, type PlanRequest } from "./contract.js";
 import { plannerPrompt } from "./prompt.js";
 
-export type ModelProvider = { generate(prompt: string): Promise<unknown> };
+export type ModelProvider = { generate(prompt: string, schema?: Record<string, unknown>): Promise<unknown> };
 export function validatePlanInput(request: PlanRequest, project: CircuitProject): void {
   if (project.id !== request.projectId || project.metadata.updatedAt !== request.revision || project.intent?.text !== request.intent || project.boardIds[0] !== request.boardId) throw new Error("STALE_PROJECT");
   if (project.components.length !== 1 || project.wires.length !== 0 || project.terminalPlacements.length !== 0 || project.logic.length !== 0) throw new Error("INVALID_PROJECT");

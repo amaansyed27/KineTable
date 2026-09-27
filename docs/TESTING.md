@@ -246,3 +246,11 @@ pnpm test:e2e
 ```
 
 External hosted/provider checks remain explicit opt-in runs with disposable credentials/data. Detailed Slice 10 evidence is in [SLICE-10.md](SLICE-10.md).
+
+## Pre-Slice-11 correction acceptance
+
+Build before E2E: Playwright serves compiled output. Required gates: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm exec tsc --noEmit`, `pnpm --filter @kinetable/web exec tsc -b`, `pnpm test:e2e`.
+
+`product-correction.spec.ts` checks real BONK, exact/missing/legacy routes, project retrieval, blank creation, persisted guidance, System/explicit themes, account focus, AI Logic preview/Apply, unchanged failure paths and masked vault credentials outside project storage. Rendered screenshots cover 390×844, 768×1024, 1440×900, 1600×1000, 1920×1080 and dark Home/Build/Logic. Physical anchors/safety, logic compilation/pulse timing, history/offline/auth/owner and provider security remain regression gates.
+
+Hosted opt-ins: `KINETABLE_HOSTED_QA=1` (auth/new build and unit RLS), `KINETABLE_HOSTED_LOGIC_QA=1` (v3→v4, fresh restore, offline/reconnect, owner RLS), `KINETABLE_HOSTED_V3_BROWSER_QA=1` (circuit and no runtime writes). Auth QA generates fresh disposable accounts into ignored output; never supply personal credentials. `KINETABLE_REAL_CLI_BROWSER_QA=1` invokes the configured default Codex CLI through a temporary authenticated loopback bridge. `E2E_BASE_URL` enables deployed direct-route refresh checks with existing protected-preview handling. Screenshots, credentials and raw provider output stay ignored.

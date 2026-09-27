@@ -324,3 +324,7 @@ A user with no documentation should be able to:
 10. rerun and observe exactly three deterministic pulses.
 
 Slices 01–10 implement this virtual core. If any of these steps still requires documentation in normal use, the UX needs simplification before treating the core experience as polished.
+
+## Current application hierarchy
+
+Home launches/continues; Projects retrieves all eligible saved documents; New Project records optional intent and creates a blank board; /projects/:id edits one exact document. Setup enters Home, with real no-provider BONK. Build/Logic/Simulate/Explain remain the modes. Contextual AI uses the same commands as manual editing: initial assembly and bounded behavior preview/Apply. Incremental hardware AI and generated Explain/scenarios remain deferred. [Implementation](PRE-SLICE-11-UX-CORRECTION.md).

@@ -33,15 +33,15 @@ function localConfig(route: RouteCandidate) {
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("INVALID_REQUEST");
   return { runtime: route.providerId, port, modelId: route.modelId };
 }
-export async function invokeProvider(route: RouteCandidate, credentialId: string | null, input: PlanRequest, project: CircuitProject, session: Session | null): Promise<unknown> {
+export async function invokeProvider(route: RouteCandidate, credentialId: string | null, input: PlanRequest, project: CircuitProject, session: Session | null, task: "hardware" | "logic" = "hardware"): Promise<unknown> {
   if (route.transport === "LOCAL_HTTP" || route.transport === "LOCAL_CLI") {
-    return bridgeRequest("/v1/plan", { transport: route.transport, providerId: route.providerId, modelId: route.modelId, config: route.transport === "LOCAL_HTTP" ? localConfig(route) : undefined, input, project });
+    return bridgeRequest("/v1/plan", { task, transport: route.transport, providerId: route.providerId, modelId: route.modelId, config: route.transport === "LOCAL_HTTP" ? localConfig(route) : undefined, input, project });
   }
   const secret = credentialId ? await credentialVault.get(credentialId) : null;
   if (!secret && route.authMode !== "none") throw new Error("CREDENTIAL_UNAVAILABLE");
   let response: Response;
   try { response = await fetch("/api/ai/plan", { method: "POST", headers: { "Content-Type": "application/json", ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
-    body: JSON.stringify({ input, project: session ? undefined : project, provider: { providerId: route.providerId, modelId: route.modelId, baseUrl: route.baseUrl, authMode: route.authMode, secret: secret ?? "" } }), signal: AbortSignal.timeout(35000) }); }
+    body: JSON.stringify({ task, input, project: session ? undefined : project, provider: { providerId: route.providerId, modelId: route.modelId, baseUrl: route.baseUrl, authMode: route.authMode, secret: secret ?? "" } }), signal: AbortSignal.timeout(35000) }); }
   catch { throw new Error("NETWORK_FAILURE"); }
   const value = await response.json().catch(() => null) as { code?: string } | null;
   if (!response.ok) throw new Error(value?.code ?? "NETWORK_FAILURE");

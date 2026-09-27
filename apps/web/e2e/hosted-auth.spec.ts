@@ -3,9 +3,13 @@ import { test, expect } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 // Opt-in: uses disposable accounts from the hosted API verification, never personal credentials.
 test("hosted password login, cloud restore, offline table and sign-out", async ({ page, browser }) => {
+ test.setTimeout(120000);
  test.skip(!process.env.KINETABLE_HOSTED_QA, "Requires hosted verification accounts");
- const [account] = JSON.parse(readFileSync("../../output/hosted-qa-accounts.json", "utf8"));
+
  const values = Object.fromEntries(readFileSync(".env.local", "utf8").trim().split(/\r?\n/).map(line => { const i=line.indexOf("="); return [line.slice(0,i),line.slice(i+1)]; }));
+ const accounts=[];
+ for(let i=0;i<2;i++){const email=`kinetable-qa-correction-${randomUUID()}@gmail.com`,password=randomBytes(24).toString("base64url");const r=await fetch(`${values.VITE_SUPABASE_URL}/auth/v1/signup`,{method:"POST",headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password})});expect(r.ok).toBe(true);const a=await r.json();accounts.push({email,password,id:a.user.id,token:a.access_token});}
+ writeFileSync("../../output/hosted-qa-accounts.json",JSON.stringify(accounts));const [account]=accounts;
  const response = await fetch(`${values.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:"POST",headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email:account.email,password:account.password})});
  expect(response.ok).toBe(true); const session = await response.json();
  const reset = await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${account.id}`,{method:"PATCH",headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({primary_board_id:"esp32-dev-module",setup_completed:true})});
@@ -14,53 +18,55 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
  const errors: string[]=[]; page.on("pageerror", error => errors.push(error.message));
  await page.goto("/auth");
  await expect(page.locator('[data-cloud-configured="true"]')).toBeVisible();
- await page.getByLabel("Your email").fill(account.email);
+ await page.getByLabel("Email",{exact:true}).fill(account.email);
  await page.getByLabel("Password", { exact: true }).fill(account.password);
  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+ await expect(page).toHaveURL(/\/home$/); await page.goto("/table");
  await expect(page.locator('[data-board-id="esp32-dev-module"]')).toBeVisible({timeout:20000});
  const projectId=await page.locator('[data-project-id]').getAttribute('data-project-id'); expect(projectId).toBeTruthy();
  await page.reload(); await expect(page.locator('[data-board-id="esp32-dev-module"]')).toBeVisible();
- await page.getByRole("link", {name:/Change board/}).click();
+ await page.goto("/start");
  await page.getByRole("radio", { name: "Raspberry Pi Pico", exact:true }).check();
- await expect(page.getByRole("button",{name:"Set up my table"})).toBeEnabled();
- await page.getByRole("button",{name:"Set up my table"}).click();
+
+ await page.getByRole("button",{name:/^Continue with/}).click(); await expect(page).toHaveURL(/\/home$/); await page.goto("/table");
  await expect(page.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
- await page.locator("summary").click(); await expect(page.getByRole("status")).toHaveText("Your table is synced.",{timeout:20000});
+ await page.getByRole("button",{name:"Account",exact:true}).click(); await expect(page.locator(".account-menu [role=status]")).toHaveText("● Synced",{timeout:20000});
  await expect.poll(async()=>{const r=await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/projects?id=eq.${projectId}&select=*`,{headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`}});const rows=await r.json();return rows[0]?.document?.boardIds?.[0];}).toBe('raspberry-pi-pico');
  await page.getByRole("button",{name:"Sign out",exact:true}).click();
- await expect(page.getByRole("link",{name:"Sign in",exact:true})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Guest account"})).toBeVisible();
  await expect(page.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
  const context = await browser.newContext({storageState:process.env.E2E_STORAGE_STATE});
  const fresh = await context.newPage();
- await fresh.goto(new URL('/auth',page.url()).toString());
- await fresh.getByLabel("Your email").fill(account.email); await fresh.getByLabel("Password",{exact:true}).fill(account.password);
+ await fresh.goto(new URL(`/auth?next=/projects/${projectId}`,page.url()).toString());
+ await fresh.getByLabel("Email",{exact:true}).fill(account.email); await fresh.getByLabel("Password",{exact:true}).fill(account.password);
  await fresh.getByRole("button",{name:"Sign in",exact:true}).click();
  await expect(fresh.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible({timeout:20000});
  await expect(fresh.locator('[data-project-id]')).toHaveAttribute('data-project-id',projectId!);
  await fresh.route('https://*.supabase.co/**', route=>route.abort());
  await fresh.reload(); await expect(fresh.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
- await fresh.getByRole("link",{name:/Change board/}).click();
+ await fresh.goto(new URL("/start",page.url()).toString());
  await fresh.getByRole("radio",{name:"Arduino Uno",exact:true}).check();
- await fresh.getByRole("button",{name:"Set up my table"}).click();
- await expect(fresh.locator('[data-board-id="arduino-uno"]')).toBeVisible();
- await fresh.reload(); await expect(fresh.locator('[data-board-id="arduino-uno"]')).toBeVisible();
+ await fresh.getByRole("button",{name:/^Continue with/}).click(); await expect(fresh).toHaveURL(/\/home$/); await fresh.goto(new URL("/table",page.url()).toString());
+ await expect(fresh.locator('[data-board-id="arduino-uno"]')).toBeVisible({timeout:20000});
+ await fresh.reload(); await expect(fresh.locator('[data-board-id="arduino-uno"]')).toBeVisible({timeout:20000});
  await context.close(); expect(errors).toEqual([]);
 });
 
 test("guest setup survives real password signup and is restored from cloud", async ({page,browser}) => {
+ test.setTimeout(120000);
  test.skip(!process.env.KINETABLE_HOSTED_QA, "Creates a disposable hosted QA account");
  const email=`kinetable-qa-${randomUUID()}@gmail.com`, password=randomBytes(24).toString("base64url");
  await page.goto("/start"); await page.getByRole("radio",{name:"Arduino Uno",exact:true}).check();
- await page.getByRole("button",{name:"Set up my table"}).click(); await expect(page.locator('[data-board-id="arduino-uno"]')).toBeVisible();
+ await page.getByRole("button",{name:/^Continue with/}).click(); await expect(page).toHaveURL(/\/home$/); await page.goto("/table"); await expect(page.locator('[data-board-id="arduino-uno"]')).toBeVisible();
  const guestProjectId=await page.locator('[data-project-id]').getAttribute('data-project-id'); expect(guestProjectId).toBeTruthy();
- await page.getByRole("link",{name:"Sign in",exact:true}).click(); await page.getByRole("button",{name:"New here? Create an account"}).click();
- await page.getByLabel("Your email").fill(email); await page.getByLabel("Password",{exact:true}).fill(password);
+ await page.goto(`/auth?next=/projects/${guestProjectId}`); await page.getByRole("button",{name:"New here? Create an account"}).click();
+ await page.getByLabel("Email",{exact:true}).fill(email); await page.getByLabel("Password",{exact:true}).fill(password);
  await page.getByRole("button",{name:"Create account",exact:true}).click();
  await expect(page.locator('[data-board-id="arduino-uno"]')).toBeVisible({timeout:20000});
  await expect(page.locator('[data-project-id]')).toHaveAttribute('data-project-id',guestProjectId!);
  writeFileSync("../../output/hosted-ui-account.json",JSON.stringify({email,password}));
  const context=await browser.newContext({storageState:process.env.E2E_STORAGE_STATE}); const fresh=await context.newPage();
- await fresh.goto(new URL('/auth',page.url()).toString()); await fresh.getByLabel("Your email").fill(email); await fresh.getByLabel("Password",{exact:true}).fill(password);
+ await fresh.goto(new URL(`/auth?next=/projects/${guestProjectId}`,page.url()).toString()); await fresh.getByLabel("Email",{exact:true}).fill(email); await fresh.getByLabel("Password",{exact:true}).fill(password);
  await fresh.getByRole("button",{name:"Sign in",exact:true}).click(); await expect(fresh.locator('[data-board-id="arduino-uno"]')).toBeVisible({timeout:20000});
  await expect(fresh.locator('[data-project-id]')).toHaveAttribute('data-project-id',guestProjectId!);
  await context.close();

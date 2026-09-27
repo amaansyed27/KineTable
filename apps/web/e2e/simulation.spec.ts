@@ -24,8 +24,12 @@ const dhtLinks: Link[] = [[board,"3v3","dht-1","vcc"],[board,"gnd","dht-1","gnd"
 async function openTable(page: Page) {
   await page.goto("/start");
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-  await page.getByRole("button", { name: "Set up my table" }).click();
-  await expect(page).toHaveURL(/\/table$/, { timeout: 20000 });
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await page.getByText("Parts & connections", {exact:true}).click();
+  await expect(page).toHaveURL(/\/projects\/[^/]+$/, { timeout: 20000 });
   await expect(page.locator(".workbench-surface canvas")).toBeVisible({ timeout: 15000 });
 }
 async function stored(page: Page): Promise<KinetableProjectV3> {
@@ -39,11 +43,11 @@ async function load(page: Page, parts: Part[], links: Link[]) {
   p.wires = links.map(([a,ap,b,bp],i) => ({ id: `wire-${i}`, from: pinEndpoint(a,ap), to: pinEndpoint(b,bp) }));
   p.metadata.updatedAt = new Date(Date.now() + 2000).toISOString();
   await page.evaluate(document => new Promise<void>((resolve,reject) => { const req = indexedDB.open("kinetable"); req.onerror = () => reject(req.error); req.onsuccess = () => { const tx = req.result.transaction("projects", "readwrite"); tx.objectStore("projects").put({ id: document.id, name: document.name, schemaVersion: document.schemaVersion, document, createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt, cloudDirty: false }); tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }; }), p);
-  await page.reload();
-  await expect(page.getByText("Circuit ready")).toBeVisible();
+  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click();
+  await expect(page.getByText("Connections complete")).toBeVisible();
   return p;
 }
-const simulate = async (page: Page, name: string) => { await page.getByRole("button", { name: "Simulate", exact: true }).click(); await page.getByLabel("Simulation recipe").selectOption({ label: name }); };
+const simulate = async (page: Page, name: string) => { await page.getByRole("button", { name: "Simulate", exact: true }).click(); await page.getByText("Scenario",{exact:true}).click(); await page.getByLabel("Simulation recipe").selectOption({ label: name }); };
 
 test("button LED responds, explains its cause, and leaves the project unchanged", async ({ page }) => {
   await openTable(page); const original = await load(page, [...button,...led], [...buttonLinks,...ledLinks]);
@@ -56,6 +60,7 @@ test("button LED responds, explains its cause, and leaves the project unchanged"
   await page.getByRole("button", { name: "Why?" }).click();
   await expect(page.getByText(/button-led recipe reacted/)).toBeVisible();
   await page.getByRole("button", { name: "Signals", exact: true }).click();
+  await page.getByText("Technical paths",{exact:true}).click();
   await expect(page.getByText(/GPIO LOW/)).toBeVisible();
   for (const [width,height] of [[390,844],[768,1024],[1440,900],[1600,1000],[1920,1080]]) {
     await page.setViewportSize({ width, height });
@@ -63,9 +68,9 @@ test("button LED responds, explains its cause, and leaves the project unchanged"
     await page.screenshot({ path: `../../output/playwright/simulation-explain-${width}.png`, fullPage: true });
   }
   await expect.poll(async () => (await stored(page)).metadata.updatedAt).toBe(original.metadata.updatedAt);
-  await page.reload();
+  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click();
   await expect(page.getByRole("button", { name: "Build", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByText("Circuit ready")).toBeVisible();
+  await expect(page.getByText("Connections complete")).toBeVisible();
 });
 
 test("PIR motion drives buzzer and power X-Ray", async ({ page }) => {
@@ -76,6 +81,7 @@ test("PIR motion drives buzzer and power X-Ray", async ({ page }) => {
   await page.screenshot({ path: "../../output/playwright/simulation-pir-1440.png", fullPage: true });
   await page.getByRole("button", { name: "Explain", exact: true }).click();
   await expect(page.getByText(/HC-SR501 PIR detected simulated motion/)).toBeVisible();
+  await page.getByText("Technical paths",{exact:true}).click();
   await expect(page.getByText(/5 V supply/).first()).toBeVisible();
   await page.screenshot({ path: "../../output/playwright/simulation-power-1440.png", fullPage: true });
 });
@@ -88,18 +94,20 @@ test("DHT11 updates OLED data", async ({ page }) => {
   await page.screenshot({ path: "../../output/playwright/simulation-oled-1440.png", fullPage: true });
   await page.getByRole("button", { name: "Explain", exact: true }).click();
   await page.getByRole("button", { name: "Data", exact: true }).click();
+  await page.getByText("Technical paths",{exact:true}).click();
   await expect(page.getByText(/DHT11 data/).first()).toBeVisible();
   await page.screenshot({ path: "../../output/playwright/simulation-data-1440.png", fullPage: true });
 });
 
 test("incomplete builds block simulation while static Power Explain remains available", async ({ page }) => {
   await openTable(page);
-  await page.getByRole("button", { name: "+ Add part" }).click();
+  await page.getByRole("button", { name: "+ Part" }).click();
   await page.getByRole("dialog", { name: "Add part" }).getByRole("button", { name: "LED", exact: true }).click();
   await page.getByRole("button", { name: "Simulate", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("needs a connection");
   await page.getByRole("button", { name: "Explain", exact: true }).click();
   await page.getByRole("button", { name: "Power", exact: true }).click();
+  await page.getByText("Technical paths",{exact:true}).click();
   await expect(page.getByText(/3.3 V supply/).first()).toBeVisible();
 });
 
@@ -113,7 +121,11 @@ test("simulation and Why remain usable without WebGL", async ({ page }) => {
   });
   await page.goto("/start");
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-  await page.getByRole("button", { name: "Set up my table" }).click();
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await page.getByText("Parts & connections", {exact:true}).click();
   await expect(page.getByText("3D editing is unavailable.")).toBeVisible();
   await load(page, [...button,...led], [...buttonLinks,...ledLinks]);
   await simulate(page,"Button controls LED");
@@ -138,6 +150,7 @@ test("BONK, blink, static Explain and mobile controls remain reachable", async (
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.getByText("3.3 V SSD1306 I²C OLED:")).toContainText("READY");
+  if (!await page.locator(".simulation-recipe").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Scenario",{exact:true}).click();
   await page.getByLabel("Simulation recipe").selectOption({ label: "Blink LED" });
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.locator(".simulation-outputs > span").filter({ hasText: /^LED:/ })).toContainText("ON");
@@ -161,13 +174,13 @@ test("authenticated simulation leaves the hosted project timestamp and document 
   const token = (await signup.json()).access_token as string;
   const cloud = async () => { const response = await fetch(`${url}/rest/v1/projects?id=eq.${p.id}&select=*`, { headers: { apikey: key, Authorization: `Bearer ${token}` } }); expect(response.ok).toBe(true); return (await response.json())[0]; };
   try {
-    await page.goto("/auth");
-    await page.getByLabel("Your email").fill(email);
+    await page.goto(`/auth?next=/projects/${p.id}`);
+    await page.getByLabel("Email",{exact:true}).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", p.id, { timeout: 20000 });
     await expect.poll(async () => (await cloud())?.document?.wires?.length, { timeout: 30000 }).toBe(5);
-    await expect(page.getByText("On this device and your account")).toBeVisible();
+    await page.getByRole("button",{name:"Account",exact:true}).click();await expect(page.locator(".account-menu [role=status]")).toHaveText("● Synced",{timeout:20000});await page.keyboard.press("Escape");
     const before = await cloud();
     await simulate(page,"Button controls LED");
     await page.getByRole("button", { name: "Play", exact: true }).click();

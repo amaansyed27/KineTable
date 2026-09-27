@@ -147,7 +147,7 @@ Spatial geometry never determines electrical truth.
 
 Owns planner contracts, provider routing and provider-independent hardware assembly orchestration.
 
-AI returns strict Kinetable operations. It never directly edits the DOM, Three.js scene or arbitrary project JSON. The current planner deliberately rejects `logic.*` commands; Visual Logic is manual/deterministic in Slice 10.
+AI returns strict Kinetable operations. It never directly edits the DOM, Three.js scene or arbitrary project JSON. The hardware planner rejects `logic.*`; the separate behavior planner validates bounded proposals through the same deterministic command path.
 
 ### `simulation`
 
@@ -443,3 +443,9 @@ Users must be able to trust statements such as:
 Those claims come from deterministic metadata, topology and runtime rules—not model improvisation or visual proximity.
 
 Operational details are in [BACKEND.md](BACKEND.md). Slice-specific implementation evidence is recorded in [SLICE-06.md](SLICE-06.md), [SLICE-07.md](SLICE-07.md), [SLICE-08.md](SLICE-08.md), [SLICE-09.md](SLICE-09.md) and [SLICE-10.md](SLICE-10.md).
+
+## Pre-Slice-11 integration
+
+ProjectsPage reads the existing repository with liveQuery and owner filtering; cloud reconciliation restores rows through existing sync. openById resolves exact eligible identity and rejects superseded selection. /table is a remembered/current compatibility redirect. Appearance preference storage is separate from project storage.
+
+behaviorPlanner is a strict separate logic contract within the existing provider pipeline. It compiles physical bindings and a complete candidate. Apply rechecks identity/revision inside applyTransaction, sharing atomic commands/history/local save/cloud checkpoint with manual editing. Hardware inference remains hardware-only. Pointer previews update Three.js on demand. Simulate/Explain retains unchanged runtime identity. [Correction](PRE-SLICE-11-UX-CORRECTION.md).

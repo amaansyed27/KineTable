@@ -46,10 +46,9 @@ function ReadyNewBuild() {
   if (!profile?.setupCompleted || !board) return <Navigate to="/start" replace />;
   if (!ready || !project) return <main id="app-main" className="route-loading"><p role={storageError ? "alert" : "status"}>{storageError ?? "Opening your table…"}</p>{storageError && <button className="button" onClick={() => void open(board.id, session)}>Try again</button>}</main>;
   const selectedBoard = getBoard(project.document.boardIds[0]) ?? board;
-  const transform = project.document.layout.entities[project.document.components[0].id];
   function validate() {
-    if (!validIntentText(idea.trim())) { setError(`Describe your idea in 1–${MAX_INTENT_LENGTH} characters.`); ideaRef.current?.focus(); return false; }
-    if (!validProjectName(name.trim())) { setError("Give this build a name of 1–120 characters."); nameRef.current?.focus(); return false; }
+    if (idea.trim() && !validIntentText(idea.trim())) { setError(`Describe your idea in 1–${MAX_INTENT_LENGTH} characters.`); ideaRef.current?.focus(); return false; }
+    if (idea.trim() && !validProjectName(name.trim())) { setError("Give this build a name of 1–120 characters."); nameRef.current?.focus(); return false; }
     setError(null);
     return true;
   }
@@ -58,41 +57,42 @@ function ReadyNewBuild() {
     if (saving || !validate()) return;
     setSaving(true);
     try {
-      await createBuild(selectedBoard.id, idea, name);
+      const created = await createBuild(selectedBoard.id, idea, name || "Untitled project");
       try { sessionStorage.removeItem(draftKey); } catch { /* Optional draft storage. */ }
-      navigate("/table");
+      navigate(`/projects/${created.id}`);
     } catch (failure) {
       setError(failure instanceof Error && /^(Describe|Give this build)/.test(failure.message) ? failure.message : "We couldn’t save your build on this device. Please allow browser storage and try again.");
     } finally { setSaving(false); }
   }
   return <main id="app-main" className="new-build">
     <section className="new-build-editor" aria-label="New build">
-      <Link className="new-build-back" to="/table">← My Table</Link>
+      <Link className="new-build-back" to="/projects">← Projects</Link>
       <p className="eyebrow">NEW BUILD <span aria-hidden="true">/</span> YOUR IDEA</p>
       <form onSubmit={submit} noValidate>
         {preview ? <div className="new-build-preview">
           <p className="new-build-kicker">THIS IS YOUR STARTING POINT</p>
-          <h1 ref={previewRef} tabIndex={-1}>{name.trim()}</h1>
+          <h1 ref={previewRef} tabIndex={-1}>{name.trim() || "Untitled project"}</h1>
           <p className="new-build-request">“{idea.trim()}”</p>
           <p className="new-build-known">Starting with <strong>{selectedBoard.name}</strong></p>
           <p className="new-build-honest">No parts or connections have been planned yet.</p>
-          <div className="new-build-actions"><button className="button" type="submit" disabled={saving}>Create build <span aria-hidden="true">→</span></button><button className="new-build-secondary" type="button" onClick={() => { setPreview(false); requestAnimationFrame(() => nameRef.current?.focus()); }}>Back to edit</button></div>
+          <div className="new-build-actions"><button className="button" type="submit" disabled={saving}>Create project <span aria-hidden="true">→</span></button><button className="new-build-secondary" type="button" onClick={() => { setPreview(false); requestAnimationFrame(() => nameRef.current?.focus()); }}>Back to edit</button></div>
         </div> : <div className="new-build-entry">
           <h1>What do you want to make?</h1>
           <label className="new-build-label" htmlFor="build-idea">Describe your idea</label>
           <textarea id="build-idea" ref={ideaRef} autoFocus rows={3} maxLength={MAX_INTENT_LENGTH} placeholder="Make a motion alarm." value={idea} aria-invalid={!!error && !validIntentText(idea.trim())} aria-describedby="build-hint build-error" onChange={event => { const value = event.target.value; setIdea(value); if (!edited) setName(value.trim() ? titleFromIntent(value) : ""); setError(null); }} />
           <p id="build-hint" className="new-build-hint">A sentence is enough. You can use multiple lines; Enter adds a new line.</p>
           {idea.trim() && <div className="new-build-name"><label htmlFor="build-name">Project name</label><input id="build-name" ref={nameRef} maxLength={120} value={name} aria-invalid={!!error && !validProjectName(name.trim())} aria-describedby="build-error" onChange={event => { setName(event.target.value); setEdited(true); setError(null); }} /><span>Generated on this device. Make it yours.</span></div>}
-          <div className="new-build-actions"><button className="button" type="submit" disabled={saving}>Create build <span aria-hidden="true">→</span></button><button className="new-build-secondary" type="button" onClick={() => { if (validate()) setPreview(true); }}>Show me first <span aria-hidden="true">↗</span></button></div>
+          <div className="new-build-actions"><button className="button" type="submit" disabled={saving}>Create project <span aria-hidden="true">→</span></button><button className="new-build-secondary" type="button" onClick={() => { if (validate()) setPreview(true); }}>Preview starting point <span aria-hidden="true">↗</span></button></div>
         </div>}
+        <p className="new-build-ai-note">Creates a blank project. AI assembly needs a connected provider.<br /><Link to="/settings/providers">Set up AI providers →</Link></p>
         <p id="build-error" className="new-build-error" role="alert">{error}</p>
       </form>
     </section>
     <aside className="new-build-scene" aria-label={`${selectedBoard.name} is the selected starting board`}>
       <span className="new-build-scene-index" aria-hidden="true">01 / YOUR BOARD</span>
-      <div className="new-build-board" role="img" aria-label={`${selectedBoard.name} on your table`}><Suspense fallback={<p className="scene-fallback">Placing your board…</p>}><BoardStage selected={selectedBoard.id} single transform={transform} /></Suspense></div>
+      <div className="new-build-board" role="img" aria-label={`${selectedBoard.name} on your table`}><Suspense fallback={<p className="scene-fallback">Placing your board…</p>}><BoardStage selected={selectedBoard.id} single /></Suspense></div>
       <div className="new-build-scene-foot"><span className="surface-label-dot" aria-hidden="true" /><span>{selectedBoard.name}<small>ON YOUR TABLE</small></span></div>
     </aside>
   </main>;
 }
-export default function NewBuildPage() { return <AppShell title="New build" tableNav><ProfileGate><ReadyNewBuild /></ProfileGate></AppShell>; }
+export default function NewBuildPage() { return <AppShell title="New project"><ProfileGate><ReadyNewBuild /></ProfileGate></AppShell>; }

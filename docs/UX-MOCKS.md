@@ -854,3 +854,7 @@ Fallback:   From/To selectors provide the same validated wiring command
 ```
 
 The responsive workbench keeps the circuit legible and exposes a DOM part list and connection controls on touch screens. Electrical editing works without simulation; Simulate, Explain and X-Ray are implemented in [Slice 09](SLICE-09.md). See [Slice 08](SLICE-08.md).
+
+## Current application authority
+
+The [20 mockups](design/2026-09-27-application-mockups/README.md) and [audit](reviews/2026-09-27-product-ux-audit.md) guide current Home/Projects/workbench hierarchy/material. Old Table-as-home descriptions are historical. Generated image wiring is not electrically authoritative; canonical graph/topology/anchors are. [Implementation and browser evidence](PRE-SLICE-11-UX-CORRECTION.md).

@@ -21,7 +21,7 @@ export function FinalCTA() {
           become real things.
         </motion.h2>
         <p className="wordmark">Kinetable</p>
-        <a className="button" href="/start">
+        <a className="button" href="/home">
           Open Kinetable <span>→</span>
         </a>
       </section>

@@ -275,3 +275,7 @@ A slice is not complete because the screen renders. The intended user flow, pers
 
 Slices 01–10 implemented.
 Slice 11 — Hardware Platform is next.
+
+## Unnumbered pre-Slice-11 correction
+
+Slices 01–10 complete. **Pre-Slice-11 UX correction complete. Slice 11 — Hardware Platform next.** Project hierarchy, contextual workbench, appearance, physical visual improvements and bounded provider-backed Logic use existing commands. Slice 11 was not started or renumbered. Run/Code/upload remain future Slice 14. [Record](PRE-SLICE-11-UX-CORRECTION.md).

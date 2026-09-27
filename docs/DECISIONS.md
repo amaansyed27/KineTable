@@ -140,9 +140,9 @@ Hardware geometry, wiring, signal playback, ownership and lesson outcomes are il
 
 ## D-022 — Board-first product entry, before accounts
 
-**Status:** implemented for Slice 02
+**Status:** historical Slice 02 entry; superseded by D-024
 
-All public Open Kinetable actions enter `/start`. A canonical board selection is saved through Zustand and a Dexie repository before `/table` is ready. Native radio semantics are retained beneath physical 3D interaction. Accounts are not required.
+At Slice 02, all public Open Kinetable actions enter `/start`. A canonical board selection is saved through Zustand and a Dexie repository before `/table` is ready. Native radio semantics are retained beneath physical 3D interaction. Accounts are not required.
 
 ## D-023 — Optional Supabase boundary and Vercel SPA hosting
 
@@ -151,3 +151,7 @@ All public Open Kinetable actions enter `/start`. A canonical board selection is
 Slice 02 established a validated publishable-key-only Supabase boundary and Vercel SPA hosting while preserving local-only use when cloud configuration is absent. Slice 03 activated Supabase Auth/profile sync; Slice 04 activated owner-only project persistence; later project-schema migrations have preserved those ownership/RLS boundaries.
 
 No service-role credential belongs in the browser. New cloud tables are still created only when a current product slice has a real data use case.
+
+## D-024 — Project hierarchy and horizontal AI
+
+2026-09-27. Supersedes historical Table-as-home navigation and Slice 10 manual-only AI boundary. Home/Projects/New/exact project routes separate launch/retrieval/editing. Existing repository/migrations/owner RLS remain. Semantic themes and contextual assistance simplify the surface. Only Build/Logic/Simulate/Explain are current; Run/Code stays future Slice 14. Initial assembly and separate bounded behavior proposals use preview/Apply and shared validated commands. Deterministic Explain stays authoritative. Mockups guide design, never wiring. No Slice 11/schema/dependency scope was added. [Record](PRE-SLICE-11-UX-CORRECTION.md).

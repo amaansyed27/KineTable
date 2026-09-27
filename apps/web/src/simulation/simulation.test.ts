@@ -170,3 +170,9 @@ it("invalidates an active session when topology changes", () => {
   expect(useSimulationStore.getState().mode).toBe("build");
   expect(useSimulationStore.getState().runtime).toBeNull();
 });
+
+it("preserves the same deterministic runtime and trace between Simulate and Explain until an edit",()=>{
+  const p=project([...button,...led],[...buttonLinks,...ledLinks]),actions=useSimulationStore.getState();actions.enter(p,"simulate");actions.button("button-1",true);actions.play();actions.advanceBy(120);actions.pause();const runtime=useSimulationStore.getState().runtime,snapshot=useSimulationStore.getState().snapshot;
+  actions.enter(p,"explain");expect(useSimulationStore.getState().runtime).toBe(runtime);expect(useSimulationStore.getState().snapshot).toEqual(snapshot);actions.enter(p,"simulate");expect(useSimulationStore.getState().runtime).toBe(runtime);
+  actions.ensure({...p,metadata:{...p.metadata,updatedAt:new Date(Date.parse(p.metadata.updatedAt)+1).toISOString()}});expect(useSimulationStore.getState().runtime).toBeNull();
+});

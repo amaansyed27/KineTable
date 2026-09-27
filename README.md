@@ -23,7 +23,7 @@ Core rules:
 
 ## Current status
 
-**Slices 01–10 are implemented. Slice 11 — Hardware Platform is next.**
+**Slices 01–10 complete. Pre-Slice-11 UX correction complete. Slice 11 — Hardware Platform next.**
 
 Kinetable currently supports:
 
@@ -136,7 +136,7 @@ intent
 → atomic project update
 ```
 
-Provider credentials never belong in project JSON or Supabase project documents. The current AI planner remains hardware-assembly-only; Visual Logic is authored deterministically in the workbench.
+Provider credentials never belong in project JSON or Supabase project documents. Hardware planning stays hardware-only; a separate strict behavior contract now previews validated Logic through the same manual command path.
 
 ## Canonical 15-slice roadmap
 
@@ -248,3 +248,7 @@ For hosted Supabase features, copy `.env.example` to `apps/web/.env.local` and p
 - [Slice 10 — Visual Logic](docs/SLICE-10.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
+
+## Pre-Slice-11 application correction
+
+Home, Projects and explicit project routes now separate launching, retrieval and editing. No-provider BONK, contextual workbench, natural Visual Logic with provider-backed preview/Apply, grouped wiring, System/Light/Dark and mobile task sheets are implemented. Manual and AI changes share validated commands/history/persistence. See [correction record](docs/PRE-SLICE-11-UX-CORRECTION.md). No inventory or firmware/flashing was added.

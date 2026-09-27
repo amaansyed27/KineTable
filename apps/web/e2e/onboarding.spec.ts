@@ -6,21 +6,24 @@ test("landing entries, persisted board switching, table refresh and history", as
   await page.goto("/");
   const links = page.getByRole("link", { name: /Open Kinetable/ });
   await expect(links).toHaveCount(3);
-  for (const link of await links.all()) await expect(link).toHaveAttribute("href", "/start");
+  for (const link of await links.all()) await expect(link).toHaveAttribute("href", "/home");
   await links.first().click(); await expect(page).toHaveURL(/\/start$/);
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
   await expect(page.getByRole("status")).toHaveText("ESP32 selected.");
   await expect(page.locator('[data-selected="true"]')).toHaveCount(1);
-  await expect(page.getByRole("button", { name: "Set up my table" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /^Continue with/ })).toBeEnabled();
   await page.reload(); await expect(page.getByRole("radio", { name: "ESP32", exact: true })).toBeChecked();
   await page.getByRole("radio", { name: "Raspberry Pi Pico", exact: true }).check();
   await expect(page.getByRole("radio", { name: "ESP32", exact: true })).not.toBeChecked();
   await expect(page.getByRole("status")).toHaveText("Raspberry Pi Pico selected.");
-  await page.getByRole("button", { name: "Set up my table" }).click();
-  await expect(page).toHaveURL(/\/table$/); await expect(page.locator(".workbench-surface canvas")).toBeVisible();
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await expect(page).toHaveURL(/\/projects\//); await expect(page.locator(".workbench-surface canvas")).toBeVisible();
   await page.reload(); await expect(page.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
-  await page.goBack(); await expect(page).toHaveURL(/\/start$/); await expect(page.getByRole("radio", { name: "Raspberry Pi Pico", exact: true })).toBeChecked();
-  await page.goForward(); await expect(page.getByRole("heading", { name: "What do you want to make?" })).toBeVisible();
+  await page.goto("/start"); await expect(page).toHaveURL(/\/start$/); await expect(page.getByRole("radio", { name: "Raspberry Pi Pico", exact: true })).toBeChecked();
+  await page.goto("/table"); await expect(page.getByRole("heading", { name: "First table" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 test("direct table entry redirects, keyboard-only selection and reduced motion work", async ({ page }) => {
@@ -35,20 +38,24 @@ test("direct table entry redirects, keyboard-only selection and reduced motion w
   await page.keyboard.press("ArrowRight"); await expect(page.getByRole("radio", { name: "Raspberry Pi Pico", exact: true })).toBeChecked();
   await page.keyboard.press("ArrowRight"); await page.keyboard.press("Enter");
   await expect(page.getByRole("radio", { name: "Arduino Uno", exact: true })).toBeChecked();
-  await expect(page.getByRole("button", { name: "Set up my table" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /^Continue with/ })).toBeEnabled();
   await page.keyboard.press("Tab"); await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/home$/); await page.goto("/table");
   await expect(page.locator('[data-board-id="arduino-uno"]')).toBeVisible();
   await page.reload(); await expect(page.locator(".workbench-surface canvas")).toBeVisible();
 });
 test("direct start, ESP32 handoff and responsive layout", async ({ page }) => {
   const response = await page.goto("/start"); expect(response?.status()).toBe(200);
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-  await page.getByRole("button", { name: "Set up my table" }).click();
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
   await expect(page.locator('[data-board-id="esp32-dev-module"]')).toBeVisible();
   mkdirSync("../../output/playwright", { recursive: true });
   for (const [width,height] of [[390,844],[768,1024],[1440,900],[1600,1000],[1920,1080]]) {
     await page.setViewportSize({ width,height });
-    await expect(page.getByRole("heading", { name: "What do you want to make?" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "First table" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width === 390 || width === 1440) await page.screenshot({ path: `../../output/playwright/slice04-table-${width}.png`, fullPage: true });
   }
@@ -63,8 +70,11 @@ test("board selection works when WebGL is unavailable", async ({ page }) => {
   });
   await page.goto("/start");
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-  await page.getByRole("button", { name: "Set up my table" }).click();
-  await expect(page.getByRole("heading", { name: "What do you want to make?" })).toBeVisible();
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "First table" })).toBeVisible();
 });
 test("guest project survives browser restart in IndexedDB", async ({}, testInfo) => {
   test.skip(!!process.env.E2E_BASE_URL, "Persistent local browser check");
@@ -76,7 +86,10 @@ test("guest project survives browser restart in IndexedDB", async ({}, testInfo)
     const page = await context.newPage();
     await page.goto(`${testInfo.project.use.baseURL}/start`);
     await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-    await page.getByRole("button", { name: "Set up my table" }).click();
+    await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
     const projectId = await page.locator("[data-project-id]").getAttribute("data-project-id");
     expect(projectId).toBeTruthy();
     await context.close();

@@ -5,7 +5,11 @@ import { resolve, sep } from "node:path";
 async function start(page: import("@playwright/test").Page) {
   await page.goto("/start");
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-  await page.getByRole("button", { name: "Set up my table" }).click();
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await page.getByText("Parts & connections", {exact:true}).click();
   await expect(page.locator(".workbench-surface canvas")).toBeVisible();
 }
 async function saved(page: import("@playwright/test").Page) {
@@ -21,13 +25,14 @@ test("guest edits parts and transforms with local persistence, undo and redo", a
   await start(page);
   await expect(page.getByRole("button", { name: "Simulate", exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Explain", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "+ Add part" }).click();
+  await page.getByRole("button", { name: "+ Part" }).click();
   await expect(page.getByRole("dialog", { name: "Add part" })).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "LED", exact: true }).click();
-  await expect(page.getByText(/Incomplete ·/)).toBeVisible();
+  await expect(page.getByText("Connection guidance", {exact:true})).toBeVisible();
   const led = (await saved(page)).components.find(c => c.definitionId === "led-5mm")!;
-  await page.reload();
+  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click();
   await expect(page.getByRole("button", { name: "LED", exact: true })).toBeVisible();
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByRole("button", { name: "LED", exact: true }).click();
   const beforeMove = (await saved(page)).layout.entities[led.id].position[0];
   await page.evaluate(() => { const input = document.createElement("input"); input.id = "shortcut-probe"; document.body.append(input); input.focus(); });
@@ -39,8 +44,9 @@ test("guest edits parts and transforms with local persistence, undo and redo", a
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowRight");
   await expect.poll(async () => (await saved(page)).layout.entities[led.id].position[0]).toBeGreaterThan(beforeMove + .29);
-  await page.reload();
+  await page.reload(); await expect(page.locator("[data-project-id]")).toBeVisible(); await page.getByText("Parts & connections",{exact:true}).click();
   expect((await saved(page)).layout.entities[led.id].position[0]).toBeGreaterThan(beforeMove);
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByRole("button", { name: "LED", exact: true }).click();
   const beforeRotate = (await saved(page)).layout.entities[led.id].rotation[2];
   await page.getByRole("button", { name: "Rotate right 15 degrees" }).click();
@@ -50,16 +56,20 @@ test("guest edits parts and transforms with local persistence, undo and redo", a
   await page.getByRole("button", { name: "Redo", exact: true }).click();
   await expect.poll(async () => (await saved(page)).layout.entities[led.id].rotation[2]).toBeGreaterThan(beforeRotate);
   await page.getByRole("button", { name: "Focus" }).click();
-  await page.getByRole("button", { name: "Reset view" }).click();
+  await page.getByRole("button", { name: "Fit" }).click();
   await page.getByRole("button", { name: "Replace" }).click();
   await page.getByRole("dialog", { name: "Replace part" }).getByRole("button", { name: "DHT11 module" }).click();
+  await page.getByRole("button", {name:"Close inspector"}).click();
+  await page.getByText("Parts & connections", {exact:true}).click();
   await expect(page.getByRole("button", { name: "DHT11 module", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.getByRole("button", { name: "LED", exact: true })).toBeVisible();
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByRole("button", { name: "LED", exact: true }).click();
   await page.getByRole("button", { name: "Remove" }).click();
   await expect(page.getByRole("button", { name: "LED", exact: true })).toHaveCount(0);
   await page.keyboard.press("Control+z");
+  await page.getByText("Parts & connections", {exact:true}).click();
   await expect(page.getByRole("button", { name: "LED", exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -83,18 +93,21 @@ test("canvas drag, keyboard controls and responsive workbench remain usable", as
   await page.mouse.down(); await expect(page.getByLabel("ESP32 Dev Module inspector")).toBeVisible(); await page.mouse.move(startX + 60, startY, { steps: 8 }); await page.mouse.up();
   await expect.poll(async () => (await saved(page)).layout.entities["board-main"].position[0]).toBeGreaterThan(before);
   await page.screenshot({ path: "../../output/playwright/workbench-selected.png", fullPage: true });
-  await page.getByRole("button", { name: "+ Add part" }).click();
+  await page.getByRole("button", { name: "+ Part" }).click();
   await page.screenshot({ path: "../../output/playwright/workbench-add-tray.png", fullPage: true });
   await page.getByRole("dialog").getByRole("button", { name: "Push button" }).click();
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByRole("button", { name: "Push button", exact: true }).click();
   await page.keyboard.press("Shift+ArrowDown");
   await page.keyboard.press("f");
   await page.keyboard.press("Escape");
   await expect(page.getByLabel("Push button inspector")).toHaveCount(0);
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
   await page.getByRole("button", { name: "Push button", exact: true }).click();
   await page.keyboard.press("Delete");
   await expect(page.getByRole("button", { name: "Push button", exact: true })).toHaveCount(0);
   await page.keyboard.press("Control+z");
+  await page.getByText("Parts & connections", {exact:true}).click();
   await expect(page.getByRole("button", { name: "Push button", exact: true })).toBeVisible();
 });
 
@@ -103,6 +116,8 @@ test("touch can select and move hardware without overflow", async ({ browser }) 
   try {
     const page = await context.newPage();
     await start(page);
+    await page.getByText("Parts & connections", {exact:true}).click();
+    await page.getByRole("button", {name:"Skip guidance"}).click();
     const box = (await page.locator(".workbench-surface canvas").boundingBox())!;
     const x = box.x + box.width / 2, y = box.y + box.height / 2;
     for (let attempt = 0; attempt < 3 && await page.getByLabel("ESP32 Dev Module inspector").count() === 0; attempt++) {
@@ -141,10 +156,15 @@ test("guest spatial edit survives a real browser restart", async ({}, testInfo) 
     const page = await context.newPage();
     await page.goto(`${testInfo.project.use.baseURL}/start`);
     await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-    await page.getByRole("button", { name: "Set up my table" }).click();
-    await page.getByRole("button", { name: "+ Add part" }).click();
+    await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await page.getByText("Parts & connections", {exact:true}).click();
+    await page.getByRole("button", { name: "+ Part" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "LED", exact: true }).click();
     const led = (await saved(page)).components.find(c => c.definitionId === "led-5mm")!;
+  if (!await page.locator(".workbench-object-list").evaluate(el=>(el as HTMLDetailsElement).open)) await page.getByText("Parts & connections",{exact:true}).click();
     await page.getByRole("button", { name: "LED", exact: true }).click();
     await page.keyboard.press("ArrowRight");
     await expect.poll(async () => (await saved(page)).layout.entities[led.id].position[0]).toBeGreaterThan(-2.8);
@@ -171,9 +191,13 @@ test("WebGL failure preserves project access and part names", async ({ page }) =
   });
   await page.goto("/start");
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-  await page.getByRole("button", { name: "Set up my table" }).click();
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await page.getByText("Parts & connections", {exact:true}).click();
   await expect(page.getByText("3D editing is unavailable.")).toBeVisible();
   await expect(page.getByRole("button", { name: "ESP32 Dev Module", exact: true })).toBeVisible();
   await expect(page.getByText("First table", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "New Build" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "← Projects" })).toBeVisible();
 });

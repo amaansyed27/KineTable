@@ -2,11 +2,11 @@ import { useEffect, type ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { AccountControl } from "../auth/AccountControl";
 import { useProfileStore } from "../state/profileStore";
-export function AppShell({ children, title, tableNav = false }: { children: ReactNode; title: string; tableNav?: boolean }) {
-  const atTable = useLocation().pathname === "/table";
+export function AppShell({ children, title }: { children: ReactNode; title: string }) {
+  const pathname = useLocation().pathname;
   useEffect(() => { document.title = `${title} · Kinetable`; }, [title]);
   return <div className="product-app"><a className="skip-link" href="#app-main">Skip to main content</a>
-    <header className="app-header"><Link className="wordmark" to="/" aria-label="Kinetable home">kinetable<span className="brand-dot" /></Link>{tableNav && <nav aria-label="Application"><Link className={atTable ? "table-nav-current" : undefined} to="/table" aria-current={atTable ? "page" : undefined}>Table</Link></nav>}<AccountControl /></header>
+    <header className="app-header"><Link className="wordmark" to="/home" aria-label="Kinetable home">kinetable<span className="brand-dot" /></Link><nav aria-label="Application"><Link to="/home" aria-current={pathname === "/home" ? "page" : undefined}>Home</Link><Link to="/projects" aria-current={pathname.startsWith("/projects") ? "page" : undefined}>Projects</Link></nav><div className="app-header-actions"><Link className="appearance-icon" to="/settings/appearance" aria-label="Appearance">☼</Link><AccountControl /></div></header>
     {children}
   </div>;
 }

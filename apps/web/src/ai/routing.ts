@@ -22,6 +22,7 @@ export function shouldFallback(code: string): boolean { return retryable.has(cod
 export async function routePlan(
   profile: RoutingProfile, credentials: CredentialMeta[], request: PlanRequest, project: CircuitProject,
   invoke: (route: RouteCandidate, credentialId: string | null) => Promise<unknown>,
+  validateResponse?: (raw: unknown) => PlanResponse,
 ): Promise<RoutedPlan> {
   const attempts: Attempt[] = [];
   for (const route of [...profile.routes].filter(r => r.enabled).sort((a, b) => a.priority - b.priority)) {
@@ -32,9 +33,9 @@ export async function routePlan(
       let code = "PROVIDER_UNAVAILABLE";
       try {
         const raw = await invoke(route, credential?.id ?? null);
-        const response = parsePlanResponse(raw);
+        const response = validateResponse ? validateResponse(raw) : parsePlanResponse(raw);
         if (response.revision !== request.revision) throw new Error("STALE_PROJECT");
-        validateGeneratedPlan(request, project, { status: response.status, summary: response.summary, unsupportedReason: response.unsupportedReason, commands: response.commands });
+        if (!validateResponse) validateGeneratedPlan(request, project, { status: response.status, summary: response.summary, unsupportedReason: response.unsupportedReason, commands: response.commands });
         attempts.push({ routeId: route.id, providerId: route.providerId, modelId: route.modelId, credential: credential ? `${credential.label} ${maskSecret(credential.lastFour)}` : null, code: "SUCCEEDED" });
         return { plan: response, attempts, route };
       } catch (error) {

@@ -35,12 +35,12 @@ async function fixedPost(url: string, body: unknown, headers: Record<string, str
   return { status: response.status, data };
 }
 export function remoteModelProvider(config: RemoteConfig): ModelProvider {
-  return { async generate(prompt) {
+  return { async generate(prompt, schema = planJsonSchema) {
     const preset = remotePreset(config.providerId);
     const anthropic = preset?.protocol === "anthropic";
     const body = anthropic
-      ? { model: config.modelId, max_tokens: 2500, messages: [{ role: "user", content: prompt }], tools: [{ name: "kinetable_plan", description: "Return the exact validated assembly proposal.", input_schema: planJsonSchema }], tool_choice: { type: "tool", name: "kinetable_plan" } }
-      : { model: config.modelId, max_tokens: 2500, stream: false, messages: [{ role: "user", content: prompt }], response_format: { type: "json_schema", json_schema: { name: "kinetable_plan", strict: true, schema: planJsonSchema } } };
+      ? { model: config.modelId, max_tokens: 2500, messages: [{ role: "user", content: prompt }], tools: [{ name: "kinetable_plan", description: "Return the exact validated assembly proposal.", input_schema: schema }], tool_choice: { type: "tool", name: "kinetable_plan" } }
+      : { model: config.modelId, max_tokens: 2500, stream: false, messages: [{ role: "user", content: prompt }], response_format: { type: "json_schema", json_schema: { name: "kinetable_plan", strict: true, schema } } };
     const response = !preset?.baseUrl
       ? await pinnedJsonPost(config.baseUrl!, "chat/completions", body, config.secret, config.authMode ?? "bearer")
       : await fixedPost(`${preset!.baseUrl}/${anthropic ? "messages" : "chat/completions"}`, body, anthropic

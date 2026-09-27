@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { parsePlanRequest } from "../../apps/web/src/ai/contract.js";
+import { planBehavior } from "../../apps/web/src/ai/behaviorPlanner.js";
 import { planHardware } from "../../apps/web/src/ai/planner.js";
 import { HardwareError } from "../../apps/web/src/hardware-core/commands.js";
 import { migrateProject, type KinetableProjectV4 } from "../../apps/web/src/projects/v4.js";
@@ -32,12 +33,13 @@ export default async function handler(req: Request, res: ServerResponse) {
     const provider = remoteModelProvider(validateRemoteConfig(body.provider));
     const bearer = /^Bearer (\S+)$/.exec(req.headers.authorization ?? "")?.[1];
     const project = bearer ? await ownedProject(bearer, input.projectId) : migrateProject(body.project);
-    const plan = await planHardware(provider, input, project);
+    if (body.task !== undefined && body.task !== "hardware" && body.task !== "logic") throw new Error("INVALID_REQUEST");
+    const plan = body.task === "logic" ? await planBehavior(provider,input,project) : await planHardware(provider, input, project);
     return send(res, 200, { ...plan, revision: input.revision });
   } catch (error) {
     if (error instanceof HardwareError) return send(res, 422, { code: "HARDWARE_VALIDATION", detail: error.code });
     const code = error instanceof Error ? error.message : "BACKEND_UNAVAILABLE";
-    const status: Record<string, number> = { INVALID_REQUEST: 400, INVALID_ENDPOINT: 400, AUTH_REQUIRED: 401, PROJECT_NOT_FOUND: 404, STALE_PROJECT: 409, INVALID_PROJECT: 422, INVALID_MODEL_RESPONSE: 422, SAFETY_REFUSAL: 422, MODEL_UNAVAILABLE: 422, CREDENTIAL_REJECTED: 401, RATE_LIMIT: 429, QUOTA_EXHAUSTED: 429, TIMEOUT: 503, NETWORK_FAILURE: 503, PROVIDER_UNAVAILABLE: 503, BACKEND_UNAVAILABLE: 503 };
+    const status: Record<string, number> = { INVALID_REQUEST: 400, INVALID_ENDPOINT: 400, AUTH_REQUIRED: 401, PROJECT_NOT_FOUND: 404, STALE_PROJECT: 409, INVALID_PROJECT: 422, HARDWARE_VALIDATION: 422, INVALID_MODEL_RESPONSE: 422, SAFETY_REFUSAL: 422, MODEL_UNAVAILABLE: 422, CREDENTIAL_REJECTED: 401, RATE_LIMIT: 429, QUOTA_EXHAUSTED: 429, TIMEOUT: 503, NETWORK_FAILURE: 503, PROVIDER_UNAVAILABLE: 503, BACKEND_UNAVAILABLE: 503 };
     return send(res, status[code] ?? 503, { code: code in status ? code : "BACKEND_UNAVAILABLE" });
   }
 }

@@ -202,3 +202,13 @@ it("reads v3 without cloud overwrite, then persists, undoes and reconnects v4 lo
   cloud.save.mockImplementation(async document => ({ ...remote, schema_version: 4, document, updated_at: document.metadata.updatedAt }));
   await store.getState().sync(); expect(store.getState().status).toBe("synced"); expect((await localProjectRepository.list())[0].cloudDirty).toBe(false);
 });
+
+it("opens a specific saved identity, keeps missing and other-owner routes from selecting an unrelated row",async()=>{
+  const a=starterRow("esp32-dev-module"),b=starterRow("raspberry-pi-pico"),owned=starterRow("arduino-uno","user-other");
+  await localProjectRepository.save(a);await localProjectRepository.save(b);await localProjectRepository.save(owned);
+  const store=createProjectStore(localProjectRepository,{list:vi.fn(async()=>[]),save:vi.fn()});
+  expect(await store.getState().openById(a.id,"esp32-dev-module",null)).toBe(true);expect(store.getState().project?.id).toBe(a.id);
+  expect(await store.getState().openById(b.id,"esp32-dev-module",null)).toBe(true);expect(store.getState().project?.document.boardIds[0]).toBe("raspberry-pi-pico");
+  expect(await store.getState().openById("missing","esp32-dev-module",null)).toBe(false);
+  useAuthStore.setState({session:user("user-a")});expect(await store.getState().openById(owned.id,"esp32-dev-module",user("user-a"))).toBe(false);expect(store.getState().project?.id).not.toBe(owned.id);
+});

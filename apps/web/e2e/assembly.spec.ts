@@ -7,36 +7,39 @@ test.beforeEach(async ({ context }) => protectPreview(context));
 test("signed-out users keep their intent and can configure a provider", async ({ page }) => {
   await page.goto("/start");
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-  await page.getByRole("button", { name: "Set up my table" }).click();
-  await page.getByRole("link", { name: "New Build" }).click();
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make a motion alarm");
-  await page.getByRole("button", { name: "Create build" }).click();
+  await page.getByRole("button", { name: "Create project" }).click();
   const id = await page.locator("[data-project-id]").getAttribute("data-project-id");
-  await expect(page.getByRole("button", { name: "Build with Kinetable" })).toBeVisible();
-  await page.getByRole("button", { name: "Build with Kinetable" }).click();
+  await expect(page.getByRole("button", { name: "✦ Ask Kinetable" })).toBeVisible();
+  await page.getByRole("button", { name: "✦ Ask Kinetable" }).click(); await page.getByRole("button", { name: "Preview assembly" }).click();
   await expect(page.getByRole("alert")).toContainText("Choose a local model, CLI, or API provider");
-  await page.getByRole("link", { name: "Provider settings" }).click();
+  await page.getByRole("link", { name: "Set up AI providers →" }).click();
   await expect(page).toHaveURL(/\/settings\/providers/);
-  await page.getByRole("link", { name: "Back to your table" }).click();
+  await page.goto(`/projects/${id}`); await page.getByRole("button",{name:"✦ Ask Kinetable"}).click();
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", id!);
-  await expect(page.getByText("Make a motion alarm")).toBeVisible();
+  await expect(page.locator(".ai-sheet")).toContainText("Make a motion alarm");
 });
 
 test("fresh account browser restores hosted v2, applies validated commands, and keeps failure paths safe", async ({ page, browser }) => {
   test.skip(process.env.KINETABLE_HOSTED_V2_BROWSER_QA !== "1", "Requires disposable hosted v2 account");
   test.setTimeout(120000);
   const { a, projectId } = JSON.parse(readFileSync("../../output/slice-06-hosted-v2.json", "utf8"));
-  await page.goto("/auth");
+  await page.goto(`/auth?next=/projects/${projectId}`);
   await page.evaluate(() => localStorage.setItem("kinetable:providers:v1", JSON.stringify({ profile: { id: "qa", name: "QA", routes: [{ id: "custom", providerId: "custom", transport: "CUSTOM_OPENAI_COMPATIBLE", modelId: "qa-model", baseUrl: "https://example.com/v1", authMode: "none", credentialIds: [], enabled: true, priority: 0 }] }, credentials: [] })));
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
-  await page.goto("/auth");
-  await page.getByLabel("Your email").fill(a.email);
+  await page.goto(`/auth?next=/projects/${projectId}`);
+  await page.getByLabel("Email",{exact:true}).fill(a.email);
   await page.getByLabel("Password", { exact: true }).fill(a.password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", projectId, { timeout: 20000 });
-  await expect(page.getByRole("heading", { name: "Your build is on the table." })).toBeVisible();
-  await expect(page.getByText("2 parts · 6 saved connections", { exact: false })).toBeVisible();
-  await expect(page.getByText("HC-SR501 PIR · Grove Buzzer V1.1")).toBeVisible();
+  await expect(page.getByText("Connections complete")).toBeVisible();
+  await page.getByText("Parts & connections",{exact:true}).click(); await expect(page.getByRole("button",{name:"HC-SR501 PIR",exact:true})).toBeVisible(); await expect(page.getByRole("button",{name:"Grove Buzzer V1.1",exact:true})).toBeVisible();
   await expect(page.locator(".workbench-surface canvas")).toBeVisible();
   await page.waitForTimeout(800); // Capture the settled arrival animation.
   mkdirSync("../../output/playwright", { recursive: true });
@@ -51,11 +54,11 @@ test("fresh account browser restores hosted v2, applies validated commands, and 
   await page.route("https://*.supabase.co/**", route => route.abort());
   await page.reload();
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", projectId);
-  await expect(page.getByRole("heading", { name: "Your build is on the table." })).toBeVisible();
+  await expect(page.getByText("Connections complete")).toBeVisible();
   await page.unrouteAll();
-  await page.getByRole("link", { name: "New Build" }).click();
+  await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make an LED blink");
-  await page.getByRole("button", { name: "Create build" }).click();
+  await page.getByRole("button", { name: "Create project" }).click();
   const ledId = await page.locator("[data-project-id]").getAttribute("data-project-id");
   const e = (componentId: string, pinId: string) => ({ componentId, pinId });
   const commands = [
@@ -68,17 +71,17 @@ test("fresh account browser restores hosted v2, applies validated commands, and 
   let releasePlan!: () => void;
   const planGate = new Promise<void>(resolve => { releasePlan = resolve; });
   await page.route("**/api/ai/plan", async route => { const request = JSON.parse(route.request().postData()!); await planGate; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "supported", summary: "LED and resistor connected.", unsupportedReason: "", commands, revision: request.input.revision }) }); });
-  await page.getByRole("button", { name: "Build with Kinetable" }).click();
-  await expect(page.getByText("Planning your build…")).toBeVisible();
+  await page.getByRole("button", { name: "✦ Ask Kinetable" }).click(); await page.getByRole("button", { name: "Preview assembly" }).click();
+  await expect(page.getByRole("button",{name:"Checking your build…"})).toBeVisible();
   await page.screenshot({ path: "../../output/playwright/assembly-planning.png", fullPage: true });
   releasePlan();
-  await expect(page.getByRole("heading", { name: "Your build is on the table." })).toBeVisible({ timeout: 20000 });
-  const local = await page.evaluate(async id => new Promise<{ schemaVersion: number; document: { connections: unknown[] } }>((resolve, reject) => {
+  await expect(page.getByRole("heading",{name:"I’ll add"})).toBeVisible({timeout:20000}); await page.getByRole("button",{name:"Apply",exact:true}).click(); await expect(page.getByText("Connections complete")).toBeVisible();
+  const local = await page.evaluate(async id => new Promise<{ schemaVersion: number; document: { wires: unknown[] } }>((resolve, reject) => {
     const request = indexedDB.open("kinetable"); request.onerror = () => reject(request.error);
     request.onsuccess = () => { const tx = request.result.transaction("projects", "readonly"), row = tx.objectStore("projects").get(id); row.onsuccess = () => resolve(row.result); row.onerror = () => reject(row.error); };
   }), ledId!);
-  expect(local.schemaVersion).toBe(2);
-  expect(local.document.connections).toHaveLength(3);
+  expect(local.schemaVersion).toBe(4);
+  expect(local.document.wires).toHaveLength(3);
   await page.unroute("**/api/ai/plan");
   const env = Object.fromEntries(readFileSync(".env.local", "utf8").split(/\r?\n/).filter(line => line.includes("=")).map(line => { const i = line.indexOf("="); return [line.slice(0,i), line.slice(i+1)]; }));
   const token = await page.evaluate(() => {
@@ -87,38 +90,38 @@ test("fresh account browser restores hosted v2, applies validated commands, and 
   });
   expect(token).toBeTruthy();
   const cloudRow = async (id: string) => (await (await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/projects?id=eq.${id}&select=*`, { headers: { apikey: env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` } })).json())[0];
-  await expect.poll(async () => (await cloudRow(ledId!))?.schema_version, { timeout: 20000 }).toBe(2);
+  await expect.poll(async () => (await cloudRow(ledId!))?.schema_version, { timeout: 20000 }).toBe(4);
   const freshContext = await browser.newContext({ storageState: process.env.E2E_STORAGE_STATE });
   try {
     await protectPreview(freshContext);
     const fresh = await freshContext.newPage();
-    await fresh.goto(new URL("/auth", page.url()).toString());
-    await fresh.getByLabel("Your email").fill(a.email);
+    await fresh.goto(new URL(`/auth?next=/projects/${ledId}`, page.url()).toString());
+    await fresh.getByLabel("Email",{exact:true}).fill(a.email);
     await fresh.getByLabel("Password", { exact: true }).fill(a.password);
     await fresh.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(fresh.locator("[data-project-id]")).toHaveAttribute("data-project-id", ledId!, { timeout: 20000 });
-    await expect(fresh.getByRole("heading", { name: "Your build is on the table." })).toBeVisible();
+    await expect(fresh.getByText("Connections complete")).toBeVisible();
   } finally { await freshContext.close(); }
-  await page.getByRole("link", { name: "New Build" }).click();
+  await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Build me a drone flight controller");
-  await page.getByRole("button", { name: "Create build" }).click();
+  await page.getByRole("button", { name: "Create project" }).click();
   const unsupportedId = await page.locator("[data-project-id]").getAttribute("data-project-id");
   await page.route("**/api/ai/plan", route => { const request = JSON.parse(route.request().postData()!); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "unsupported", summary: "Unsupported build", unsupportedReason: "Flight-control hardware is outside the supported catalog.", commands: [], revision: request.input.revision }) }); });
-  await page.getByRole("button", { name: "Build with Kinetable" }).click();
-  await expect(page.getByRole("alert")).toContainText("can’t build that reliably yet", { timeout: 20000 });
+  await page.getByRole("button", { name: "✦ Ask Kinetable" }).click(); await page.getByRole("button", { name: "Preview assembly" }).click();
+  await expect(page.getByRole("heading",{name:"Not supported yet"})).toBeVisible({timeout:20000});await expect(page.locator(".ai-change-preview")).toContainText("Flight-control hardware is outside the supported catalog.");
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", unsupportedId!);
   await page.screenshot({ path: "../../output/playwright/assembly-unsupported.png", fullPage: true });
   await page.unroute("**/api/ai/plan");
-  await page.getByRole("link", { name: "New Build" }).click();
+  await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make a button control an LED");
-  await page.getByRole("button", { name: "Create build" }).click();
+  await page.getByRole("button", { name: "Create project" }).click();
   const newId = await page.locator("[data-project-id]").getAttribute("data-project-id");
   await page.route("**/api/ai/plan", route => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "PROVIDER_UNAVAILABLE" }) }));
-  await page.getByRole("button", { name: "Build with Kinetable" }).click();
+  await page.getByRole("button", { name: "✦ Ask Kinetable" }).click(); await page.getByRole("button", { name: "Preview assembly" }).click();
   await expect(page.getByRole("alert")).toContainText("All configured providers failed", { timeout: 20000 });
   await page.screenshot({ path: "../../output/playwright/assembly-provider-failure.png", fullPage: true });
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", newId!);
-  await expect(page.getByRole("button", { name: "Build with Kinetable" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "✦ Ask Kinetable" })).toBeVisible();
   await page.reload();
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", newId!);
   for (const id of [ledId, unsupportedId, newId]) {
@@ -131,14 +134,18 @@ test("fresh account browser restores hosted v2, applies validated commands, and 
 test("table assembly controls fit required viewports", async ({ page }) => {
   await page.goto("/start");
   await page.getByRole("radio", { name: "ESP32", exact: true }).check();
-  await page.getByRole("button", { name: "Set up my table" }).click();
-  await page.getByRole("link", { name: "New Build" }).click();
+  await page.getByRole("button", { name: /^Continue with/ }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await page.goto("/table");
+  await expect(page.locator("[data-project-id]")).toBeVisible();
+  await page.getByText("Parts & connections", {exact:true}).click();
+  await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make a motion alarm");
-  await page.getByRole("button", { name: "Create build" }).click();
+  await page.getByRole("button", { name: "Create project" }).click();
   mkdirSync("../../output/playwright", { recursive: true });
   for (const [width, height] of [[390,844],[768,1024],[1440,900],[1600,1000],[1920,1080]]) {
     await page.setViewportSize({ width, height });
-    await expect(page.getByRole("button", { name: "Build with Kinetable" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "✦ Ask Kinetable" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     await page.screenshot({ path: `../../output/playwright/assembly-signed-out-${width}.png`, fullPage: true });
   }
