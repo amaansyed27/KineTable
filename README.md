@@ -232,6 +232,7 @@ For hosted Supabase features, copy `.env.example` to `apps/web/.env.local` and p
 
 - [Product specification](docs/PRODUCT-SPEC.md)
 - [UX flows](docs/UX-MOCKS.md)
+- [Product/UX audit before Slice 11](docs/reviews/2026-09-27-product-ux-audit.md)
 - [Design system](docs/DESIGN-SYSTEM.md)
 - [Technical architecture](docs/ARCHITECTURE.md)
 - [Backend and deployment](docs/BACKEND.md)
