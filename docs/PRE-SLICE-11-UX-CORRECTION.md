@@ -64,7 +64,9 @@ See [TESTING](TESTING.md). Ignored `output` holds screenshots/logs, not product 
 
 Final local acceptance: lint, root/web TypeScript and production build passed; 88 Vitest tests plus the landing choreography check passed. All 47 local E2E checks passed with hosted and real Codex CLI opt-ins enabled; the one deployment-only route check is run against production. The five-width visual sweep has no page errors or horizontal overflow. Hosted auth, fresh restore, offline reconnect, owner RLS and unchanged simulation timestamps passed. No failures were waived.
 
-Deployment: [Kinetable](https://kinetable.vercel.app). Final READY status and exact main SHA are verified in the delivery report.
+Production browser acceptance: 21 distinct checks passed (19 in the main run, then the hosted layout and authenticated no-runtime-write checks with their opt-ins enabled). Direct refresh covered all new routes, valid project identity and both legacy aliases. Production also passed five-width/theme/vault screenshots, real CLI assembly/behavior, hosted auth/restore/offline/RLS and simulation. One initial five-second navigation timeout was resolved using the existing twenty-second project-opening allowance and rerun successfully.
+
+Deployment: [Kinetable](https://kinetable.vercel.app). Final READY status, exact main SHA and a final deployment smoke pass are verified in the delivery report.
 
 ## Known limitations
 
