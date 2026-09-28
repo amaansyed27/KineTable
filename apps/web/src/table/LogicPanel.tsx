@@ -16,6 +16,7 @@ const componentIds = (rule: LogicRule) => [...new Set(["componentId" in rule.whe
 
 export function LogicPanel({ document, onReference, onRule }: { document: KinetableProjectV4; onReference: (id: string | null) => void; onRule: (ids: string[]) => void }) {
   const panel = useRef<HTMLElement>(null);
+  const [tab, setTab] = useState<"chat" | "manual">("manual");
   const [selectedId, select] = useState<string | null>(document.logic[0]?.id ?? null);
   const [error, setError] = useState<{ id: string; message: string } | null>(null);
   const apply = useProjectStore(s => s.applyTransaction);
@@ -55,8 +56,11 @@ export function LogicPanel({ document, onReference, onRule }: { document: Kineta
   }
   const componentSelect = (kind: keyof typeof models, value: string, onChange: (id: string) => void, label: string) => <label className="logic-reference"><select aria-label={label} value={value} onChange={e => onChange(e.target.value)} onFocus={() => highlight(value)} onBlur={() => highlight(null)} onMouseEnter={() => highlight(value)} onMouseLeave={() => highlight(null)}>{parts(kind).map(c => <option key={c.id} value={c.id}>{name(c.id)}</option>)}</select></label>;
   return <section ref={panel} className="logic-panel" aria-label="Visual Logic editor" onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); void (e.shiftKey ? redo() : undo()); } }}>
-    <div className="logic-head"><div><h2>Behavior</h2></div><div><button disabled={!canUndo} onClick={() => void undo()} aria-label="Undo logic edit">↶ Undo</button><button disabled={!canRedo} onClick={() => void redo()} aria-label="Redo logic edit">↷ Redo</button></div></div>
-    <BehaviorAssistant document={document} />
+    <div className="logic-head"><h2>Behavior</h2></div>
+    <div className="behavior-tabs" role="tablist" aria-label="Behavior method">{(["chat", "manual"] as const).map(value => <button key={value} id={`behavior-${value}-tab`} role="tab" aria-selected={tab===value} aria-controls={`behavior-${value}`} tabIndex={tab===value?0:-1} onClick={()=>setTab(value)} onKeyDown={e=>{if(["ArrowLeft","ArrowRight","Home","End"].includes(e.key)){e.preventDefault();const next=e.key==="Home"?"chat":e.key==="End"?"manual":tab==="chat"?"manual":"chat";setTab(next);panel.current?.querySelector<HTMLButtonElement>(`#behavior-${next}-tab`)?.focus();}}}>{value==="chat"?"AI chat":"Manual"}</button>)}</div>
+    <div id="behavior-chat" role="tabpanel" aria-labelledby="behavior-chat-tab" hidden={tab!=="chat"}><BehaviorAssistant key={document.id} document={document} /></div>
+    <div id="behavior-manual" role="tabpanel" aria-labelledby="behavior-manual-tab" hidden={tab!=="manual"}>
+    <div className="logic-history" role="toolbar" aria-label="Behavior history"><span>Build your rules</span><button disabled={!canUndo} onClick={() => void undo()} aria-label="Undo logic edit" title="Undo (Ctrl/⌘ Z)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4 3 9l5 5M3 9h9a5 5 0 0 1 0 10" /></svg>Undo</button><button disabled={!canRedo} onClick={() => void redo()} aria-label="Redo logic edit" title="Redo (Ctrl/⌘ Shift Z)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 4 5 5-5 5m5-5H8a5 5 0 0 0 0 10" /></svg>Redo</button></div>
     {!canEdit && <p className="logic-error" role="status">Complete a supported physical circuit before authoring behavior. {compatible.diagnostics[0]}</p>}
     {!document.logic.length && <div className="logic-empty"><p>Tell the circuit what should happen.</p><button disabled={!canEdit} onClick={add}>Add behavior</button>{canEdit && compatible.circuit && availableRecipes(compatible.circuit).some(r => r.id === "bonk") && <button onClick={bonk}>Start from BONK</button>}</div>}
     {document.logic.map((rule, ruleIndex) => <article key={rule.id} className="logic-rule" aria-label={`Behavior ${ruleIndex + 1}`} onClick={() => { select(rule.id); onRule(componentIds(rule)); }} data-selected={selectedId === rule.id}>
@@ -71,5 +75,6 @@ export function LogicPanel({ document, onReference, onRule }: { document: Kineta
     </article>)}
     {document.logic.length > 0 && document.logic.length < 16 && <button className="logic-add" disabled={!canEdit} onClick={add}>+ Add behavior</button>}
     {error?.id === "new" && <p className="logic-error" role="alert">{error.message}</p>}
+    </div>
   </section>;
 }

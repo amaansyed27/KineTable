@@ -1,4 +1,6 @@
 /* Shared interaction, control and workspace layout rules. */
+:root { --selection: #e9e5db; }
+:root[data-theme=dark] { --selection: #34362f; }
 html:has(.product-app), body:has(.product-app), .route-scene:has(.product-app),
 html:has(.route-loading), body:has(.route-loading), .route-scene:has(.route-loading) {
   background: var(--paper);
@@ -12,6 +14,13 @@ body:has(.product-app), body:has(.route-loading) { background-image: none; }
 }
 .product-app button:not(:disabled):hover { background-color: var(--selection); border-color: var(--control); }
 .product-app button:not(:disabled):active { transform: translateY(1px); }
+.product-app .button:not(:disabled):hover { background: color-mix(in srgb, var(--ink) 92%, var(--paper)); color: var(--paper); border-color: var(--ink); box-shadow: 0 5px 14px #0002; transform: translateY(-2px); }
+.product-app .button span { color: inherit; }
+.product-app .button.secondary:not(:disabled):hover { background: var(--raised); color: var(--ink); border-color: var(--ink); }
+.product-app .button:not(:disabled):active { transform: translateY(0) scale(.98); box-shadow: none; }
+.product-app .button > span:last-child:not(.button-label), .button-arrow { transition: transform .2s cubic-bezier(.16,1,.3,1); }
+.product-app .button:hover > span:last-child:not(.button-label), .button:hover .button-arrow { transform: translateX(4px); }
+.button-arrow { width: 20px; height: 20px; flex: 0 0 20px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .product-app a:hover { color: var(--focus); }
 .product-app :is(input, select, textarea):focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .product-app :is(input, select, textarea) { border-radius: 9px; border-color: var(--line); }
@@ -101,7 +110,8 @@ body:has(.product-app), body:has(.route-loading) { background-image: none; }
 .settings-nav { position: sticky; top: 32px; gap: 8px; }
 .settings-nav h2 { margin: 0 0 24px; font-size: 22px; }
 .settings-nav a { padding: 13px 14px; border-radius: 9px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-.settings-nav a:hover, .settings-nav a[aria-current=page] { background: var(--selection); color: var(--ink); }
+.settings-nav a:hover { background: var(--raised); color: var(--ink); transform: translateX(3px); }
+.settings-nav a[aria-current=page] { background: var(--raised); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
 .settings-content { min-width: 0; max-width: 1100px; }
 .settings-heading { padding-bottom: 30px; margin-bottom: 28px; border-bottom: 1px solid var(--line); }
 .settings-heading h1 { margin: 0 0 12px; font-size: 2rem; letter-spacing: -.04em; }
@@ -253,3 +263,88 @@ body:has(.product-app), body:has(.route-loading) { background-image: none; }
 .product-app :is(.account-menu, .workbench-inspector, .workbench-tool-body, .workbench-tray, .ai-sheet) { border: 0; }
 @supports (appearance: base-select) { .product-app select::picker(select) { border: 0; } }
 .account-storage-status { color: var(--ink) !important; font-weight: 500; }
+
+/* Board choice moves through the hardware and a compact marker, without a wash. */
+.board-option[data-selected=true] { background: none; border-bottom-color: transparent; }
+.board-option { padding-bottom: 2px; }
+.board-label { pointer-events: none; }
+.board-label { position: relative; display: grid; gap: 8px; padding-bottom: 36px; transition: transform .24s cubic-bezier(.16,1,.3,1), opacity .2s; }
+.board-description { margin-top: 0; }
+.board-option[data-quiet=true] .board-label { opacity: .75; }
+.board-option:hover .board-label, .board-option:has(input:focus-visible) .board-label { transform: translateY(-4px); opacity: 1; }
+.board-option[data-selected=true] .board-label { opacity: 1; }
+.board-option:has(input:focus-visible) { outline-offset: -6px; border-radius: 12px; }
+.board-selection-mark { position: absolute; bottom: 0; left: calc(50% - 12px); width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: var(--paper); }
+.board-selection-mark svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.setup-action .button { width: min(360px, 100%); gap: 16px; justify-content: space-between; }
+.setup-action .button-label { flex: 1; }
+.selection-status { margin: 0 0 14px; }
+.setup-action .local-note { margin: 14px 0 0; }
+.workbench-modes button { position: relative; }
+.product-app .workbench-modes button[aria-current] { border-bottom-color: transparent; }
+.mode-selection-mark { position: absolute; left: 6px; right: 6px; bottom: 0; height: 2px; background: var(--ink); }
+.workbench-modes button:hover { color: var(--ink); background: var(--raised); }
+.workbench :is(.logic-panel, .simulation-task, .explain-task) { animation: workspace-arrive .2s cubic-bezier(.16,1,.3,1); }
+@keyframes workspace-arrive { from { opacity: .7; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.product-app .theme-options > button:hover { background: transparent; }
+@media (max-width: 600px) {
+  .board-option { padding: 14px 18px; justify-content: flex-end; align-items: center; }
+  .board-label { padding: 0 0 0 34px; width: 185px; text-align: left; }
+  .board-name { justify-content: flex-start; }
+  .board-selection-mark { left: 0; top: calc(50% - 12px); bottom: auto; }
+  .board-option:hover .board-label, .board-option:has(input:focus-visible) .board-label { transform: translateX(-3px); }
+  .mode-selection-mark { left: 0; right: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-app .button, .board-option .board-label, .product-app .button > span, .button-arrow { transform: none !important; }
+}
+
+/* Behavior methods share a shell, with the conversation owning its own scroll area. */
+.logic-panel:has(#behavior-chat:not([hidden])) { display: flex; flex-direction: column; }
+.logic-head { margin-bottom: 16px; }
+.behavior-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+.product-app .behavior-tabs button { position: relative; padding: 11px 2px 14px; border: 0; border-radius: 0; background: transparent; color: var(--muted); font-size: 14px; }
+.product-app .behavior-tabs button:hover, .product-app .behavior-tabs button[aria-selected=true] { color: var(--ink); background: transparent; }
+.behavior-tabs button[aria-selected=true]::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--ink); }
+#behavior-chat:not([hidden]) { display: flex; flex: 1; min-height: 0; }
+#behavior-manual[hidden], #behavior-chat[hidden] { display: none; }
+.logic-history { display: flex; align-items: center; gap: 6px; padding: 0 0 14px; }
+.logic-history span { flex: 1; font-size: 13px; color: var(--muted); }
+.product-app .logic-history button { display: inline-flex; align-items: center; gap: 5px; padding: 8px 10px; border: 0; background: transparent; border-radius: 8px; color: var(--ink); font-size: 12px; }
+.logic-history button svg, .chat-toolbar button svg, .chat-send svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.logic-history button:disabled { opacity: .38; }
+.behavior-chat { flex: 1; min-width: 0; min-height: 0; padding: 0; display: flex; flex-direction: column; }
+.chat-toolbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 0 0 12px; }
+.chat-history { position: relative; min-width: 0; }
+.chat-history summary { font-size: 13px; padding: 9px 12px; border-radius: 9px; cursor: pointer; list-style: none; }
+.chat-history summary::-webkit-details-marker { display: none; }
+.chat-history summary::after { content: "⌄"; margin-left: 10px; }
+.chat-history > div { position: absolute; top: calc(100% + 5px); left: 0; z-index: 8; width: min(290px, 75vw); max-height: 270px; overflow: auto; padding: 7px; background: var(--raised); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 28px #0003; }
+.product-app .chat-history button { display: grid; gap: 3px; width: 100%; padding: 10px; text-align: left; border: 0; border-radius: 7px; background: transparent; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-history button[aria-current=true] { font-weight: 600; }
+.chat-history button small { color: var(--muted); font-size: 10px; }
+.product-app .chat-toolbar > button { display: inline-flex; align-items: center; gap: 6px; padding: 9px 11px; white-space: nowrap; border-radius: 9px; }
+.chat-messages { flex: 1; min-height: 130px; overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 10px 2px 20px; scrollbar-gutter: stable; }
+.chat-empty { margin: auto 0; padding: 26px 8px; text-align: center; }
+.chat-empty h3 { margin: 0 0 8px; font-size: 21px; }
+.chat-empty p { max-width: 36ch; margin: 0 auto 16px; line-height: 1.5; }
+.product-app .chat-empty button { font-size: 12px; border-radius: 9px; }
+.chat-message { max-width: 88%; align-self: flex-start; }
+.chat-message[data-role=user] { align-self: flex-end; padding: 11px 14px; background: var(--raised); border-radius: 14px 14px 4px 14px; }
+.chat-message[data-role=assistant] { padding: 6px 1px; }
+.chat-message p { white-space: pre-wrap; line-height: 1.55; color: var(--ink); margin: 0; font-size: 13px; }
+.chat-message small { display: block; color: var(--muted); font-size: 10px; margin-bottom: 5px; }
+.chat-working { color: var(--muted); font-size: 12px; }
+.chat-message .ai-change-preview { margin-top: 14px; padding: 12px; background: var(--raised); border-radius: 10px; }
+.chat-message .ai-change-preview ul { padding-left: 18px; font-size: 12px; line-height: 1.5; }
+.chat-message .ai-change-preview button { margin-right: 8px; }
+.chat-composer { margin-top: auto; padding: 12px 0 3px; border-top: 1px solid var(--line); }
+.behavior-chat .chat-composer textarea { display: block; width: 100%; min-height: 56px; max-height: 160px; resize: vertical; padding: 12px; background: var(--raised); font-size: 13px; }
+.chat-composer-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.chat-composer-actions select { flex: 1; max-width: 210px; font-size: 11px; }
+.chat-composer-actions a { margin-right: auto; font-size: 11px; }
+.product-app .chat-send { display: grid; place-items: center; min-width: 42px; min-height: 42px; padding: 0; border-radius: 9px; }
+.chat-composer > p { font-size: 11px; margin: 9px 0 0; }
+.chat-composer > p[role=alert] { color: var(--error); }
+.chat-composer > small { display: block; margin-top: 7px; color: var(--muted); font-size: 10px; }
+@media(max-width:600px) { .workbench[data-mode=logic]:has(#behavior-chat:not([hidden])) { grid-template-rows: 26% 74%; } .workbench[data-mode=logic]:has(#behavior-chat:not([hidden])) :is(.workbench-object-list, .workbench-tool-dock) { bottom: calc(74% + 14px); } .logic-panel:has(#behavior-chat:not([hidden])) { padding-bottom: 15px; } .chat-messages { min-height: 90px; } .chat-composer-actions select { max-width: 145px; } }

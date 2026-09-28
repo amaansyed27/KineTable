@@ -22,18 +22,18 @@ function BoardObject({ board, x, y, selected, quiet, hovered, reduced, single, t
   useEffect(() => () => shadow.dispose(), [shadow]);
   useFrame((_, delta) => {
     if (!object.current) return;
-    const defaultScale = single ? 1.5 : selected ? 1.08 : quiet ? .88 : 1;
+    const defaultScale = single ? 1.5 : selected ? 1.1 : hovered ? 1.04 : quiet ? .96 : 1;
     const baseScale = transform?.scale ?? [defaultScale, defaultScale, defaultScale];
     const visualScale = board.visualId === "uno" ? .82 : 1;
     const targetScale = baseScale.map(value => value * visualScale);
-    const targetAngle = transform?.rotation[2] ?? (hovered ? -.12 : .07);
-    const targetLift = transform ? 0 : hovered || selected ? .12 : 0;
+    const targetAngle = transform?.rotation[2] ?? (hovered ? -.12 : selected ? -.06 : .07);
+    const targetLift = transform ? 0 : selected ? .2 : hovered ? .14 : 0;
     const amount = reduced ? 1 : 1 - Math.exp(-Math.min(delta,.06) * 13);
     const o = object.current;
     o.scale.set(MathUtils.lerp(o.scale.x, targetScale[0], amount), MathUtils.lerp(o.scale.y, targetScale[1], amount), MathUtils.lerp(o.scale.z, targetScale[2], amount));
     o.rotation.z = MathUtils.lerp(o.rotation.z, targetAngle, amount);
     o.position.y = MathUtils.lerp(o.position.y, targetLift, amount);
-    if (shade.current) shade.current.opacity = hovered || selected ? .85 : .55;
+    if (shade.current) shade.current.opacity = MathUtils.lerp(shade.current.opacity, hovered || selected ? .75 : .55, amount);
     if (Math.abs(o.scale.x-targetScale[0]) + Math.abs(o.scale.y-targetScale[1]) + Math.abs(o.scale.z-targetScale[2]) + Math.abs(o.rotation.z-targetAngle) + Math.abs(o.position.y-targetLift) > .001) invalidate();
   });
   return <group position={transform?.position ?? [x,y,0]}>
@@ -53,8 +53,8 @@ function BoardWorld({ selected, hovered, single, reduced, transform, project }: 
     <ambientLight intensity={1.8} /><directionalLight position={[-3,6,8]} intensity={3} /><directionalLight position={[5,-2,4]} intensity={1} />
     <Environment resolution={64} frames={1}><Lightformer position={[-3,4,5]} scale={[8,8,1]} intensity={2} color="#fffdf5" /></Environment>
     {displayed.map((board,i) => <BoardObject key={board.id} board={board}
-      x={single || mobile ? 0 : (i-1)*size.width/3/zoom}
-      y={single ? .15 : mobile ? ((1-i)*size.height/3 + 25)/zoom : 25/zoom}
+      x={single ? 0 : mobile ? -size.width*.28/zoom : (i-1)*size.width/3/zoom}
+      y={single ? .15 : mobile ? (1-i)*size.height/3/zoom : 25/zoom}
       selected={selected === board.id} quiet={!!selected && selected !== board.id} hovered={hovered === board.id} reduced={reduced} single={single} transform={single ? transform : undefined} />)}
     {project?.components.filter(c => c.kind === "component").map(c => <PartObject key={c.id} visualId={getDefinition(c.definitionId)!.visualId} transform={project.layout.entities[c.id]} reduced={reduced} />)}
   </>;

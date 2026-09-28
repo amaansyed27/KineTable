@@ -15,12 +15,12 @@ export default function OnboardingPage() {
   const [projectError, setProjectError] = useState<string | null>(null);
   return <AppShell title="Set up your table"><ProfileGate>
     <main id="app-main" className="onboarding-page">
-      <div className="onboarding-intro"><p className="eyebrow">A place to begin</p><h1>Choose your starting board.</h1><p>You can build virtually. You don’t need the board beside you.</p></div>
+      <div className="onboarding-intro"><h1>Choose your starting board.</h1><p>You can build virtually. You don’t need the board beside you.</p></div>
       <BoardSelector />
       <div className="setup-action">
         <p className="selection-status" role="status">{board ? `${board.name} selected.` : "Pick your board to begin."}</p>
         {(error || projectError) && <p className="storage-error" role="alert">{error || projectError}</p>}
-        {board && <button className="button" disabled={saving || !!error} onClick={async () => { if (await completeSetup()) { try { await setBoard(board.id, session); navigate("/home"); } catch { setProjectError("We couldn’t save your project. Please allow browser storage and try again."); } } }}>Continue with {board.name} <span aria-hidden="true">→</span></button>}
+        {board && <button className="button" disabled={saving || !!error} onClick={async () => { if (await completeSetup()) { try { await setBoard(board.id, session); navigate("/home"); } catch { setProjectError("We couldn’t save your project. Please allow browser storage and try again."); } } }}><span className="button-label">Continue with {board.name}</span><svg className="button-arrow" aria-hidden="true" viewBox="0 0 20 20"><path d="M4 10h12m-5-5 5 5-5 5" /></svg></button>}
         <p className="local-note">Not sure? Start with ESP32.</p>
       </div>
     </main>

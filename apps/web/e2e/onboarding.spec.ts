@@ -100,6 +100,6 @@ test("guest project survives browser restart in IndexedDB", async ({}, testInfo)
     await expect(restored.locator('[data-board-id="esp32-dev-module"]')).toBeVisible();
   } finally {
     await context.close();
-    if (resolve(directory).startsWith(`${root}${sep}`)) rmSync(directory, { recursive: true, force: true });
+    if (resolve(directory).startsWith(`${root}${sep}`)) rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
   }
 });

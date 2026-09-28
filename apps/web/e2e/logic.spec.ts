@@ -184,5 +184,5 @@ test("BONK ×3 survives a full local browser restart", async ({}, testInfo) => {
     expect((await saved(restored)).logic[0].do[2]).toMatchObject({count:3});
     await restored.getByRole("button",{name:"Simulate",exact:true}).click(); await restored.getByRole("button",{name:"Press button"}).click();
     await expect(restored.locator(".simulation-outputs > span").filter({hasText:/^3.3 V SSD1306/})).toContainText("BONK!");
-  } finally { await context.close(); if(resolve(directory).startsWith(`${root}${sep}`)) rmSync(directory,{recursive:true,force:true}); }
+  } finally { await context.close(); if(resolve(directory).startsWith(`${root}${sep}`)) rmSync(directory,{recursive:true,force:true,maxRetries:5,retryDelay:500}); }
 });

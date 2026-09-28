@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { Link } from "react-router";
 import { useSimulationStore } from "../state/simulationStore";
 import { useProjectStore } from "../state/projectStore";
@@ -8,7 +9,8 @@ import { assembleProject, assemblyError, type AssemblyPhase } from "../ai/assemb
 import type { PlanResponse } from "../ai/contract";
 export function WorkbenchModes({ document }: { document: KinetableProjectV4 }) {
   const mode=useSimulationStore(s=>s.mode);
-  return <nav className="workbench-modes" aria-label="Workbench modes">{(["build","logic","simulate","explain"] as const).map(value=><button key={value} aria-current={mode===value ? "page" : undefined} onClick={()=>{const state=useSimulationStore.getState(); if(value==="build") state.build(); else if(value==="logic") state.logic(); else state.enter(document,value);}}>{value[0].toUpperCase()+value.slice(1)}</button>)}</nav>;
+  const reduced=useReducedMotion();
+  return <LayoutGroup id="workbench-modes"><nav className="workbench-modes" aria-label="Workbench modes">{(["build","logic","simulate","explain"] as const).map(value=><button key={value} aria-current={mode===value ? "page" : undefined} onClick={()=>{if(value===mode)return; const state=useSimulationStore.getState(); if(value==="build") state.build(); else if(value==="logic") state.logic(); else state.enter(document,value);}}>{value[0].toUpperCase()+value.slice(1)}{mode===value && <motion.span aria-hidden="true" className="mode-selection-mark" layoutId="active-mode" transition={{duration:reduced ? 0 : .24,ease:[.16,1,.3,1]}} />}</button>)}</nav></LayoutGroup>;
 }
 export function CoachMark({ step }: { step: "move" | "wire" | "simulate" }) {
   const [dismissed,setDismissed]=useState<string[]>(()=>{try{const value=JSON.parse(localStorage.getItem("kinetable.guidance")??"[]");return Array.isArray(value)?value:[];}catch{return [];}});
