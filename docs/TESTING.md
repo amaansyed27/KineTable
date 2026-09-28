@@ -262,3 +262,5 @@ Deployed checks allow 20 seconds for assertions and 120 seconds per multi-route 
 ## Slice 11 checks
 
 `pnpm lint`, `pnpm test`, both TypeScript checks and `pnpm build` cover the canonical definitions, compatibility, inventory validation, account namespace and planner quantity gate. `pnpm --filter @kinetable/web test:e2e` covers guest Parts, persistence, detail, filtering, New Build choice, workbench owned-first tray and five viewports in both themes. With `KINETABLE_HOSTED_QA=1`, `hosted-parts.spec.ts` creates disposable users and verifies owner RLS, fresh-browser restore, offline edit/reconnect and account switch. Hosted migrations `20260928064547_inventory_items.sql` and `20260928070528_inventory_definition_ids.sql` add storage/RLS and the reviewed-ID constraint. [Slice 11 acceptance](SLICE-11.md).
+
+`parts-cold-route.spec.ts` opens `/parts` in a fresh page after saving Pico as the primary board. It verifies the persisted Board filter and Pico-specific compatibility results without first visiting `/start` in that page.
