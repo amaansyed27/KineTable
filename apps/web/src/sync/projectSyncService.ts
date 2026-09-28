@@ -16,6 +16,7 @@ export async function reconcileProjects(local: Local, cloud: Cloud, session: Ses
   const remote = await cloud.list(session.access_token, ownerId);
   if (hooks.activeOwner() !== ownerId) return;
   const rows = await local.list();
+  const adoptGuest = remote.length === 0 && !rows.some(row => row.cloudUserId === ownerId);
   for (const row of remote) {
     if (hooks.changed()) { hooks.retry(); return; }
     const existing = rows.find(localRow => localRow.id === row.id);
@@ -23,8 +24,10 @@ export async function reconcileProjects(local: Local, cloud: Cloud, session: Ses
     await local.save(remoteRow(row, ownerId));
   }
   let project = hooks.current();
+  if (project && project.cloudUserId !== ownerId && (project.cloudUserId || !adoptGuest)) project = null;
   if (!project) {
-    project = remote[0] ? remoteRow(remote[0], ownerId) : board ? starterRow(board, ownerId) : null;
+    project = remote[0] ? remoteRow(remote[0], ownerId) : rows.find(row => row.cloudUserId === ownerId) ?? (adoptGuest ? rows.find(row => !row.cloudUserId) ?? null : null);
+    if (!project && board) project = starterRow(board, ownerId);
     if (!project) throw new Error("Board not ready");
     if (!remote[0]) await local.save(project);
   } else if (project.cloudUserId === ownerId && !project.cloudDirty) {
@@ -46,7 +49,7 @@ export async function reconcileProjects(local: Local, cloud: Cloud, session: Ses
   }
   for (let row of await local.list()) {
     if (hooks.changed()) { hooks.retry(); return; }
-    if (row.id === project.id || (row.cloudUserId && row.cloudUserId !== ownerId)) continue;
+    if (row.id === project.id || (row.cloudUserId && row.cloudUserId !== ownerId) || (!row.cloudUserId && !adoptGuest)) continue;
     const exists = remote.some(cloudRow => cloudRow.id === row.id);
     if (!row.cloudDirty && row.cloudUserId === ownerId && exists) continue;
     row = { ...row, cloudUserId: ownerId, cloudDirty: true };

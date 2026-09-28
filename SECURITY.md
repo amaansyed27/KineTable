@@ -42,3 +42,7 @@ When Tauri/native capabilities are introduced:
 ## Dependency hygiene
 
 Before public release, CI should include dependency and supply-chain checks appropriate to the final stack.
+
+## Slice 11 owner and AI inventory boundaries
+
+My Parts is owner-scoped in IndexedDB and in `public.inventory_items` RLS. The browser uses a publishable key and user JWT; database defaults `owner_id` to `auth.uid()` and grants no browser write access to that column. Authenticated remote owned-only AI reloads both project and inventory through the same JWT/RLS boundary, replacing the browser snapshot. Guest/Local Bridge snapshots are validated and bounded. External component source text remains data, and visual metadata cannot relax electrical validation. [Implementation and checks](docs/SLICE-11.md).

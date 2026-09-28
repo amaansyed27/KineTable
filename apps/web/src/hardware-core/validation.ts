@@ -1,4 +1,5 @@
 import { getDefinition, getPin, type Pin } from "../component-library/catalog.js";
+import { compatibility } from "../component-library/compatibility.js";
 import { endpointKey, pinEndpoint, parseProjectV3, type ElectricalEndpoint } from "../projects/v3.js";
 import { parseProjectV4, type CircuitProject } from "../projects/v4.js";
 import { resolveNets, netFor, type Net } from "./nets.js";
@@ -40,7 +41,8 @@ export function validateElectricalSafety(project: CircuitProject): void {
   const board = project.components.find(c => c.kind === "board")!;
   for (const part of project.components.filter(c => c.kind === "component")) {
     const def = getDefinition(part.definitionId)!;
-    if (board.definitionId === "arduino-uno" && def.requiresLevelShiftOnUno) throw new HardwareError("VOLTAGE", `${def.name} needs a level-shifted variant for this board.`);
+    const result = compatibility(def.id, board.definitionId);
+    if (result.status !== "supported") throw new HardwareError("VOLTAGE", result.reason);
   }
   for (const net of resolveNets(project)) {
     const pins = pinsOn(net).map(e => ({ endpoint: e, pin: pin(e) }));
@@ -81,7 +83,7 @@ export function analyzeCircuit(project: CircuitProject): Diagnostic[] {
       if ((p.role === "digital-in" || p.role === "digital-out") && !linkedBoardPin(part.id, p.id, "digital-io")) add("SIGNAL", `${def.name} ${p.id} needs a supported board GPIO.`, part.id, p.id);
     }
     if (def.electricalModel === "ssd1306-i2c") {
-      const expected = board.definitionId === "esp32-dev-module" ? ["gpio21", "gpio22"] : board.definitionId === "raspberry-pi-pico" ? ["gpio20", "gpio21"] : ["a4", "a5"];
+      const expected = getDefinition(board.definitionId)!.i2cPins!;
       if (!["sda", "scl"].every((p, i) => shares({ componentId: part.id, pinId: p }, { componentId: board.id, pinId: expected[i] }))) add("I2C_PIN", "OLED SDA/SCL need the supported I²C pins for this board.", part.id);
     }
     if (def.electricalModel === "led-passive") {

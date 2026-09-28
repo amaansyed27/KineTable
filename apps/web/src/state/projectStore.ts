@@ -3,7 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import type { BoardId } from "../hardware/boards";
 import { createBuildRow, changeBoard, starterRow } from "../projects/projectCreation";
 import { migrateProject, type KinetableProjectV4 } from "../projects/v4";
-import { localProjectRepository, type LocalProject } from "../persistence/localProjectRepository";
+import { localProjectRepository, projectBelongsTo, type LocalProject } from "../persistence/localProjectRepository";
 import { cloudProjectRepository } from "../persistence/cloudProjectRepository";
 import { reconcileProjects } from "../sync/projectSyncService";
 import { useAuthStore } from "../auth/authStore";
@@ -38,7 +38,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
     openById: async (id, board, session) => {
       const request=++selection;
       boardForStarter=board;
-      const eligible=(row:LocalProject)=>row.id===id && (!session || !row.cloudUserId || row.cloudUserId===session.user.id);
+      const eligible=(row:LocalProject)=>row.id===id && projectBelongsTo(row, session?.user.id);
       if (!(await local.list()).some(eligible)) await get().open(board,session);
       return enqueue(async () => {
         if (request!==selection) return false;
@@ -57,12 +57,12 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       const current = ++generation;
       const ownerId = session?.user.id;
       const visible = get().project;
-      const keepVisible = !!visible && (!ownerId || !visible.cloudUserId || visible.cloudUserId === ownerId);
+      const keepVisible = !!visible && projectBelongsTo(visible, ownerId);
       set({ project: keepVisible ? visible : null, ready: keepVisible, status: "local", error: null });
       try {
         const rows = await local.list();
         if (current !== generation) return;
-        const eligible = rows.filter(row => !ownerId || !row.cloudUserId || row.cloudUserId === ownerId).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
+        const eligible = rows.filter(row => projectBelongsTo(row, ownerId)).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
         let remembered: string | null = null;
         try { remembered = localStorage.getItem("kinetable.current-project"); } catch { /* Optional navigation preference. */ }
         let project = (keepVisible ? eligible.find(row => row.id === visible.id) : null) ?? eligible.find(row => row.id === remembered) ?? eligible[0] ?? null;
@@ -80,7 +80,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       boardForStarter = board;
       const ownerId = session?.user.id;
       const rows = await local.list();
-      const current = rows.filter(row => !ownerId || !row.cloudUserId || row.cloudUserId === ownerId).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+      const current = rows.filter(row => projectBelongsTo(row, ownerId)).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0];
       const project = current ? changeBoard(current, board, ownerId) : starterRow(board, ownerId);
       await local.save(project);
       history.reset(project.id);
@@ -92,7 +92,7 @@ export function createProjectStore(local = localProjectRepository, cloud = cloud
       const ownerId = useAuthStore.getState().session?.user.id;
       const rows = await local.list();
       const selected = get().project;
-      if (!selected || (selected.cloudUserId && selected.cloudUserId !== ownerId && ownerId)) throw new Error("Open your table before starting a build.");
+      if (!selected || !projectBelongsTo(selected, ownerId)) throw new Error("Open your table before starting a build.");
       const project = createBuildRow(selected, rows, board, intent, name, ownerId);
       await local.save(project);
       history.reset(project.id);

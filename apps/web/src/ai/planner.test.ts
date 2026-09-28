@@ -5,6 +5,7 @@ import { parsePlan, parsePlanRequest, parsePlanResponse } from "./contract";
 import { planHardware } from "./planner";
 import { assemblyError } from "./assembleProject";
 import { executeCommands } from "../hardware-core/commands";
+import { plannerHardwareContext } from "./prompt";
 
 const project = () => migrateProject(projectFromIntent(starterProject("esp32-dev-module"), "esp32-dev-module", "Make a button control an LED", "Button LED"));
 const request = (p = project()) => ({ projectId: p.id, revision: p.metadata.updatedAt, intent: p.intent!.text, boardId: p.boardIds[0] });
@@ -48,4 +49,13 @@ it("maps provider failures safely and leaves unsupported plans untouched", async
   const unsupported = await planHardware({ generate: async () => ({ status: "unsupported", summary: "Cannot assemble", unsupportedReason: "Drone flight control is unsupported.", commands: [] }) }, request(p), p);
   expect(unsupported.status).toBe("unsupported");
   expect(p.components).toHaveLength(1);
+});
+it("enforces owned quantities after model output and rejects malformed snapshots",async()=>{
+  const p=project(), base=request(p);
+  const owned={mode:"owned-only" as const,items:[{definitionId:"led-5mm",quantity:1},{definitionId:"resistor-220r",quantity:1},{definitionId:"push-button",quantity:1}]};
+  expect((await planHardware({generate:async()=>valid},{...base,inventory:owned},p)).status).toBe("supported");
+  await expect(planHardware({generate:async()=>valid},{...base,inventory:{...owned,items:owned.items.slice(1)}},p)).rejects.toMatchObject({code:"NOT_OWNED"});
+  await expect(planHardware({generate:async()=>({...valid,commands:[...valid.commands,{type:"component.add",instanceId:"led-2",definitionId:"led-5mm"}]})},{...base,inventory:owned},p)).rejects.toMatchObject({code:"NOT_OWNED"});
+  expect(()=>parsePlanRequest({...base,inventory:{mode:"owned-only",items:[{definitionId:"unknown",quantity:1}]}})).toThrow("INVALID_REQUEST");
+  expect(plannerHardwareContext({...base,inventory:owned}).components.map(d=>d.id).sort()).toEqual(owned.items.map(i=>i.definitionId).sort());
 });

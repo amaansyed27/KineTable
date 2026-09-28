@@ -30,7 +30,7 @@ export const driverRegistry: Partial<Record<Definition["electricalModel"], Drive
   buzzer: gpio("buzzer","sig"),
   dht11: gpio("dht11","data"),
   "ssd1306-i2c": { bind: circuit => powered("ssd1306-i2c").bind(circuit).filter(({component}) => {
-    const expected = circuit.board.definition.id === "esp32-dev-module" ? ["gpio21","gpio22"] : circuit.board.definition.id === "raspberry-pi-pico" ? ["gpio20","gpio21"] : ["a4","a5"];
+    const expected = circuit.board.definition.i2cPins!;
     return sameNet(component,"sda",circuit.board,expected[0]) && sameNet(component,"scl",circuit.board,expected[1]);
   }) },
 };

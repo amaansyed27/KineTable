@@ -21,7 +21,7 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
  await page.getByLabel("Email",{exact:true}).fill(account.email);
  await page.getByLabel("Password", { exact: true }).fill(account.password);
  await page.getByRole("button", { name: "Sign in", exact: true }).click();
- await expect(page).toHaveURL(/\/home$/); await page.goto("/table");
+ await expect(page).toHaveURL(/\/home$/,{timeout:20000}); await page.goto("/table");
  await expect(page.locator('[data-board-id="esp32-dev-module"]')).toBeVisible({timeout:20000});
  const projectId=await page.locator('[data-project-id]').getAttribute('data-project-id'); expect(projectId).toBeTruthy();
  await page.reload(); await expect(page.locator('[data-board-id="esp32-dev-module"]')).toBeVisible();
@@ -38,7 +38,7 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
  await page.goto("/settings/account");await expect(page.getByRole("heading",{name:"Account",exact:true})).toBeVisible();await expect(page.getByText(account.email,{exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Sign out",exact:true}).click();
  await expect(page.getByRole("button",{name:"Guest account"})).toBeVisible();
- await page.goto(`/projects/${projectId}`);await expect(page.locator('[data-board-id="raspberry-pi-pico"]')).toBeVisible();
+ await page.goto(`/projects/${projectId}`);await expect(page.getByRole("heading",{name:"This project isn’t here."})).toBeVisible();
  const context = await browser.newContext({storageState:process.env.E2E_STORAGE_STATE});
  const fresh = await context.newPage();
  await fresh.goto(new URL(`/auth?next=/projects/${projectId}`,page.url()).toString());

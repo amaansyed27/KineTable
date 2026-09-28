@@ -44,7 +44,11 @@ export function BehaviorAssistant({ document }: { document: KinetableProjectV4 }
     try {if(active)await save({...active,draft:request});const chat=fresh();await save(chat);setRequest("");setProposal(null);setError(null);}catch{setError("Chat couldn’t be saved. Check device storage and try again.");}
   }
   async function switchChat(chat:BehaviorChat) {
-    try {if(active)await save({...active,draft:request});setActiveId(chat.id);setRequest(chat.draft);setProposal(null);setError(null);}catch{setError("Your draft couldn’t be saved. Check device storage and try again.");}
+    if(chat.id===activeId)return;
+    const previous=active?{...active,draft:request}:null;
+    setChats(rows=>previous?rows.map(row=>row.id===previous.id?previous:row):rows);
+    setActiveId(chat.id);setRequest(chat.draft);setProposal(null);setError(null);
+    try {if(previous)await behaviorChatRepository.save(previous);}catch{setError("Your draft couldn’t be saved. Check device storage and try again.");}
   }
   async function propose() {
     if(busy || !loaded || !request.trim())return;

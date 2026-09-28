@@ -288,6 +288,8 @@ Do not block early interaction work waiting for the entire catalog.
 
 Slice 07 adds `electricalModel` and level-shift capability metadata to these definitions. Hardware validation reads those fields and pin roles; `visualId` selects only the rendered geometry. The Add/Replace tray uses this same canonical subset. These catalog metadata fields do not change the project document schema. See [Slice 07](SLICE-07.md).
 
+Slice 11 moves this stable-ID subset into validated `definitions/` grouped by board, part and physical surface, with `catalog.ts` as its index. Structured supported variants, verification status, source references, asset rights, supply, signal voltage, board interfaces and simulation capability feed compatibility, details, search, validation and the AI planner context. Generic parts are explicitly Kinetable-supported profiles; a controller datasheet does not verify every clone breakout. See [Slice 11](SLICE-11.md) for the exact current IDs, source links, classifications and limits.
+
 ## Slice 08 physical subset
 
 The catalog now includes `breadboard-half-400` and short factual component descriptions for the inspector. The breadboard's generated holes and conductive strips live in `hardware-core/breadboard.ts`, not as 400 static pin records. Visual pin anchors in `spatial/anchors.ts` refer to the catalog's stable pin IDs; lead anchors for LED, 220 Ω resistor and push button support exact insertion placement. A wire is a project entity, not a separate catalog component definition. The current set remains deliberately limited; no simulation driver, GLB asset claim or broad part compatibility is implied. See [Slice 08](SLICE-08.md).

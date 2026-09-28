@@ -222,7 +222,7 @@ Status: implemented; see [Slice 10](SLICE-10.md). Project v4 persists bounded WH
 
 ## 11 — Hardware Platform
 
-Persist personal inventory and build a provenance-aware component library with canonical electrical metadata, models and supported variants.
+Status: implemented; see [Slice 11](SLICE-11.md). `/parts` combines local-first My Parts with a curated provenance-aware component library. Owner-only inventory sync and an optional quantity-checked owned-parts AI mode use the same supported definitions and hardware validator.
 
 ## 12 — Personal Workspace
 
@@ -274,8 +274,8 @@ Known limitations
 A slice is not complete because the screen renders. The intended user flow, persistence/server behaviour, and failure paths must work end-to-end.
 
 Slices 01–10 implemented.
-Slice 11 — Hardware Platform is next.
+Slice 12 — Personal Workspace is next.
 
 ## Unnumbered pre-Slice-11 correction
 
-Slices 01–10 complete. **Pre-Slice-11 UX correction complete. Slice 11 — Hardware Platform next.** Project hierarchy, contextual workbench, appearance, physical visual improvements and bounded provider-backed Logic use existing commands. Slice 11 was not started or renumbered. Run/Code/upload remain future Slice 14. [Record](PRE-SLICE-11-UX-CORRECTION.md).
+Slices 01–11 complete. **Pre-Slice-11 UX correction and Slice 11 Hardware Platform complete.** Project hierarchy, contextual workbench, appearance, physical visual improvements and bounded provider-backed Logic use existing commands. Slice 11 adds the canonical supported-profile library and My Parts. Run/Code/upload remain future Slice 14. [Correction record](PRE-SLICE-11-UX-CORRECTION.md); [Slice 11 record](SLICE-11.md).

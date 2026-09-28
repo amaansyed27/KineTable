@@ -449,3 +449,7 @@ Operational details are in [BACKEND.md](BACKEND.md). Slice-specific implementati
 ProjectsPage reads the existing repository with liveQuery and owner filtering; cloud reconciliation restores rows through existing sync. openById resolves exact eligible identity and rejects superseded selection. /table is a remembered/current compatibility redirect. Appearance preference storage is separate from project storage.
 
 behaviorPlanner is a strict separate logic contract within the existing provider pipeline. It compiles physical bindings and a complete candidate. Apply rechecks identity/revision inside applyTransaction, sharing atomic commands/history/local save/cloud checkpoint with manual editing. Hardware inference remains hardware-only. Pointer previews update Three.js on demand. Simulate/Explain retains unchanged runtime identity. [Correction](PRE-SLICE-11-UX-CORRECTION.md).
+
+## Slice 11 hardware platform
+
+The validated component definitions in `component-library/definitions/` are indexed by `catalog.ts` and feed deterministic compatibility, electrical validation, simulation capabilities, UI details and generated planner context. IndexedDB `inventoryItems` is separate from Project v4. Guest and account namespaces are exact; signed-in rows reconcile with owner-only Supabase `inventory_items`. The remote owned-only AI boundary reloads the owned project and inventory through the user JWT/RLS before planning. [Implementation](SLICE-11.md).

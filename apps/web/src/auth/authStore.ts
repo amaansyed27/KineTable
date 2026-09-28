@@ -5,7 +5,7 @@ export type SyncStatus = "idle" | "syncing" | "synced" | "offline";
 export const useAuthStore = create<{
   session: Session | null; resolved: boolean; syncStatus: SyncStatus; error: string | null;
 }>(() => ({ session: null, resolved: !cloudConfigured, syncStatus: "idle", error: null }));
-export function safeDestination(value: string | null) { return value && (/^\/(?:home|start|table|projects(?:\/[0-9a-f-]{36}|\/new)?|settings\/(?:appearance|providers|account))$/.test(value)) ? value : "/home"; }
+export function safeDestination(value: string | null) { return value && (/^\/(?:home|start|table|parts|projects(?:\/[0-9a-f-]{36}|\/new)?|settings\/(?:appearance|providers|account))$/.test(value)) ? value : "/home"; }
 export const providerEnabled = {
   google: import.meta.env.VITE_AUTH_GOOGLE_ENABLED === "true",
   github: import.meta.env.VITE_AUTH_GITHUB_ENABLED === "true",

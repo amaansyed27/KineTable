@@ -15,6 +15,12 @@ export type Database = {
         Update: { name?: string; primary_board_id?: string | null; schema_version?: number; document?: Json; archived?: boolean };
         Relationships: [];
       };
+      inventory_items: {
+        Row: { owner_id: string; definition_id: string; quantity: number; created_at: string; updated_at: string };
+        Insert: { definition_id: string; quantity: number; updated_at?: string };
+        Update: { quantity?: number; updated_at?: string };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };

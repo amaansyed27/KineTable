@@ -5,6 +5,7 @@ export const db = new Dexie("kinetable");
 db.version(1).stores({ profiles: "id" });
 db.version(2).stores({ profiles: "id", projects: "id, cloudUserId, updatedAt" });
 db.version(3).stores({ profiles: "id", projects: "id, cloudUserId, updatedAt", behaviorChats: "id, [ownerId+projectId], updatedAt" });
+db.version(4).stores({ profiles: "id", projects: "id, cloudUserId, updatedAt", behaviorChats: "id, [ownerId+projectId], updatedAt", inventoryItems: "[ownerId+definitionId], ownerId, updatedAt" });
 const profiles: Table<HardwareProfile & { id: string }> = db.table("profiles");
 export function isProfile(value: unknown): value is HardwareProfile {
   if (!value || typeof value !== "object") return false;

@@ -355,3 +355,7 @@ Manual Visual Logic uses parsed `logic.rule.add/update/remove/enable/reorder` op
 Hardware assembly retains its vocabulary. Separate task logic supports bounded logic.rule.add/update/remove over canonical physically bound components. Strict keys, 16-command/16000-character limits, revision/identity and deterministic compilation reject unsafe output. Unsupported requires zero commands. Requests/display text are untrusted data.
 
 Natural preview requires Apply, which revalidates in the shared queue and creates one history checkpoint. Router/fallback, bridge token/origin, JWT/owner checks, SSRF and vault behavior remain. No raw response, secret or source code is saved as logic. Real Codex CLI behavior and browser initial assembly were verified. Incremental hardware AI and generated Explain/scenarios remain deferred. [Correction](PRE-SLICE-11-UX-CORRECTION.md).
+
+## Slice 11 owned-parts hardware planning
+
+Hardware prompt context now comes from validated canonical component definitions. An optional `owned-only` snapshot contains known component IDs and quantities only; the parser bounds both fields, and the planner deterministically counts `component.add` commands against the snapshot. Authenticated remote requests replace the browser snapshot with the owner's Supabase inventory read through JWT/RLS and verify the cloud project first. Guest and Local Bridge requests use validated local rows. Apply checks current ownership again before shared command validation. Virtual manual editing remains unrestricted. [Details](SLICE-11.md).

@@ -106,3 +106,7 @@ The subtle surface-grain.png is an original deterministic 128px texture created 
 ## Slice 02 shared board assets
 
 `UnoModel.tsx` adds an original simplified Uno-style PCB with headers, controller, USB housing and barrel socket, using the existing procedural primitives and new original `uno` surface markings. It follows the repository license and Y-up presentation-unit convention. Dimensions and pin anchors are not verified. ESP32 and Pico geometry are reused unchanged. No third-party models, textures or manufacturer logos were added.
+
+## Slice 11 component asset metadata
+
+Each current canonical definition declares its procedural visual ID and `Kinetable original` license in code. This metadata is separate from manufacturer/datasheet provenance for electrical facts. The schema can describe a future GLTF source, license, attribution and scale, but Slice 11 adds no external 3D files and makes no dimensional-accuracy claim. [Inventory of supported definitions](SLICE-11.md).

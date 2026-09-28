@@ -445,3 +445,5 @@ That broader verified knowledge and inventory platform belongs to **Slice 11 —
 ```
 
 See [Slice 08](SLICE-08.md) for the current physical graph implementation and [ROADMAP.md](ROADMAP.md) for the full 15-slice roadmap.
+
+Slice 11 adds supported-variant, source, voltage, interface and simulation metadata to the stable-ID component platform. Compatibility checks use board logic/supply/interface facts; visual IDs remain presentation-only. These profiles bound Kinetable's model and do not certify every physical clone. [Current profiles](SLICE-11.md).

@@ -858,3 +858,5 @@ The responsive workbench keeps the circuit legible and exposes a DOM part list a
 ## Current application authority
 
 The [20 mockups](design/2026-09-27-application-mockups/README.md) and [audit](reviews/2026-09-27-product-ux-audit.md) guide current Home/Projects/workbench hierarchy/material. Old Table-as-home descriptions are historical. Generated image wiring is not electrically authoritative; canonical graph/topology/anchors are. [Implementation and browser evidence](PRE-SLICE-11-UX-CORRECTION.md).
+
+The implemented Slice 11 `/parts` route presents My Parts and Library as a single shelf, with a modal technical/provenance detail sheet and optional owned-only AI choice. Earlier Parts mockups remain exploratory; current behavior is recorded in [Slice 11](SLICE-11.md).

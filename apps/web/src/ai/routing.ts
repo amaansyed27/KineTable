@@ -16,7 +16,7 @@ export class RoutingError extends Error {
   constructor(public code: string, public attempts: Attempt[]) { super(code); }
 }
 export const maskSecret = (lastFour: string) => lastFour ? `••••${lastFour.toUpperCase()}` : "••••";
-const retryable = new Set(["NETWORK_FAILURE", "TIMEOUT", "RATE_LIMIT", "QUOTA_EXHAUSTED", "PROVIDER_UNAVAILABLE", "MODEL_UNAVAILABLE", "CREDENTIAL_REJECTED", "CREDENTIAL_UNAVAILABLE", "INVALID_MODEL_RESPONSE", "LOCAL_BRIDGE_UNAVAILABLE", "LOCAL_RUNTIME_UNAVAILABLE", "CLI_UNAVAILABLE", "CLI_AUTH_REQUIRED", "CLI_PERMISSION_DENIED"]);
+const retryable = new Set(["NETWORK_FAILURE", "TIMEOUT", "RATE_LIMIT", "QUOTA_EXHAUSTED", "PROVIDER_UNAVAILABLE", "MODEL_UNAVAILABLE", "CREDENTIAL_REJECTED", "CREDENTIAL_UNAVAILABLE", "INVALID_MODEL_RESPONSE", "LOCAL_BRIDGE_UNAVAILABLE", "LOCAL_RUNTIME_UNAVAILABLE", "CLI_UNAVAILABLE", "CLI_AUTH_REQUIRED", "CLI_PERMISSION_DENIED", "INVENTORY_SYNC_REQUIRED"]);
 export function shouldFallback(code: string): boolean { return retryable.has(code); }
 
 export async function routePlan(

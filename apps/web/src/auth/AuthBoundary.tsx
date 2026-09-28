@@ -5,6 +5,7 @@ import { useProfileStore } from "../state/profileStore";
 import { cloudProfileRepository, reconcileProfile } from "../persistence/cloudProfileRepository";
 import { getBoard } from "../hardware/boards";
 import { useAuthStore } from "./authStore";
+import { syncInventory } from "../sync/inventorySync";
 
 let syncing: Promise<void> | undefined;
 let queued = false;
@@ -55,6 +56,7 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
       const previous = useAuthStore.getState().session?.user.id;
       useAuthStore.setState({ session, resolved: true, ...(session ? (previous !== session.user.id ? { syncStatus: "syncing" as const } : {}) : { syncStatus: "idle", error: null }) });
       if (session && previous !== session.user.id) setTimeout(() => { if (active) void syncProfile(); }, 0);
+      if (session && previous !== session.user.id) setTimeout(() => { if (active) void syncInventory(session).catch(() => undefined); }, 0);
     };
     const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => { version++; accept(session); });
     const timeout = window.setTimeout(() => { if (active) useAuthStore.setState({ resolved: true }); }, 8000);
@@ -65,7 +67,7 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
     const unsubscribe = useProfileStore.subscribe((state, previous) => {
       if (!state.saving && !state.error && state.profile && useAuthStore.getState().session && (state.profile.cloudDirty || !state.profile.cloudUserId) && previous.hydrated && previous.saving) void syncProfile(true);
     });
-    const retry = () => { void syncProfile(); };
+    const retry = () => { void syncProfile(); const session = useAuthStore.getState().session; if (session) void syncInventory(session).catch(() => undefined); };
     window.addEventListener("online", retry);
     return () => { active = false; window.clearTimeout(timeout); subscription.unsubscribe(); unsubscribe(); window.removeEventListener("online", retry); };
   }, []);

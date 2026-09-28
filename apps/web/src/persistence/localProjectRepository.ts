@@ -5,6 +5,7 @@ import { validateElectricalSafety } from "../hardware-core/commands";
 import { validateLogic } from "../logic/compile";
 
 export type LocalProject = { id: string; name: string; schemaVersion: 1 | 2 | 3 | 4; document: ProjectDocument; createdAt: string; updatedAt: string; cloudUserId?: string; cloudDirty: boolean };
+export const projectBelongsTo = (row: LocalProject, ownerId?: string) => row.cloudUserId === ownerId;
 const projects: Table<LocalProject> = db.table("projects");
 function validRow(row: LocalProject): LocalProject {
   const document = migrateProject(row.document);

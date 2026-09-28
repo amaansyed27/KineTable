@@ -177,7 +177,7 @@ There is not yet a shared distributed public rate limiter for the BYOK proxy; th
 
 AI never replaces arbitrary project JSON.
 
-The Slice 06 planner emits strict hardware project operations that flow through hardware-core and remains hardware-assembly-only. Visual Logic is currently authored manually through deterministic `logic.rule.*` project commands. If AI behavior editing is added later, it must use the same validated command/logic compiler boundary rather than bypassing it.
+The Slice 06 hardware planner emits strict project operations through hardware-core and remains hardware-assembly-only. Visual Logic can be authored manually through deterministic `logic.rule.*` commands or proposed by the bounded AI behavior assistant; preview/Apply uses the same validated command, logic compiler, history and persistence boundary.
 
 AI Assembly still requires the complete-circuit validation gate before claiming success.
 

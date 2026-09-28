@@ -12,6 +12,7 @@ const TablePage = lazy(() => import("../table/TablePage"));
 const NewBuildPage = lazy(() => import("../new/NewBuildPage"));
 const ProviderSettingsPage = lazy(() => import("../ai/ProviderSettingsPage"));
 const ProjectsPage = lazy(() => import("../projects/ProjectsPage"));
+const PartsPage = lazy(() => import("../parts/PartsPage"));
 const AppearancePage = lazy(() => import("./AppearancePage"));
 const AccountPage = lazy(() => import("../auth/AccountPage"));
 function RoutePosition() {
@@ -29,6 +30,7 @@ function RouteScenes() {
       <Route path="/table" element={<TablePage />} />
       <Route path="/home" element={<ProjectsPage home />} />
       <Route path="/projects" element={<ProjectsPage />} />
+      <Route path="/parts" element={<PartsPage />} />
       <Route path="/projects/new" element={<NewBuildPage />} />
       <Route path="/projects/:projectId" element={<TablePage />} />
       <Route path="/new" element={<Navigate to="/projects/new" replace />} />

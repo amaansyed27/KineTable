@@ -155,3 +155,7 @@ No service-role credential belongs in the browser. New cloud tables are still cr
 ## D-024 — Project hierarchy and horizontal AI
 
 2026-09-27. Supersedes historical Table-as-home navigation and Slice 10 manual-only AI boundary. Home/Projects/New/exact project routes separate launch/retrieval/editing. Existing repository/migrations/owner RLS remain. Semantic themes and contextual assistance simplify the surface. Only Build/Logic/Simulate/Explain are current; Run/Code stays future Slice 14. Initial assembly and separate bounded behavior proposals use preview/Apply and shared validated commands. Deterministic Explain stays authoritative. Mockups guide design, never wiring. No Slice 11/schema/dependency scope was added. [Record](PRE-SLICE-11-UX-CORRECTION.md).
+
+## D-025 — Curated hardware profiles and explicit ownership import
+
+2026-09-28. Keep all existing definition IDs and Project v4. The Library is a curated set of supported profiles with graded provenance; generic clones remain profiled, not manufacturer-verified. My Parts records quantities in exact guest/account namespaces. Sign-out hides account caches without deleting them. Guest inventory enters an account only through explicit import, copying missing definitions without summing quantities. Owned-only AI is optional and server-authoritative for authenticated remote planning. Concurrent inventory writes use row timestamps until Slice 12 provides a conflict platform. [Record](SLICE-11.md).

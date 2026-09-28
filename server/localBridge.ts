@@ -73,7 +73,7 @@ export function createLocalBridge({ token, origins }: BridgeOptions) {
       }
       return send(res, 404, { code: "NOT_FOUND" });
     } catch (error) {
-      if (error instanceof HardwareError) return send(res, 422, { code: "HARDWARE_VALIDATION", detail: error.code });
+      if (error instanceof HardwareError) return send(res, 422, error.code === "NOT_OWNED" ? { code: "NOT_OWNED" } : { code: "HARDWARE_VALIDATION", detail: error.code });
       const code = error instanceof Error ? error.message : "BRIDGE_FAILURE";
       const safe = ["INVALID_REQUEST", "INVALID_PROJECT", "STALE_PROJECT", "INVALID_MODEL_RESPONSE", "HARDWARE_VALIDATION", "MODEL_UNAVAILABLE", "LOCAL_RUNTIME_UNAVAILABLE", "CLI_UNAVAILABLE", "CLI_AUTH_REQUIRED", "CLI_PERMISSION_DENIED", "TIMEOUT", "CLI_OUTPUT_LIMIT", "PROVIDER_UNAVAILABLE", "PERMISSION_REQUIRED", "MANUAL_START_REQUIRED", "NOT_BRIDGE_OWNED"].includes(code) ? code : "BRIDGE_FAILURE";
       return send(res, safe === "INVALID_REQUEST" ? 400 : safe === "STALE_PROJECT" ? 409 : safe === "MODEL_UNAVAILABLE" ? 404 : safe === "PROVIDER_UNAVAILABLE" ? 503 : 422, { code: safe });

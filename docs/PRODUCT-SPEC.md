@@ -328,3 +328,7 @@ Slices 01–10 implement this virtual core. If any of these steps still requires
 ## Current application hierarchy
 
 Home launches/continues; Projects retrieves all eligible saved documents; New Project records optional intent and creates a blank board; /projects/:id edits one exact document. Setup enters Home, with real no-provider BONK. Build/Logic/Simulate/Explain remain the modes. Contextual AI uses the same commands as manual editing: initial assembly and bounded behavior preview/Apply. Incremental hardware AI and generated Explain/scenarios remain deferred. [Implementation](PRE-SLICE-11-UX-CORRECTION.md).
+
+## Slice 11 product behavior
+
+`/parts` offers My Parts and a curated Library, with quantity, search, board fit and progressive detail. New Build and the assistant optionally limit AI assembly to owned quantities; manual virtual editing remains unrestricted and never decrements ownership. Account data is owner-scoped; guest inventory needs explicit import. This is the implemented Slice 11 subset of the larger hardware platform in this specification. [Contract and limits](SLICE-11.md).

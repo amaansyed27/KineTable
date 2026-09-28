@@ -6,7 +6,7 @@ import { getBoard } from "../hardware/boards";
 import { useProfileStore } from "../state/profileStore";
 import { useAuthStore } from "../auth/authStore";
 import { useProjectStore } from "../state/projectStore";
-import { localProjectRepository, type LocalProject } from "../persistence/localProjectRepository";
+import { localProjectRepository, projectBelongsTo, type LocalProject } from "../persistence/localProjectRepository";
 import { migrateProject } from "./v4";
 import { starterRow } from "./projectCreation";
 import { bonkProject } from "./starters";
@@ -23,11 +23,11 @@ function useProjects() {
   useEffect(() => {
     const snapshot = projectsSnapshot?.ownerId === ownerId ? projectsSnapshot.rows : null;
     setListing({ownerId,rows:snapshot??[],loaded:snapshot!==null,error:null});
-    const subscription = liveQuery(() => localProjectRepository.list()).subscribe({ next: value => { const visible = value.filter(row => ownerId === "guest" || !row.cloudUserId || row.cloudUserId === ownerId).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)); projectsSnapshot = { ownerId, rows: visible }; setListing({ownerId,rows:visible,loaded:true,error:null}); }, error: () => { setListing({ownerId,rows:snapshot??[],loaded:true,error:"We couldn’t read your saved projects. Allow browser storage and reload."}); } });
+    const subscription = liveQuery(() => localProjectRepository.list()).subscribe({ next: value => { const visible = value.filter(row => projectBelongsTo(row, session?.user.id)).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)); projectsSnapshot = { ownerId, rows: visible }; setListing({ownerId,rows:visible,loaded:true,error:null}); }, error: () => { setListing({ownerId,rows:snapshot??[],loaded:true,error:"We couldn’t read your saved projects. Allow browser storage and reload."}); } });
     const board = getBoard(profile?.primaryBoardId);
     if (board && profile?.setupCompleted) void useProjectStore.getState().open(board.id, useAuthStore.getState().session);
     return () => subscription.unsubscribe();
-  }, [profile?.primaryBoardId,profile?.setupCompleted,ownerId]);
+  }, [profile?.primaryBoardId,profile?.setupCompleted,ownerId,session?.user.id]);
   return { rows, error, loaded, profile };
 }
 function summary(row: LocalProject) { const document = migrateProject(row.document); const count = document.components.filter(c => c.kind === "component").length; return `${getBoard(document.boardIds[0])?.name ?? "Board"}${count ? ` · ${count} parts` : ""}`; }

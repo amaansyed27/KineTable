@@ -258,6 +258,7 @@ body:has(.product-app), body:has(.route-loading) { background-image: none; }
 /* Native surfaces share the same material and state vocabulary. */
 .product-app ::selection { background: var(--selection); color: var(--ink); }
 .product-app ::placeholder { color: var(--muted); opacity: 1; }
+.new-build-owned{display:flex;align-items:center;gap:10px;margin:18px 0;font-size:13px}.new-build-owned input,.ai-owned-choice input{width:auto;accent-color:var(--ink)}.new-build-owned small{font-size:11px;color:var(--muted)}.ai-owned-choice{display:flex;align-items:center;gap:8px;margin:14px 0;font-size:12px}.workbench-tray-search{display:grid;gap:6px;font-size:11px;margin:12px 0}.workbench-tray-search input{width:100%}.workbench-tray-items button small{margin-left:auto;color:var(--muted);font-size:10px;white-space:nowrap}
 .product-app :is(input, textarea) { caret-color: var(--focus); }
 .product-app { scrollbar-color: var(--control) var(--paper); }
 .product-app :is(.account-menu, .workbench-inspector, .workbench-tool-body, .workbench-tray, .ai-sheet) { border: 0; }

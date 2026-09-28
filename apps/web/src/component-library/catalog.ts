@@ -1,18 +1,10 @@
-export type Pin = { id: string; role: "ground" | "power" | "digital-in" | "digital-out" | "digital-io" | "i2c-sda" | "i2c-scl" | "passive"; volts?: number };
-export type Definition = { id: string; name: string; description: string; kind: "board" | "component" | "breadboard"; category: string; visualId: string; electricalModel: "board" | "breadboard" | "led-passive" | "resistor" | "momentary-switch" | "buzzer" | "pir" | "ssd1306-i2c" | "dht11"; pins: readonly Pin[]; supply?: 3.3 | 5; requiresLevelShiftOnUno?: boolean };
-const gpio = (ids: number[]): Pin[] => ids.map(id => ({ id: `gpio${id}`, role: "digital-io" }));
-export const catalog: readonly Definition[] = [
-  { id: "esp32-dev-module", name: "ESP32 Dev Module", description: "A programmable microcontroller board with GPIO and power pins.", kind: "board", category: "board", visualId: "esp32", electricalModel: "board", pins: [...gpio([18, 19, 21, 22, 23, 27]), { id: "3v3", role: "power", volts: 3.3 }, { id: "vin", role: "power", volts: 5 }, { id: "gnd", role: "ground" }] },
-  { id: "raspberry-pi-pico", name: "Raspberry Pi Pico", description: "A compact programmable microcontroller board.", kind: "board", category: "board", visualId: "pico", electricalModel: "board", pins: [...gpio([16, 17, 18, 19, 20, 21]), { id: "3v3", role: "power", volts: 3.3 }, { id: "vbus", role: "power", volts: 5 }, { id: "gnd", role: "ground" }] },
-  { id: "arduino-uno", name: "Arduino Uno", description: "A 5 V microcontroller board with digital and analog header pins.", kind: "board", category: "board", visualId: "uno", electricalModel: "board", pins: [...[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((id): Pin => ({ id: `d${id}`, role: "digital-io" })), { id: "a4", role: "digital-io" }, { id: "a5", role: "digital-io" }, { id: "5v", role: "power", volts: 5 }, { id: "3v3", role: "power", volts: 3.3 }, { id: "gnd", role: "ground" }] },
-  { id: "led-5mm", name: "LED", description: "A two-lead light-emitting diode. It needs a series resistor.", kind: "component", category: "output", visualId: "led", electricalModel: "led-passive", pins: [{ id: "anode", role: "passive" }, { id: "cathode", role: "passive" }] },
-  { id: "resistor-220r", name: "220 Ω resistor", description: "Limits current in a circuit path.", kind: "component", category: "passive", visualId: "resistor", electricalModel: "resistor", pins: [{ id: "a", role: "passive" }, { id: "b", role: "passive" }] },
-  { id: "push-button", name: "Push button", description: "A momentary switch with two modeled terminals.", kind: "component", category: "input", visualId: "button", electricalModel: "momentary-switch", pins: [{ id: "a", role: "passive" }, { id: "b", role: "passive" }] },
-  { id: "grove-buzzer-v1-1", name: "Grove Buzzer V1.1", description: "A buzzer module controlled by a digital signal.", kind: "component", category: "output", visualId: "buzzer", electricalModel: "buzzer", requiresLevelShiftOnUno: true, pins: [{ id: "vcc", role: "power" }, { id: "gnd", role: "ground" }, { id: "sig", role: "digital-in" }], supply: 3.3 },
-  { id: "hc-sr501", name: "HC-SR501 PIR", description: "A passive infrared motion sensor with a digital output.", kind: "component", category: "sensor", visualId: "pir", electricalModel: "pir", pins: [{ id: "vcc", role: "power" }, { id: "gnd", role: "ground" }, { id: "out", role: "digital-out" }], supply: 5 },
-  { id: "oled-ssd1306-i2c-3v3", name: "3.3 V SSD1306 I²C OLED", description: "A small display connected over I²C.", kind: "component", category: "output", visualId: "oled", electricalModel: "ssd1306-i2c", requiresLevelShiftOnUno: true, pins: [{ id: "vcc", role: "power" }, { id: "gnd", role: "ground" }, { id: "sda", role: "i2c-sda" }, { id: "scl", role: "i2c-scl" }], supply: 3.3 },
-  { id: "dht11-module", name: "DHT11 module", description: "A temperature and humidity module with a digital data pin.", kind: "component", category: "sensor", visualId: "dht11", electricalModel: "dht11", pins: [{ id: "vcc", role: "power" }, { id: "gnd", role: "ground" }, { id: "data", role: "digital-out" }], supply: 3.3 },
-  { id: "breadboard-half-400", name: "400-hole breadboard", description: "Solderless breadboard with isolated A–E and F–J strips and four continuous power rails.", kind: "breadboard", category: "breadboard", visualId: "breadboard", electricalModel: "breadboard", pins: [] },
-];
-export const getDefinition = (id: unknown) => catalog.find(definition => definition.id === id);
-export const getPin = (definitionId: string, pinId: string) => getDefinition(definitionId)?.pins.find(pin => pin.id === pinId);
+import { boards } from "./definitions/boards.js";
+import { parts } from "./definitions/parts.js";
+import { physical } from "./definitions/physical.js";
+import { validateDefinition, type Definition, type Pin } from "./schema.js";
+export type { Definition, Pin } from "./schema.js";
+export const catalog: readonly Definition[] = [...boards, ...parts, ...physical].map(validateDefinition);
+if (new Set(catalog.map(d => d.id)).size !== catalog.length) throw new Error("Duplicate component definition ID");
+const definitions = new Map(catalog.map(d => [d.id, d]));
+export const getDefinition = (id: unknown) => typeof id === "string" ? definitions.get(id) : undefined;
+export const getPin = (definitionId: string, pinId: string): Pin | undefined => getDefinition(definitionId)?.pins.find(pin => pin.id === pinId);

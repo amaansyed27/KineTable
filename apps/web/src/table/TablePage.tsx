@@ -31,7 +31,7 @@ function ReadyProject() {
   useEffect(()=>{useSimulationStore.getState().build();},[projectId]);
   if (!profile?.setupCompleted && (!resolved || authSync==="syncing")) return <main className="route-loading" role="status">Opening your projects…</main>;
   if (!profile?.setupCompleted || !board) return <Navigate to="/start" replace />;
-  if(opening || (!missing && !!project?.cloudUserId && !!session && project.cloudUserId!==session.user.id)) return <main className="route-loading" role="status">Opening your project…</main>;
+  if(opening || (!missing && !!project?.cloudUserId && project.cloudUserId!==session?.user.id)) return <main className="route-loading" role="status">Opening your project…</main>;
   if(missing || !project) return <main id="app-main" className="route-loading"><h1>This project isn’t here.</h1><p>{error || "It may be on another device or account. Your other projects are safe."}</p><Link className="button" to="/projects">Go to Projects</Link><Link to="/home">Home</Link></main>;
   if(!projectId) return <Navigate to={`/projects/${project.id}`} replace />;
   if(project.id!==projectId) return <main className="route-loading" role="status">Opening your project…</main>;

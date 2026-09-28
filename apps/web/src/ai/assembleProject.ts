@@ -6,21 +6,33 @@ import { parsePlanResponse, type PlanResponse } from "./contract";
 import { loadProviderSettings } from "./providerSettings";
 import { invokeProvider } from "./providerTransport";
 import { routePlan, type Attempt } from "./routing";
+import { inventoryRepository, inventoryOwner } from "../persistence/inventoryRepository";
+import { syncInventory } from "../sync/inventorySync";
+import { getDefinition } from "../component-library/catalog";
 
 export type AssemblyPhase = "planning" | "checking" | "placing";
-export async function assembleProject(onPhase: (phase: AssemblyPhase) => void, apply = true): Promise<PlanResponse & { routeLabel: string; attempts: Attempt[] }> {
+export async function assembleProject(onPhase: (phase: AssemblyPhase) => void, apply = true, ownedOnly = false): Promise<PlanResponse & { routeLabel: string; attempts: Attempt[] }> {
   const session = useAuthStore.getState().session;
   const settings = loadProviderSettings();
   if (!settings.profile.routes.some(route => route.enabled)) throw new Error("NO_PROVIDER");
+  if (ownedOnly && session) await useProjectStore.getState().sync();
+  let inventorySynced = true;
+  if (ownedOnly && session) try { await syncInventory(session); } catch { inventorySynced = false; }
   const store = useProjectStore.getState();
   const starting = store.project;
   if (!starting?.document.intent || starting.document.components.length !== 1) throw new Error("INVALID_PROJECT");
   const current = useProjectStore.getState().project;
   if (!current || !current.document.intent || current.id !== starting.id || current.document.metadata.updatedAt !== starting.document.metadata.updatedAt) throw new Error("STALE_PROJECT");
   onPhase("planning");
-  const input = { projectId: current.id, revision: current.document.metadata.updatedAt, intent: current.document.intent.text, boardId: current.document.boardIds[0] };
+  const owned = ownedOnly ? (await inventoryRepository.list(inventoryOwner(session?.user.id))).filter(item => item.quantity > 0 && getDefinition(item.definitionId)?.kind === "component") : [];
+  if (ownedOnly && !owned.length) throw new Error("NO_OWNED_PARTS");
+  const input = { projectId: current.id, revision: current.document.metadata.updatedAt, intent: current.document.intent.text, boardId: current.document.boardIds[0], ...(ownedOnly ? {inventory:{mode:"owned-only" as const,items:owned.map(item => ({definitionId:item.definitionId,quantity:item.quantity}))}} : {}) };
   const routed = await routePlan(settings.profile, settings.credentials, input, migrateProject(current.document),
-    (route, credentialId) => invokeProvider(route, credentialId, input, migrateProject(current.document), session && !current.cloudDirty ? session : null));
+    (route, credentialId) => {
+      const remote = route.transport === "REMOTE_API" || route.transport === "CUSTOM_OPENAI_COMPATIBLE";
+      if (ownedOnly && session && remote && (!inventorySynced || current.cloudDirty)) throw new Error("INVENTORY_SYNC_REQUIRED");
+      return invokeProvider(route, credentialId, input, migrateProject(current.document), session && (ownedOnly || !current.cloudDirty) ? session : null);
+    });
   const plan = parsePlanResponse(routed.plan);
   if (plan.revision !== current.document.metadata.updatedAt) throw new Error("STALE_PROJECT");
   const routeLabel = `${routed.route.transport === "LOCAL_CLI" ? "Local CLI" : routed.route.transport === "LOCAL_HTTP" ? "Local" : "Your key"} · ${routed.route.providerId}`;
@@ -36,6 +48,9 @@ export async function assembleProject(onPhase: (phase: AssemblyPhase) => void, a
 export function assemblyError(error: unknown): string {
   const code = error instanceof Error ? error.message : "";
   if (code === "NO_PROVIDER") return "Choose a local model, CLI, or API provider in Provider settings.";
+  if (code === "NO_OWNED_PARTS") return "Add a component to My Parts before planning with owned parts.";
+  if (code === "INVENTORY_SYNC_REQUIRED") return "Sync My Parts and this project before remote owned-parts planning, or use a local provider.";
+  if (code === "NOT_OWNED") return "The plan uses more parts than you own. My Parts was not changed.";
   if (code === "LOCAL_BRIDGE_UNAVAILABLE") return "Kinetable Local Bridge is not running. Start it and reconnect in Provider settings.";
   if (code === "PROVIDERS_EXHAUSTED") return "All configured providers failed. Check their connection status in Provider settings.";
   if (code === "CREDENTIAL_UNAVAILABLE") return "This API key is unavailable on this device. Add it again in Provider settings.";

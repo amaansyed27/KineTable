@@ -4,6 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { isPristineStarter, isProject, parseProject, projectFromIntent, starterProject, titleFromIntent, validIntentText, validProjectName, type KinetableProject } from "./schema";
 import { db } from "../persistence/profileRepository";
 import { localProjectRepository } from "../persistence/localProjectRepository";
+import { projectBelongsTo } from "../persistence/localProjectRepository";
 import { createProjectStore } from "../state/projectStore";
 import { useAuthStore } from "../auth/authStore";
 import { validateCloudProject, type CloudProject } from "../persistence/cloudProjectRepository";
@@ -211,4 +212,29 @@ it("opens a specific saved identity, keeps missing and other-owner routes from s
   expect(await store.getState().openById(b.id,"esp32-dev-module",null)).toBe(true);expect(store.getState().project?.document.boardIds[0]).toBe("raspberry-pi-pico");
   expect(await store.getState().openById("missing","esp32-dev-module",null)).toBe(false);
   useAuthStore.setState({session:user("user-a")});expect(await store.getState().openById(owned.id,"esp32-dev-module",user("user-a"))).toBe(false);expect(store.getState().project?.id).not.toBe(owned.id);
+});
+it("hides account project cache after sign-out and restores it on sign-in",async()=>{
+  const guest=starterRow("esp32-dev-module"),a=starterRow("arduino-uno","user-a");
+  await localProjectRepository.save(guest);await localProjectRepository.save(a);
+  const cloud={list:vi.fn(async()=>{throw new Error("offline");}),save:vi.fn()};
+  const store=createProjectStore(localProjectRepository,cloud);
+  await store.getState().open("esp32-dev-module",null);expect(store.getState().project?.id).toBe(guest.id);
+  useAuthStore.setState({session:user("user-a")});await store.getState().open("arduino-uno",user("user-a"));expect(store.getState().project?.id).toBe(a.id);
+  useAuthStore.setState({session:null});await store.getState().open("esp32-dev-module",null);expect(store.getState().project?.id).toBe(guest.id);
+  useAuthStore.setState({session:user("user-b")});await store.getState().open("raspberry-pi-pico",user("user-b"));expect(store.getState().project?.id).not.toBe(a.id);
+  expect(projectBelongsTo(a,undefined)).toBe(false);expect(projectBelongsTo(a,"user-a")).toBe(true);
+  useAuthStore.setState({session:user("user-a")});await store.getState().open("arduino-uno",user("user-a"));expect(store.getState().project?.id).toBe(a.id);
+});
+it("does not adopt the visible guest project during a direct sync into an existing account",async()=>{
+  const guest=starterRow("esp32-dev-module"),account=starterRow("arduino-uno","user-a");
+  await localProjectRepository.save(guest);
+  const remote={id:account.id,owner_id:"user-a",name:account.name,primary_board_id:"arduino-uno",schema_version:account.schemaVersion,document:account.document,archived:false,created_at:account.createdAt,updated_at:account.updatedAt} as CloudProject;
+  const cloud={list:vi.fn(async()=>[remote]),save:vi.fn()};
+  const store=createProjectStore(localProjectRepository,cloud);
+  await store.getState().open("esp32-dev-module",null);
+  useAuthStore.setState({session:user("user-a")});
+  await store.getState().sync();
+  expect(store.getState().project?.id).toBe(account.id);
+  expect((await localProjectRepository.list()).find(row=>row.id===guest.id)?.cloudUserId).toBeUndefined();
+  expect(cloud.save).not.toHaveBeenCalled();
 });

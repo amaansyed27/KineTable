@@ -6,6 +6,8 @@ import { getBoard } from "../hardware/boards";
 import { MAX_INTENT_LENGTH, titleFromIntent, validIntentText, validProjectName } from "../projects/schema";
 import { useProfileStore } from "../state/profileStore";
 import { useProjectStore } from "../state/projectStore";
+import { useInventory } from "../persistence/useInventory";
+import { getDefinition } from "../component-library/catalog";
 
 const BoardStage = lazy(() => import("../spatial/BoardStage"));
 const draftKey = "kinetable.new-build-draft";
@@ -24,6 +26,8 @@ function ReadyNewBuild() {
   const session = useAuthStore(s => s.session);
   const ownerId = session?.user.id;
   const project = useProjectStore(s => s.project);
+  const inventory = useInventory();
+  const ownedCount = inventory.rows.filter(item=>item.quantity>0 && getDefinition(item.definitionId)?.kind==="component").length;
   const ready = useProjectStore(s => s.ready);
   const storageError = useProjectStore(s => s.error);
   const open = useProjectStore(s => s.open);
@@ -34,6 +38,7 @@ function ReadyNewBuild() {
   const [name, setName] = useState(draft.name);
   const [edited, setEdited] = useState(draft.edited);
   const [preview, setPreview] = useState(false);
+  const [ownedOnly,setOwnedOnly] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ideaRef = useRef<HTMLTextAreaElement>(null);
@@ -58,6 +63,7 @@ function ReadyNewBuild() {
     setSaving(true);
     try {
       const created = await createBuild(selectedBoard.id, idea, name || "Untitled project");
+      try { if (ownedOnly) localStorage.setItem(`kinetable.owned-only.${created.id}`,"1"); } catch { /* Optional planning preference. */ }
       try { sessionStorage.removeItem(draftKey); } catch { /* Optional draft storage. */ }
       navigate(`/projects/${created.id}`);
     } catch (failure) {
@@ -75,6 +81,7 @@ function ReadyNewBuild() {
           <p className="new-build-request">“{idea.trim()}”</p>
           <p className="new-build-known">Starting with <strong>{selectedBoard.name}</strong></p>
           <p className="new-build-honest">No parts or connections have been planned yet.</p>
+          {ownedOnly && <p className="new-build-honest">AI will plan with your owned components, within your quantities.</p>}
           <div className="new-build-actions"><button className="button" type="submit" disabled={saving}>Create project <span aria-hidden="true">→</span></button><button className="new-build-secondary" type="button" onClick={() => { setPreview(false); requestAnimationFrame(() => nameRef.current?.focus()); }}>Back to edit</button></div>
         </div> : <div className="new-build-entry">
           <h1>What do you want to make?</h1>
@@ -82,6 +89,7 @@ function ReadyNewBuild() {
           <textarea id="build-idea" ref={ideaRef} autoFocus rows={3} maxLength={MAX_INTENT_LENGTH} placeholder="Make a motion alarm." value={idea} aria-invalid={!!error && !validIntentText(idea.trim())} aria-describedby="build-hint build-error" onChange={event => { const value = event.target.value; setIdea(value); if (!edited) setName(value.trim() ? titleFromIntent(value) : ""); setError(null); }} />
           <p id="build-hint" className="new-build-hint">A sentence is enough. You can use multiple lines; Enter adds a new line.</p>
           {idea.trim() && <div className="new-build-name"><label htmlFor="build-name">Project name</label><input id="build-name" ref={nameRef} maxLength={120} value={name} aria-invalid={!!error && !validProjectName(name.trim())} aria-describedby="build-error" onChange={event => { setName(event.target.value); setEdited(true); setError(null); }} /><span>Generated on this device. Make it yours.</span></div>}
+          {ownedCount>0 && <label className="new-build-owned"><input type="checkbox" checked={ownedOnly} onChange={event=>setOwnedOnly(event.target.checked)} /> Use my parts for AI planning <small>Optional. Virtual editing can still use the full Library.</small></label>}
           <div className="new-build-actions"><button className="button" type="submit" disabled={saving}>Create project <span aria-hidden="true">→</span></button><button className="new-build-secondary" type="button" onClick={() => { if (validate()) setPreview(true); }}>Preview starting point <span aria-hidden="true">↗</span></button></div>
         </div>}
         <p className="new-build-ai-note">Creates a blank project. AI assembly needs a connected provider.<br /><Link to="/settings/providers">Set up AI providers →</Link></p>

@@ -1,15 +1,16 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { parsePlanRequest } from "../../apps/web/src/ai/contract.js";
+import { parseInventorySnapshot, parsePlanRequest, type InventorySnapshot } from "../../apps/web/src/ai/contract.js";
 import { planBehavior } from "../../apps/web/src/ai/behaviorPlanner.js";
 import { planHardware } from "../../apps/web/src/ai/planner.js";
 import { HardwareError } from "../../apps/web/src/hardware-core/commands.js";
 import { migrateProject, type KinetableProjectV4 } from "../../apps/web/src/projects/v4.js";
 import { remoteModelProvider, validateRemoteConfig } from "../../server/ai/remoteProvider.js";
 import { readJsonObject } from "../../server/ai/requestBody.js";
+import { getDefinition } from "../../apps/web/src/component-library/catalog.js";
 
 type Request = IncomingMessage & { body?: unknown };
 const send = (res: ServerResponse, status: number, value: unknown) => { res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(value)); };
-async function ownedProject(token: string, id: string): Promise<KinetableProjectV4> {
+async function ownedProject(token: string, id: string): Promise<{project: KinetableProjectV4; ownerId: string}> {
   const url = process.env.VITE_SUPABASE_URL, key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) throw new Error("BACKEND_UNAVAILABLE");
   const headers = { apikey: key, Authorization: `Bearer ${token}` };
@@ -23,7 +24,19 @@ async function ownedProject(token: string, id: string): Promise<KinetableProject
   if (!row || row.owner_id !== user.id || row.archived) throw new Error("PROJECT_NOT_FOUND");
   const project = migrateProject(row.document);
   if (row.id !== project.id || row.name !== project.name || row.primary_board_id !== project.boardIds[0] || row.schema_version !== (row.document as { schemaVersion: number }).schemaVersion) throw new Error("INVALID_PROJECT");
-  return project;
+  return { project, ownerId: user.id };
+}
+async function ownedInventory(token: string, ownerId: string): Promise<InventorySnapshot> {
+  const url = process.env.VITE_SUPABASE_URL, key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) throw new Error("BACKEND_UNAVAILABLE");
+  const response = await fetch(`${url}/rest/v1/inventory_items?select=owner_id,definition_id,quantity`, { headers: { apikey:key, Authorization:`Bearer ${token}` }, signal:AbortSignal.timeout(10000) });
+  if (!response.ok) throw new Error("BACKEND_UNAVAILABLE");
+  const rows = await response.json() as {owner_id:string;definition_id:string;quantity:number}[];
+  if (!Array.isArray(rows) || rows.length > 20 || rows.some(row => row.owner_id !== ownerId || !getDefinition(row.definition_id))) throw new Error("INVALID_REQUEST");
+  const trusted = { mode:"owned-only", items: rows.filter(row => row.quantity > 0 && getDefinition(row.definition_id)?.kind === "component").map(row => ({definitionId:row.definition_id,quantity:row.quantity})) };
+  const parsed = parseInventorySnapshot(trusted);
+  if (!parsed) throw new Error("INVALID_REQUEST");
+  return parsed;
 }
 export default async function handler(req: Request, res: ServerResponse) {
   if (req.method !== "POST") return send(res, 405, { code: "METHOD_NOT_ALLOWED" });
@@ -32,12 +45,14 @@ export default async function handler(req: Request, res: ServerResponse) {
     const input = parsePlanRequest(body.input);
     const provider = remoteModelProvider(validateRemoteConfig(body.provider));
     const bearer = /^Bearer (\S+)$/.exec(req.headers.authorization ?? "")?.[1];
-    const project = bearer ? await ownedProject(bearer, input.projectId) : migrateProject(body.project);
+    const owned = bearer ? await ownedProject(bearer, input.projectId) : null;
+    const project = owned?.project ?? migrateProject(body.project);
+    const trustedInput = input.inventory && owned ? { ...input, inventory: await ownedInventory(bearer!,owned.ownerId) } : input;
     if (body.task !== undefined && body.task !== "hardware" && body.task !== "logic") throw new Error("INVALID_REQUEST");
-    const plan = body.task === "logic" ? await planBehavior(provider,input,project) : await planHardware(provider, input, project);
+    const plan = body.task === "logic" ? await planBehavior(provider,input,project) : await planHardware(provider, trustedInput, project);
     return send(res, 200, { ...plan, revision: input.revision });
   } catch (error) {
-    if (error instanceof HardwareError) return send(res, 422, { code: "HARDWARE_VALIDATION", detail: error.code });
+    if (error instanceof HardwareError) return send(res, 422, error.code === "NOT_OWNED" ? { code: "NOT_OWNED" } : { code: "HARDWARE_VALIDATION", detail: error.code });
     const code = error instanceof Error ? error.message : "BACKEND_UNAVAILABLE";
     const status: Record<string, number> = { INVALID_REQUEST: 400, INVALID_ENDPOINT: 400, AUTH_REQUIRED: 401, PROJECT_NOT_FOUND: 404, STALE_PROJECT: 409, INVALID_PROJECT: 422, HARDWARE_VALIDATION: 422, INVALID_MODEL_RESPONSE: 422, SAFETY_REFUSAL: 422, MODEL_UNAVAILABLE: 422, CREDENTIAL_REJECTED: 401, RATE_LIMIT: 429, QUOTA_EXHAUSTED: 429, TIMEOUT: 503, NETWORK_FAILURE: 503, PROVIDER_UNAVAILABLE: 503, BACKEND_UNAVAILABLE: 503 };
     return send(res, status[code] ?? 503, { code: code in status ? code : "BACKEND_UNAVAILABLE" });

@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { catalog, getDefinition } from "../component-library/catalog";
+import { getDefinition } from "../component-library/catalog";
+import { searchLibrary } from "../component-library/search";
+import { useInventory } from "../persistence/useInventory";
 import { analyzeCircuit, validateElectricalSafety, type ProjectCommand } from "../hardware-core/commands";
 import { holes } from "../hardware-core/breadboard";
 import { netFor, resolveNets } from "../hardware-core/nets";
@@ -28,6 +30,12 @@ export function Workbench({ document }: { document: KinetableProjectV4 }) {
   const [sourceKey, setSourceKey] = useState("");
   const [targetKey, setTargetKey] = useState("");
   const [tray, setTray] = useState<"add" | "replace" | null>(null);
+  const [trayQuery,setTrayQuery]=useState("");
+  const inventory=useInventory();
+  const owned=new Map(inventory.rows.filter(row=>row.quantity>0).map(row=>[row.definitionId,row.quantity]));
+  const trayParts=searchLibrary({query:trayQuery}).filter(d=>d.kind==="component").sort((a,b)=>Number(owned.has(b.id))-Number(owned.has(a.id)));
+  const trayRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{if(tray){trayRef.current?.querySelector("input")?.focus();return ()=>globalThis.document.querySelector<HTMLButtonElement>(".workbench-add")?.focus();}},[tray]);
   const [cameraAction, setCameraAction] = useState<CameraAction | null>(null);
   const [message, setMessage] = useState("");
   const [logicReferences, setLogicReferences] = useState<string[]>([]);
@@ -163,9 +171,9 @@ export function Workbench({ document }: { document: KinetableProjectV4 }) {
       {wireInfo && <aside className="workbench-inspector" aria-label="Wire inspector"><button className="inspector-close" onClick={() => setSelectedWireId(null)} aria-label="Close inspector">×</button><span className="inspector-kicker">WIRE</span><h2>Connection</h2><p>{wireInfo.from}<br />↓<br />{wireInfo.to}</p><h3>On this net</h3><p>{wireInfo.netPins.join(" · ") || "No component pins"}</p>{mode === "build" && <div className="inspector-actions"><button onClick={remove}>Remove wire</button></div>}</aside>}
       {holeInfo && <aside className="workbench-inspector" aria-label="Breadboard hole inspector"><button className="inspector-close" onClick={() => setSelectedEndpoint(null)} aria-label="Close inspector">×</button><span className="inspector-kicker">BREADBOARD</span><h2>Hole {holeInfo.holeId}</h2><p>{holeInfo.connectedHoles.join(" · ")} share one internal strip.</p><h3>Connected pins</h3><p>{holeInfo.connectedPins.join(" · ") || "No component pins yet"}</p></aside>}
       {selectedEndpoint?.kind === "pin" && <aside className="workbench-inspector" aria-label="Pin inspector"><button className="inspector-close" onClick={() => setSelectedEndpoint(null)} aria-label="Close inspector">×</button><span className="inspector-kicker">PIN</span><h2>{endpointLabel(document, selectedEndpoint)}</h2><p>{(netFor(nets, selectedEndpoint)?.endpoints ?? []).filter(e => endpointKey(e) !== endpointKey(selectedEndpoint) && e.kind === "pin").map(e => endpointLabel(document,e)).join(" · ") || "No connected component pins yet"}</p></aside>}
-      {mode === "build" && tray && <div className="workbench-tray" role="dialog" aria-label={tray === "add" ? "Add part" : "Replace part"}>
+      {mode === "build" && tray && <div ref={trayRef} className="workbench-tray" role="dialog" aria-modal="true" aria-label={tray === "add" ? "Add part" : "Replace part"} onKeyDown={event=>{if(event.key!=="Tab")return;const controls=[...event.currentTarget.querySelectorAll<HTMLElement>("button,input")].filter(el=>!el.hasAttribute("disabled"));const first=controls[0],last=controls.at(-1);if(event.shiftKey&&globalThis.document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&globalThis.document.activeElement===last){event.preventDefault();first?.focus();}}}>
         <div className="workbench-tray-head"><strong>{tray === "add" ? "Add a part" : "Replace part"}</strong><button onClick={() => setTray(null)} aria-label="Close part tray">×</button></div>
-        <p>Choose a virtual part from the component library.</p><div className="workbench-tray-items">{catalog.filter(d => d.kind === "component").map(definition => <button key={definition.id} onClick={() => choose(definition.id)}><span className="part-glyph" data-visual={definition.visualId} aria-hidden="true" />{definition.name}</button>)}</div>
+        <p>Choose a virtual part. My Parts are shown first; adding here never changes what you own.</p><label className="workbench-tray-search">Search Library<input type="search" value={trayQuery} onChange={event=>setTrayQuery(event.target.value)} /></label><div className="workbench-tray-items">{trayParts.map(definition => <button key={definition.id} onClick={() => choose(definition.id)}><span className="part-glyph" data-visual={definition.visualId} aria-hidden="true" />{definition.name}{owned.has(definition.id)&&<small>My Parts · {owned.get(definition.id)}</small>}</button>)}{!trayParts.length&&<p>No matching parts.</p>}</div>
       </div>}
     </div>
     {mode === "logic" && <LogicPanel document={document} onReference={id => setLogicReferences(id ? [id] : [])} onRule={setLogicReferences} />}
