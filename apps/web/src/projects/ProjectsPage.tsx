@@ -13,15 +13,21 @@ import { bonkProject } from "./starters";
 import { endpointWorld } from "../spatial/anchors";
 import { getDefinition } from "../component-library/catalog";
 const WorkbenchStage = lazy(() => import("../spatial/WorkbenchStage"));
+let projectsSnapshot: { ownerId: string; rows: LocalProject[] } | null = null;
 function useProjects() {
   const profile = useProfileStore(s => s.profile), session = useAuthStore(s => s.session);
-  const [rows, setRows] = useState<LocalProject[]>([]), [error,setError] = useState<string | null>(null), [loaded,setLoaded] = useState(false);
+  const ownerId = session?.user.id ?? "guest";
+  const cached = projectsSnapshot?.ownerId === ownerId ? projectsSnapshot.rows : null;
+  const [listing,setListing] = useState<{ownerId:string;rows:LocalProject[];loaded:boolean;error:string|null}>(()=>({ownerId,rows:cached??[],loaded:cached!==null,error:null}));
+  const rows=listing.ownerId===ownerId?listing.rows:[], loaded=listing.ownerId===ownerId&&listing.loaded, error=listing.ownerId===ownerId?listing.error:null;
   useEffect(() => {
-    const subscription = liveQuery(() => localProjectRepository.list()).subscribe({ next: value => { setRows(value.filter(row => !session || !row.cloudUserId || row.cloudUserId === session.user.id).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))); setLoaded(true); }, error: () => { setError("We couldn’t read your saved projects. Allow browser storage and reload."); setLoaded(true); } });
+    const snapshot = projectsSnapshot?.ownerId === ownerId ? projectsSnapshot.rows : null;
+    setListing({ownerId,rows:snapshot??[],loaded:snapshot!==null,error:null});
+    const subscription = liveQuery(() => localProjectRepository.list()).subscribe({ next: value => { const visible = value.filter(row => ownerId === "guest" || !row.cloudUserId || row.cloudUserId === ownerId).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)); projectsSnapshot = { ownerId, rows: visible }; setListing({ownerId,rows:visible,loaded:true,error:null}); }, error: () => { setListing({ownerId,rows:snapshot??[],loaded:true,error:"We couldn’t read your saved projects. Allow browser storage and reload."}); } });
     const board = getBoard(profile?.primaryBoardId);
-    if (board && profile?.setupCompleted) void useProjectStore.getState().open(board.id, session);
+    if (board && profile?.setupCompleted) void useProjectStore.getState().open(board.id, useAuthStore.getState().session);
     return () => subscription.unsubscribe();
-  }, [profile?.primaryBoardId,profile?.setupCompleted,session]);
+  }, [profile?.primaryBoardId,profile?.setupCompleted,ownerId]);
   return { rows, error, loaded, profile };
 }
 function summary(row: LocalProject) { const document = migrateProject(row.document); const count = document.components.filter(c => c.kind === "component").length; return `${getBoard(document.boardIds[0])?.name ?? "Board"}${count ? ` · ${count} parts` : ""}`; }

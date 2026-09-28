@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@font-face { font-family: "Space Grotesk"; src: url("/fonts/SpaceGrotesk.ttf") format("truetype"); font-weight: 300 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url("../assets/SpaceGrotesk.woff2") format("woff2"); font-weight: 300 700; font-style: normal; font-display: swap; }
 @theme {
   --color-paper: #f4f1e8;
   --color-ink: #20221f;

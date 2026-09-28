@@ -15,22 +15,23 @@ function ReadyProject() {
   const { projectId } = useParams();
   const profile = useProfileStore(s=>s.profile), session=useAuthStore(s=>s.session), resolved=useAuthStore(s=>s.resolved), authSync=useAuthStore(s=>s.syncStatus);
   const project=useProjectStore(s=>s.project), status=useProjectStore(s=>s.status), error=useProjectStore(s=>s.error);
-  const [opening,setOpening]=useState(true), [missing,setMissing]=useState(false);
+  const [opening,setOpening]=useState(() => !project || !!projectId && project.id!==projectId), [missing,setMissing]=useState(false);
   const board=getBoard(profile?.primaryBoardId);
   useEffect(()=>{
     if (!profile?.setupCompleted || !board) return;
-    let alive=true; setOpening(true); setMissing(false);
+    let alive=true; setOpening(!useProjectStore.getState().project || !!projectId && useProjectStore.getState().project?.id!==projectId); setMissing(false);
     const store=useProjectStore.getState();
-    const task=projectId ? store.openById(projectId,board.id,session) : store.open(board.id,session).then(()=>true);
+    const currentSession=useAuthStore.getState().session;
+    const task=projectId ? store.openById(projectId,board.id,currentSession) : store.open(board.id,currentSession).then(()=>true);
     void task.then(found=>{if(alive){setMissing(!found);setOpening(false);}}).catch(()=>{if(alive){setMissing(true);setOpening(false);}});
     return ()=>{alive=false;};
-  },[profile?.setupCompleted,board,session,projectId]);
+  },[profile?.setupCompleted,board,session?.user.id,projectId]);
   useEffect(()=>{ const retry=()=>void useProjectStore.getState().sync(); window.addEventListener("online",retry); return ()=>window.removeEventListener("online",retry); },[]);
   useEffect(()=>{globalThis.document.title=project ? `${project.name} · Kinetable` : "Workbench · Kinetable";},[project]);
   useEffect(()=>{useSimulationStore.getState().build();},[projectId]);
   if (!profile?.setupCompleted && (!resolved || authSync==="syncing")) return <main className="route-loading" role="status">Opening your projects…</main>;
   if (!profile?.setupCompleted || !board) return <Navigate to="/start" replace />;
-  if(opening) return <main className="route-loading" role="status">Opening your project…</main>;
+  if(opening || (!missing && !!project?.cloudUserId && !!session && project.cloudUserId!==session.user.id)) return <main className="route-loading" role="status">Opening your project…</main>;
   if(missing || !project) return <main id="app-main" className="route-loading"><h1>This project isn’t here.</h1><p>{error || "It may be on another device or account. Your other projects are safe."}</p><Link className="button" to="/projects">Go to Projects</Link><Link to="/home">Home</Link></main>;
   if(!projectId) return <Navigate to={`/projects/${project.id}`} replace />;
   if(project.id!==projectId) return <main className="route-loading" role="status">Opening your project…</main>;

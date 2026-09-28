@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from "react
 import { LandingPage } from "../landing/LandingPage";
 import "../styles/app.css";
 import "../styles/interface.css";
-import { motion, useReducedMotion } from "motion/react";
 import { Tooltips } from "./Tooltips";
 import { AuthBoundary } from "../auth/AuthBoundary";
 const AuthPage = lazy(() => import("../auth/AuthPage"));
@@ -21,9 +20,8 @@ function RoutePosition() {
   return null;
 }
 function RouteScenes() {
-  const location = useLocation(), reduced = useReducedMotion();
-  return <motion.div className="route-scene" key={location.pathname} initial={{ opacity: reduced ? 1 : .84, y: reduced ? 0 : 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : .22, ease: [.16, 1, .3, 1] }}><Suspense fallback={<div className="route-loading" role="status">Opening your table…</div>}>
-    <Routes location={location}>
+  return <div className="route-scene"><Suspense fallback={<div className="route-loading" role="status">Opening your table…</div>}>
+    <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
@@ -39,7 +37,7 @@ function RouteScenes() {
       <Route path="/settings/providers" element={<ProviderSettingsPage />} />
       <Route path="*" element={<main className="route-loading"><h1>This table isn’t here.</h1><Link to="/">Back to Kinetable</Link></main>} />
     </Routes>
-  </Suspense></motion.div>;
+  </Suspense></div>;
 }
 export function App() {
   return <BrowserRouter><AuthBoundary><RoutePosition /><RouteScenes /><Tooltips /></AuthBoundary></BrowserRouter>;

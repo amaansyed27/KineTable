@@ -2,6 +2,7 @@ import { ScrollStory } from "./ScrollStory";
 import { LearningTeaser } from "./LearningTeaser";
 import { FinalCTA } from "./FinalCTA";
 import { useAuthStore } from "../auth/authStore";
+import { Link } from "react-router";
 export function LandingPage() {
   const session=useAuthStore(s=>s.session);
   return (
@@ -20,10 +21,10 @@ export function LandingPage() {
           <a href="#parts">Parts</a>
         </nav>
         <div className="nav-actions">
-          <a href={session ? "/home" : "/auth"}>{session ? "My projects" : "Sign in"}</a>
-          <a className="button small" href="/home">
+          <Link to={session ? "/home" : "/auth"}>{session ? "My projects" : "Sign in"}</Link>
+          <Link className="button small" to="/home">
             Open Kinetable <span>↗</span>
-          </a>
+          </Link>
         </div>
       </header>
       <main>
