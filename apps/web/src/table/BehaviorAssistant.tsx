@@ -75,7 +75,7 @@ export function BehaviorAssistant({ document }: { document: KinetableProjectV4 }
     if(!proposal || !active)return;
     setBusy(true);setError(null);
     try {
-      await useProjectStore.getState().applyTransaction(current=>{if(current.id!==document.id || current.metadata.updatedAt!==proposal.plan.revision)throw new Error("STALE_PROJECT");return proposal.plan.commands;});
+      await useProjectStore.getState().applyTransaction(current=>{if(current.id!==document.id || current.metadata.updatedAt!==proposal.plan.revision)throw new Error("STALE_PROJECT");return proposal.plan.commands;}, "Updated behavior with Kinetable");
       setProposal(null);
       await save({...active,messages:[...active.messages,{id:crypto.randomUUID(),role:"assistant",content:"Applied to your circuit. You can review the rules in Manual and undo the change there."}],updatedAt:new Date().toISOString()});
     }catch(cause){setError(assemblyError(cause));}finally{setBusy(false);}

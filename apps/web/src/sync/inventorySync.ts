@@ -2,13 +2,16 @@ import type { Session } from "@supabase/supabase-js";
 import { useAuthStore } from "../auth/authStore.js";
 import { cloudInventoryRepository } from "../persistence/cloudInventoryRepository.js";
 import { inventoryRepository } from "../persistence/inventoryRepository.js";
+import { create } from "zustand";
+export const useInventorySyncState = create<{ownerId:string|null;status:"idle"|"syncing"|"synced"|"offline"}>(()=>({ownerId:null,status:"idle"}));
 const running = new Map<string,Promise<void>>();
 const queued = new Set<string>();
-// ponytail: client-clock row timestamps can misorder concurrent devices; add server versions and conflict UI in Slice 12 if this becomes material.
+// ponytail: inventory still uses client timestamps; add server revisions if concurrent shelf edits become material.
 export function syncInventory(session: Session): Promise<void> {
   const ownerId = session.user.id;
   const pending = running.get(ownerId);
   if (pending) { queued.add(ownerId); return pending; }
+  useInventorySyncState.setState({ownerId,status:"syncing"});
   const task = (async () => {
     const remote = await cloudInventoryRepository.list(session.access_token, ownerId);
     if (useAuthStore.getState().session?.user.id !== ownerId) return;
@@ -28,7 +31,7 @@ export function syncInventory(session: Session): Promise<void> {
       const latest = (await inventoryRepository.list(ownerId)).find(row => row.definitionId === item.definitionId);
       if (latest?.updatedAt === item.updatedAt) await inventoryRepository.save({ ...item, updatedAt: saved.updated_at, dirty: false });
     }
-  })().finally(() => { running.delete(ownerId); if (queued.delete(ownerId) && useAuthStore.getState().session?.user.id === ownerId) void syncInventory(session).catch(() => undefined); });
+  })().then(()=>{if(useAuthStore.getState().session?.user.id===ownerId)useInventorySyncState.setState({ownerId,status:"synced"});},error=>{if(useAuthStore.getState().session?.user.id===ownerId)useInventorySyncState.setState({ownerId,status:"offline"});throw error;}).finally(() => { running.delete(ownerId); if (queued.delete(ownerId) && useAuthStore.getState().session?.user.id === ownerId) void syncInventory(session).catch(() => undefined); });
   running.set(ownerId,task);
   return task;
 }

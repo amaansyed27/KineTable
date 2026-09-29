@@ -14,7 +14,7 @@ import { changeBoard, starterRow } from "./projectCreation";
 import { executeCommands } from "../hardware-core/commands";
 
 const user = (id: string) => ({ user: { id }, access_token: `${id}-token` } as Session);
-beforeEach(async () => { await db.table("projects").clear(); useAuthStore.setState({ session: null }); });
+beforeEach(async () => { await db.table("projects").clear(); await db.table("projectVersions").clear(); await db.table("projectConflicts").clear(); useAuthStore.setState({ session: null }); });
 it("validates versioned documents and rejects invalid or unsupported data", () => {
   const project = starterProject("esp32-dev-module");
   expect(isProject(project)).toBe(true);
@@ -47,7 +47,7 @@ it("generates readable deterministic local names", () => {
 it("rejects malformed intent from cloud documents", () => {
   const document = projectFromIntent(starterProject("esp32-dev-module"), "esp32-dev-module", "Make a motion alarm", "Motion Alarm");
   const row = { id: document.id, owner_id: "user-a", name: document.name, primary_board_id: document.boardIds[0],
-    schema_version: 1, document, archived: false, created_at: document.metadata.createdAt, updated_at: document.metadata.updatedAt };
+    schema_version: 1, revision: 1, document, archived: false, created_at: document.metadata.createdAt, updated_at: document.metadata.updatedAt };
   expect(validateCloudProject(row, "user-a").document.intent?.text).toBe("Make a motion alarm");
   expect(() => validateCloudProject({ ...row, document: { ...document, intent: { text: " " } } }, "user-a")).toThrow();
 });
@@ -111,7 +111,7 @@ it("saves safe incomplete editor drafts locally and accepts them from cloud", as
   await localProjectRepository.save({ ...row, document: draft, updatedAt: draft.metadata.updatedAt });
   expect((await localProjectRepository.list())[0].document.components).toHaveLength(2);
   const cloud = { id: draft.id, owner_id: "user-a", name: draft.name, primary_board_id: draft.boardIds[0], schema_version: draft.schemaVersion,
-    document: draft, archived: false, created_at: draft.metadata.createdAt, updated_at: draft.metadata.updatedAt };
+    document: draft, revision: 1, archived: false, created_at: draft.metadata.createdAt, updated_at: draft.metadata.updatedAt };
   expect(validateCloudProject(cloud, "user-a").document.components).toHaveLength(2);
   expect(() => validateCloudProject({ ...cloud, document: { ...draft, wires: [{ id: "bad", from: { kind: "pin", componentId: "led-1", pinId: "missing" }, to: { kind: "pin", componentId: "board-main", pinId: "gnd" } }] } }, "user-a")).toThrow();
 });
@@ -147,7 +147,7 @@ it("adopts a guest project, retries failed cloud writes, and never transfers ano
   expect(store.getState().status).toBe("offline");
   expect((await localProjectRepository.list())[0].cloudDirty).toBe(true);
   cloud.save.mockImplementation(async document => ({ id: document.id, owner_id: "user-a", name: document.name,
-    schema_version: document.schemaVersion, primary_board_id: document.boardIds[0], document, archived: false,
+    schema_version: document.schemaVersion, primary_board_id: document.boardIds[0], document, archived: false, revision: 1,
     created_at: document.metadata.createdAt, updated_at: "2026-09-23T12:00:00Z" } as CloudProject));
   await store.getState().sync();
   expect(store.getState().status).toBe("synced");
@@ -169,7 +169,7 @@ it("starts an authenticated local table when cloud is unavailable", async () => 
 it("uploads every guest build when an account is connected", async () => {
   const cloud = { list: vi.fn(async () => [] as CloudProject[]), save: vi.fn(async (document: KinetableProject) => ({
     id: document.id, owner_id: "user-a", name: document.name, schema_version: document.schemaVersion,
-    primary_board_id: document.boardIds[0], document, archived: false,
+    primary_board_id: document.boardIds[0], document, archived: false, revision: 1,
     created_at: document.metadata.createdAt, updated_at: document.metadata.updatedAt,
   } as CloudProject)) };
   const store = createProjectStore(localProjectRepository, cloud);
@@ -188,7 +188,7 @@ it("reads v3 without cloud overwrite, then persists, undoes and reconnects v4 lo
     { type: "connection.create", id: "series", from: { componentId: "resistor-1", pinId: "b" }, to: { componentId: "led-1", pinId: "anode" } },
     { type: "connection.create", id: "ground", from: { componentId: "led-1", pinId: "cathode" }, to: { componentId: "board-main", pinId: "gnd" } },
   ]);
-  const remote = { id: legacy.id, owner_id: "user-a", name: legacy.name, schema_version: 3, primary_board_id: legacy.boardIds[0], document: legacy, archived: false, created_at: legacy.metadata.createdAt, updated_at: legacy.metadata.updatedAt } as CloudProject;
+  const remote = { id: legacy.id, owner_id: "user-a", name: legacy.name, schema_version: 3, primary_board_id: legacy.boardIds[0], document: legacy, revision: 1, archived: false, created_at: legacy.metadata.createdAt, updated_at: legacy.metadata.updatedAt } as CloudProject;
   const cloud = { list: vi.fn(async () => [remote]), save: vi.fn() };
   useAuthStore.setState({ session: user("user-a") });
   const store = createProjectStore(localProjectRepository,cloud); await store.getState().open("esp32-dev-module",user("user-a"));
@@ -200,7 +200,7 @@ it("reads v3 without cloud overwrite, then persists, undoes and reconnects v4 lo
   expect(store.getState().status).toBe("offline"); expect((await localProjectRepository.list())[0]).toMatchObject({ schemaVersion: 4, cloudDirty: true });
   await store.getState().undo(); expect(store.getState().project!.document.logic).toEqual([]);
   await store.getState().redo(); expect(store.getState().project!.document.logic).toHaveLength(1);
-  cloud.save.mockImplementation(async document => ({ ...remote, schema_version: 4, document, updated_at: document.metadata.updatedAt }));
+  cloud.save.mockImplementation(async document => ({ ...remote, schema_version: 4, document, revision: 2, updated_at: document.metadata.updatedAt }));
   await store.getState().sync(); expect(store.getState().status).toBe("synced"); expect((await localProjectRepository.list())[0].cloudDirty).toBe(false);
 });
 
@@ -228,7 +228,7 @@ it("hides account project cache after sign-out and restores it on sign-in",async
 it("does not adopt the visible guest project during a direct sync into an existing account",async()=>{
   const guest=starterRow("esp32-dev-module"),account=starterRow("arduino-uno","user-a");
   await localProjectRepository.save(guest);
-  const remote={id:account.id,owner_id:"user-a",name:account.name,primary_board_id:"arduino-uno",schema_version:account.schemaVersion,document:account.document,archived:false,created_at:account.createdAt,updated_at:account.updatedAt} as CloudProject;
+  const remote={id:account.id,owner_id:"user-a",name:account.name,primary_board_id:"arduino-uno",schema_version:account.schemaVersion,document:account.document,revision:1,archived:false,created_at:account.createdAt,updated_at:account.updatedAt} as CloudProject;
   const cloud={list:vi.fn(async()=>[remote]),save:vi.fn()};
   const store=createProjectStore(localProjectRepository,cloud);
   await store.getState().open("esp32-dev-module",null);

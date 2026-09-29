@@ -32,7 +32,7 @@ test("direct table entry redirects, keyboard-only selection and reduced motion w
   await expect(page).toHaveURL(/\/start$/);
   const firstBoard = page.getByRole("radio", { name: "ESP32", exact: true });
   await expect(firstBoard).toBeVisible();
-  for (let i = 0; i < 8 && !await firstBoard.evaluate(el => el === document.activeElement); i++) await page.keyboard.press("Tab");
+  for (let i = 0; i < 16 && !await firstBoard.evaluate(el => el === document.activeElement); i++) await page.keyboard.press("Tab");
   await expect(page.getByRole("radio", { name: "ESP32", exact: true })).toBeFocused();
   await page.keyboard.press("Space"); await expect(page.getByRole("radio", { name: "ESP32", exact: true })).toBeChecked();
   await page.keyboard.press("ArrowRight"); await expect(page.getByRole("radio", { name: "Raspberry Pi Pico", exact: true })).toBeChecked();

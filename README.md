@@ -23,7 +23,7 @@ Core rules:
 
 ## Current status
 
-**Slices 01–11 complete. Pre-Slice-11 UX correction complete. Slice 12 — Personal Workspace next.**
+**Slices 01–11 complete. Slice 12 is a locally verified candidate awaiting production verification. Slice 13 — Learn next.**
 
 Kinetable currently supports:
 
@@ -43,9 +43,10 @@ Kinetable currently supports:
 - deterministic simulation, virtual inputs, causal Explain and Power/Signals/Data X-Ray;
 - persistent WHEN / IF / DO Visual Logic running through the same physical compiler and runtime;
 - accessible wiring/logic controls, touch interaction and WebGL fallback.
-- a curated provenance-aware hardware library and local-first My Parts at `/parts`, with optional owned-parts AI planning and owner-only cloud sync.
+- a curated provenance-aware hardware library and local-first My Parts at `/parts`, with optional owned-parts AI planning and owner-only cloud sync;
+- durable local/cloud project History, server revisions, explicit cross-device conflict resolution and deterministic inventory-aware Explore at `/explore`.
 
-Project versioning, physical-board runtime and digital-twin features remain future slices. The component library remains deliberately curated rather than a broad parts marketplace.
+Physical-board runtime and digital-twin features remain future slices. The component library and Explore are deliberately curated rather than broad marketplaces.
 
 ## Architecture
 
@@ -156,7 +157,7 @@ The earlier 22-slice plan was compressed after Slice 07. Historical Slice 01–0
 | 09 — Living Circuit | ✅ | Simulation + Explain/X-Ray |
 | 10 — Visual Logic | ✅ | Editable persistent semantic behaviour |
 | 11 — Hardware Platform | ✅ | My Parts + canonical Component Library |
-| 12 — Personal Workspace | Planned | Projects/versioning + Explore |
+| 12 — Personal Workspace | Local candidate | Project history, conflict-safe sync + Explore; production checkpoint remains paused |
 | 13 — Learn | Planned | Interactive topology-aware missions |
 | 14 — Physical Runtime | Planned | Compile/flash + live data + advanced code |
 | 15 — Digital Twin | Later | Workbench scan + continuous live workbench |
@@ -248,6 +249,7 @@ For hosted Supabase features, copy `.env.example` to `apps/web/.env.local` and p
 - [Slice 09 — Living Circuit](docs/SLICE-09.md)
 - [Slice 10 — Visual Logic](docs/SLICE-10.md)
 - [Slice 11 — Hardware Platform](docs/SLICE-11.md)
+- [Slice 12 — Personal Workspace](docs/SLICE-12.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 

@@ -6,9 +6,10 @@ import { migrateProject } from "../src/projects/v3";
 import { layoutComponents } from "../src/hardware-core/layout";
 import type { KinetableProjectV4 } from "../src/projects/v4";
 import { protectPreview } from "./protectedPreview";
+import { localSupabaseOnly } from "./localSupabaseOnly";
 
 test("hosted v3 upgrades intentionally, BONK ×3 restores fresh, and offline logic reconnects with owner RLS", async ({ page, browser }) => {
-  test.skip(process.env.KINETABLE_HOSTED_LOGIC_QA !== "1", "Requires disposable hosted Supabase accounts");
+  test.skip(!localSupabaseOnly(), "Requires local Supabase fixtures");
   test.setTimeout(150000);
   await protectPreview(page.context());
   const env = Object.fromEntries(readFileSync(".env.local", "utf8").split(/\r?\n/).filter(l => l.includes("=")).map(l => { const i=l.indexOf("="); return [l.slice(0,i),l.slice(i+1)]; }));

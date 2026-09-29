@@ -226,7 +226,7 @@ Status: implemented; see [Slice 11](SLICE-11.md). `/parts` combines local-first 
 
 ## 12 — Personal Workspace
 
-Add project versions and conflict-safe cross-device restore, then inventory-based Explore recommendations.
+Status: local candidate verified; production verification awaits approval. See [Slice 12](SLICE-12.md). Durable local/cloud project versions, atomic optimistic cloud checkpoints, persistent conflict resolution, fresh-device restore and deterministic My Parts matching power `/explore`. The production checkpoint RPC remains intentionally read-only. Inventory's own timestamp sync remains a documented limitation.
 
 ## 13 — Learn
 
@@ -273,9 +273,11 @@ Known limitations
 
 A slice is not complete because the screen renders. The intended user flow, persistence/server behaviour, and failure paths must work end-to-end.
 
-Slices 01–10 implemented.
-Slice 12 — Personal Workspace is next.
+Slices 01–11 complete; Slice 12 is implemented and locally verified, with production verification pending.
+Slice 13 — Learn is next. It has not been started.
 
 ## Unnumbered pre-Slice-11 correction
 
-Slices 01–11 complete. **Pre-Slice-11 UX correction and Slice 11 Hardware Platform complete.** Project hierarchy, contextual workbench, appearance, physical visual improvements and bounded provider-backed Logic use existing commands. Slice 11 adds the canonical supported-profile library and My Parts. Run/Code/upload remain future Slice 14. [Correction record](PRE-SLICE-11-UX-CORRECTION.md); [Slice 11 record](SLICE-11.md).
+Slices 01–11 complete; Slice 12 is a local candidate. **Pre-Slice-11 UX correction and Slice 11 Hardware Platform complete.** Project hierarchy, contextual workbench, appearance, physical visual improvements and bounded provider-backed Logic use existing commands. Slice 11 adds the canonical supported-profile library and My Parts. Run/Code/upload remain future Slice 14. [Correction record](PRE-SLICE-11-UX-CORRECTION.md); [Slice 11 record](SLICE-11.md).
+
+Slice 12 adds append-only project history, revision-checked cloud sync, conflict preservation and resolution, and five deterministic Explore ideas based on My Parts. [Slice 12 record](SLICE-12.md). Slice 13 was not started.

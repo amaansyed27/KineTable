@@ -61,14 +61,14 @@ Implemented relational tables:
 ```text
 profiles
 projects
+project_versions
+inventory_items
 ```
 
 Planned when their canonical slices arrive:
 
 ```text
-hardware_inventory     # Slice 11 — Hardware Platform
-component_catalog      # Slice 11 — Hardware Platform
-project_versions       # Slice 12 — Personal Workspace
+component_catalog      # future, if user-maintained catalog data is needed
 ```
 
 The complete workbench graph remains a versioned JSONB project document. Relational columns hold ownership/search metadata such as project ID, owner, name, primary board, schema version and timestamps.
@@ -138,7 +138,7 @@ validated project edit
 → signed-in cloud checkpoint
 ```
 
-Cloud failure leaves the valid local project dirty and retryable. A fresh authenticated browser can restore the most recent cloud project. Current simultaneous multi-device writes are still last-successful-write oriented; conflict-safe project versioning belongs to **Slice 12 — Personal Workspace**.
+Cloud failure leaves the valid local project dirty and retryable. A fresh authenticated browser restores exact cloud projects and history. In the local Slice 12 candidate, project writes require the current server revision: `checkpoint_project` updates the head and appends an immutable version atomically. A stale device keeps both snapshots locally and asks the user to choose. Production checkpoint writes remain paused pending approval. Inventory still uses client-timestamp reconciliation. [Slice 12](SLICE-12.md).
 
 ## AI backend and BYOK
 

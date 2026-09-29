@@ -1,10 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { protectPreview } from "./protectedPreview";
+import { localSupabaseOnly } from "./localSupabaseOnly";
 
 test.beforeEach(async ({ context }) => protectPreview(context));
 test("manual layout checkpoints locally, survives offline reload, and restores from hosted cloud", async ({ page, browser }) => {
-  test.skip(process.env.KINETABLE_HOSTED_V2_BROWSER_QA !== "1", "Requires disposable hosted v2 account");
+  test.skip(!localSupabaseOnly(), "Requires local Supabase fixtures");
   test.setTimeout(120000);
   const { a, projectId } = JSON.parse(readFileSync("../../output/slice-06-hosted-v2.json", "utf8"));
   const env = Object.fromEntries(readFileSync(".env.local", "utf8").split(/\r?\n/).filter(line => line.includes("=")).map(line => { const i = line.indexOf("="); return [line.slice(0, i), line.slice(i + 1)]; }));

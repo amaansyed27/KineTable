@@ -341,7 +341,7 @@ interaction
 
 Undo/redo history is bounded and session-local. Restoring old content creates a new current revision timestamp.
 
-Current multi-device sync remains last-successful-write oriented. Conflict-safe project versioning belongs to Slice 12 — Personal Workspace.
+The Slice 12 local candidate uses a server revision and atomic PostgreSQL checkpoint function. Local IndexedDB versions and persistent conflicts preserve device work; immutable cloud versions preserve each successful head. Concurrent project edits require an explicit choice instead of timestamp-based overwrite. Production checkpoint writes remain paused pending approval. [Slice 12](SLICE-12.md).
 
 ## 12. AI provider architecture
 
@@ -453,3 +453,7 @@ behaviorPlanner is a strict separate logic contract within the existing provider
 ## Slice 11 hardware platform
 
 The validated component definitions in `component-library/definitions/` are indexed by `catalog.ts` and feed deterministic compatibility, electrical validation, simulation capabilities, UI details and generated planner context. IndexedDB `inventoryItems` is separate from Project v4. Guest and account namespaces are exact; signed-in rows reconcile with owner-only Supabase `inventory_items`. The remote owned-only AI boundary reloads the owned project and inventory through the user JWT/RLS before planning. [Implementation](SLICE-11.md).
+
+## Slice 12 personal workspace
+
+`projectHistoryRepository` owns local versions/conflicts; `projectSyncService` reconciles cloud heads by server revision; `checkpoint_project` advances head and inserts a cloud version atomically. `workspaceSyncState` interprets profile, project and inventory state without moving their persistence into one store. Explore uses five static recipes, canonical component IDs, compatibility and exact inventory quantities. [Implementation](SLICE-12.md).

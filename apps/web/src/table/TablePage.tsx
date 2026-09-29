@@ -36,6 +36,6 @@ function ReadyProject() {
   if(!projectId) return <Navigate to={`/projects/${project.id}`} replace />;
   if(project.id!==projectId) return <main className="route-loading" role="status">Opening your project…</main>;
   const document=migrateProject(project.document);
-  return <><header className="project-header"><Link className="project-back" to="/projects">← <span>Projects</span></Link><ProjectTitle id={project.id} name={project.name} />{status === "offline" && <span className="project-sync-warning" role="status">Offline · saved here</span>}<WorkbenchModes document={document} /><AccountControl /></header><main id="app-main" className="project-workspace" data-project-id={project.id} data-board-id={document.boardIds[0]}><Workbench key={document.id} document={document} /></main></>;
+  return <><header className="project-header"><Link className="project-back" to="/projects">← <span>Projects</span></Link><ProjectTitle id={project.id} name={project.name} status={status} /><WorkbenchModes document={document} /><AccountControl /></header><main id="app-main" className="project-workspace" data-project-id={project.id} data-board-id={document.boardIds[0]}><Workbench key={document.id} document={document} /></main></>;
 }
 export default function TablePage() { return <div className="product-app project-app"><a className="skip-link" href="#app-main">Skip to workbench</a><ProfileGate><ReadyProject /></ProfileGate></div>; }

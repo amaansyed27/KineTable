@@ -245,7 +245,7 @@ pnpm build
 pnpm test:e2e
 ```
 
-External hosted/provider checks remain explicit opt-in runs with disposable credentials/data. Detailed Slice 10 evidence is in [SLICE-10.md](SLICE-10.md).
+External hosted/provider checks remain explicit opt-in runs. Earlier Slice 10 evidence is in [SLICE-10.md](SLICE-10.md); future production Supabase QA is designed for one persistent account and project and is awaiting approval.
 
 ## Pre-Slice-11 correction acceptance
 
@@ -255,12 +255,16 @@ Build before E2E: Playwright serves compiled output. Required gates: `pnpm lint`
 
 `product-correction.spec.ts` checks real BONK, exact/missing/legacy routes, project retrieval, blank creation, persisted guidance, System/explicit themes, account focus, AI Logic preview/Apply, unchanged failure paths and masked vault credentials outside project storage. Rendered screenshots cover 390×844, 768×1024, 1440×900, 1600×1000, 1920×1080 and dark Home/Build/Logic. Physical anchors/safety, logic compilation/pulse timing, history/offline/auth/owner and provider security remain regression gates.
 
-Hosted opt-ins: `KINETABLE_HOSTED_QA=1` (auth/new build and unit RLS), `KINETABLE_HOSTED_LOGIC_QA=1` (v3→v4, fresh restore, offline/reconnect, owner RLS), `KINETABLE_HOSTED_V3_BROWSER_QA=1` (circuit and no runtime writes). Auth QA generates fresh disposable accounts into ignored output; never supply personal credentials. `KINETABLE_REAL_CLI_BROWSER_QA=1` invokes the configured default Codex CLI through a temporary authenticated loopback bridge. `E2E_BASE_URL` enables deployed direct-route refresh checks with existing protected-preview handling. Screenshots, credentials and raw provider output stay ignored.
+Hosted opt-ins: `KINETABLE_HOSTED_QA=1` runs only `hosted-personal-workspace.spec.ts`, with the persistent account from ignored `KINETABLE_QA_EMAIL` and `KINETABLE_QA_PASSWORD`. Earlier suites that sign up users now require `KINETABLE_LOCAL_SUPABASE_QA=1` and a localhost Supabase URL. `KINETABLE_REAL_CLI_BROWSER_QA=1` invokes the configured default Codex CLI through a temporary authenticated loopback bridge. `E2E_BASE_URL` enables deployed direct-route refresh checks with existing protected-preview handling. Screenshots, credentials and raw provider output stay ignored.
 
 Deployed checks allow 20 seconds for assertions and 120 seconds per multi-route test to cover network/auth hydration and full refreshes. Local deadlines remain unchanged; behavior, status, identity and persistence assertions are identical.
 
 ## Slice 11 checks
 
-`pnpm lint`, `pnpm test`, both TypeScript checks and `pnpm build` cover the canonical definitions, compatibility, inventory validation, account namespace and planner quantity gate. `pnpm --filter @kinetable/web test:e2e` covers guest Parts, persistence, detail, filtering, New Build choice, workbench owned-first tray and five viewports in both themes. With `KINETABLE_HOSTED_QA=1`, `hosted-parts.spec.ts` creates disposable users and verifies owner RLS, fresh-browser restore, offline edit/reconnect and account switch. Hosted migrations `20260928064547_inventory_items.sql` and `20260928070528_inventory_definition_ids.sql` add storage/RLS and the reviewed-ID constraint. [Slice 11 acceptance](SLICE-11.md).
+`pnpm lint`, `pnpm test`, both TypeScript checks and `pnpm build` cover the canonical definitions, compatibility, inventory validation, account namespace and planner quantity gate. `pnpm --filter @kinetable/web test:e2e` covers guest Parts, persistence, detail, filtering, New Build choice, workbench owned-first tray and five viewports in both themes. Cross-user hosted-parts checks now run only against local Supabase. Hosted migrations `20260928064547_inventory_items.sql` and `20260928070528_inventory_definition_ids.sql` add storage/RLS and the reviewed-ID constraint. [Slice 11 acceptance](SLICE-11.md).
+
+## Slice 12 checks
+
+`slice12.test.ts` covers owner-scoped local versions, append-only restore, two-device stale-write detection and persistence, all three resolution actions, retry bounds, exact owned quantities and workspace sync interpretation. `personal-workspace.spec.ts` covers guest Explore → real BONK → History → restore, reload and five viewport widths in Light/Dark. `local-personal-workspace.spec.ts` verifies atomic RPC revision increments, tagged stale results, owner RLS, direct-write denial, fresh authenticated routes and browser conflict resolution against local Supabase. Run it only after building with local URL/key overrides. `hosted-personal-workspace.spec.ts` is one bounded same-account production check after local gates and the final migration. See [Slice 12](SLICE-12.md).
 
 `parts-cold-route.spec.ts` saves ESP32, Pico and Uno profiles separately, then opens `/parts` in a fresh page for each. It checks the Board filter before and after direct reload and verifies a compatibility result against that saved board without visiting `/start` in the new page.

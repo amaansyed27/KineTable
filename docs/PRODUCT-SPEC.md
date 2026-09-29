@@ -284,11 +284,11 @@ Already real:
 - Visual Logic;
 - Explain/X-Ray;
 - canonical component definitions for the current small catalog.
+- owner-scoped My Parts, durable project history, conflict-safe project sync and deterministic Explore.
 
 Still intentionally deferred:
 
-- large verified component catalog and personal inventory;
-- conflict-safe project versioning;
+- large verified component catalog;
 - firmware generation/compilation/flashing;
 - live physical-board telemetry;
 - camera recognition/digital twin;
@@ -332,3 +332,7 @@ Home launches/continues; Projects retrieves all eligible saved documents; New Pr
 ## Slice 11 product behavior
 
 `/parts` offers My Parts and a curated Library, with quantity, search, board fit and progressive detail. New Build and the assistant optionally limit AI assembly to owned quantities; manual virtual editing remains unrestricted and never decrements ownership. Account data is owner-scoped; guest inventory needs explicit import. This is the implemented Slice 11 subset of the larger hardware platform in this specification. [Contract and limits](SLICE-11.md).
+
+## Slice 12 product behavior
+
+Projects have durable local and cloud History separate from undo/redo. Server revisions reject stale cross-device saves and preserve both project documents for explicit resolution. `/explore` ranks five curated supported builds by actual My Parts quantities and board compatibility. BONK starts from the validated deterministic circuit; other ideas start as honest blank projects. [Contract and limits](SLICE-12.md).

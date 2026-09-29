@@ -2,9 +2,10 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test, expect } from "@playwright/test";
 import { protectPreview } from "./protectedPreview";
+import { localSupabaseOnly } from "./localSupabaseOnly";
 
 test("hosted My Parts sync, restore and owner RLS",async({page,browser,context})=>{
-  test.skip(process.env.KINETABLE_HOSTED_QA!=="1","Requires disposable Supabase accounts");
+  test.skip(!localSupabaseOnly(),"Requires local Supabase fixtures");
   test.setTimeout(120000);
   await protectPreview(context);
   const env=Object.fromEntries(readFileSync(".env.local","utf8").split(/\r?\n/).filter(line=>line.includes("=")).map(line=>{const at=line.indexOf("=");return [line.slice(0,at),line.slice(at+1)];}));

@@ -2,10 +2,11 @@ import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { protectPreview } from "./protectedPreview";
+import { localSupabaseOnly } from "./localSupabaseOnly";
 
 test.beforeEach(async ({ context }) => protectPreview(context));
 test("hosted v3 circuit restores fresh, survives offline edit and reconnects", async ({ page, browser }) => {
-  test.skip(process.env.KINETABLE_HOSTED_V3_BROWSER_QA !== "1", "Requires hosted Supabase QA");
+  test.skip(!localSupabaseOnly(), "Requires local Supabase fixtures");
   test.setTimeout(150000);
   const env = Object.fromEntries(readFileSync(".env.local", "utf8").split(/\r?\n/).filter(line => line.includes("=")).map(line => { const i = line.indexOf("="); return [line.slice(0,i),line.slice(i+1)]; }));
   const url = env.VITE_SUPABASE_URL, key = env.VITE_SUPABASE_PUBLISHABLE_KEY;

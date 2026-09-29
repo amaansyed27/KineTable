@@ -15,6 +15,8 @@ const ProjectsPage = lazy(() => import("../projects/ProjectsPage"));
 const PartsPage = lazy(() => import("../parts/PartsPage"));
 const AppearancePage = lazy(() => import("./AppearancePage"));
 const AccountPage = lazy(() => import("../auth/AccountPage"));
+const HistoryPage = lazy(() => import("../projects/HistoryPage"));
+const ExplorePage = lazy(() => import("../explore/ExplorePage"));
 function RoutePosition() {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); if (pathname === "/") document.title = "Kinetable — Small ideas, real things."; }, [pathname]);
@@ -31,7 +33,10 @@ function RouteScenes() {
       <Route path="/home" element={<ProjectsPage home />} />
       <Route path="/projects" element={<ProjectsPage />} />
       <Route path="/parts" element={<PartsPage />} />
+      <Route path="/explore" element={<ExplorePage />} />
+      <Route path="/explore/:ideaId" element={<ExplorePage />} />
       <Route path="/projects/new" element={<NewBuildPage />} />
+      <Route path="/projects/:projectId/history" element={<HistoryPage />} />
       <Route path="/projects/:projectId" element={<TablePage />} />
       <Route path="/new" element={<Navigate to="/projects/new" replace />} />
       <Route path="/settings/appearance" element={<AppearancePage />} />

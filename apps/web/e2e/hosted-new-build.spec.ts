@@ -1,12 +1,21 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { randomBytes, randomUUID } from "node:crypto";
+import { localSupabaseOnly } from "./localSupabaseOnly";
 
 test("hosted builds sync, restore newest, enforce RLS, and survive cloud failure locally", async ({ page, browser }) => {
   test.setTimeout(150000);
-  test.skip(!process.env.KINETABLE_HOSTED_QA, "Requires disposable hosted QA accounts");
-  const [a, b] = JSON.parse(readFileSync("../../output/hosted-qa-accounts.json", "utf8"));
-  expect(a.email).toMatch(/^kinetable-qa-/);
+  test.skip(!localSupabaseOnly(), "Requires local Supabase fixtures");
   const values = Object.fromEntries(readFileSync(".env.local", "utf8").trim().split(/\r?\n/).map(line => { const i = line.indexOf("="); return [line.slice(0, i), line.slice(i + 1)]; }));
+  const accounts = [];
+  for (let i = 0; i < 2; i++) {
+    const email = `kinetable-qa-build-${randomUUID()}@gmail.com`, password = randomBytes(24).toString("base64url");
+    const response = await fetch(`${values.VITE_SUPABASE_URL}/auth/v1/signup`, { method: "POST", headers: { apikey: values.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+    expect(response.ok).toBe(true);
+    const result = await response.json() as { user: { id: string }; access_token: string };
+    accounts.push({ email, password, id: result.user.id, token: result.access_token });
+  }
+  const [a, b] = accounts;
   const api = async (token: string, path: string, method = "GET", body?: object) => {
     const response = await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/${path}`, { method,
       headers: { apikey: values.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}`,
@@ -15,9 +24,7 @@ test("hosted builds sync, restore newest, enforce RLS, and survive cloud failure
     expect(response.ok).toBe(true);
     return response.json();
   };
-  await api(a.token, `projects?owner_id=eq.${a.id}`, "DELETE");
   await api(a.token, `profiles?id=eq.${a.id}`, "PATCH", { primary_board_id: "esp32-dev-module", setup_completed: true });
-  try {
     await page.goto("/auth");
     await page.getByLabel("Email",{exact:true}).fill(a.email);
     await page.getByLabel("Password", { exact: true }).fill(a.password);
@@ -52,7 +59,8 @@ test("hosted builds sync, restore newest, enforce RLS, and survive cloud failure
       expect(rows.map((row: { id: string }) => row.id).sort()).toEqual([firstId, secondId].sort());
       expect(rows.find((row: { id: string }) => row.id === secondId)?.document?.intent?.text).toBe("Make an LED blink");
       expect(await api(b.token, `projects?id=in.(${firstId},${secondId})&select=*`)).toEqual([]);
-      expect(await api(b.token, `projects?id=eq.${firstId}`, "PATCH", { name: "stolen" })).toEqual([]);
+      const rejected = await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/projects?id=eq.${firstId}`, { method: "PATCH", headers: { apikey: values.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${b.token}`, "Content-Type": "application/json" }, body: JSON.stringify({ name: "stolen" }) });
+      expect(rejected.ok).toBe(false);
       const anotherContext = await browser.newContext({ storageState: process.env.E2E_STORAGE_STATE });
       try {
         const latest = await anotherContext.newPage();
@@ -80,5 +88,4 @@ test("hosted builds sync, restore newest, enforce RLS, and survive cloud failure
       expect(localRow.cloudDirty).toBe(true);
       expect(localRow.document.intent?.text).toBe("Make a button beep twice");
     } finally { await freshContext.close(); }
-  } finally { await api(a.token, `projects?owner_id=eq.${a.id}`, "DELETE"); }
 });

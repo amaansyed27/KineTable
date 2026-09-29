@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync, mkdirSync } from "node:fs";
 import { protectPreview } from "./protectedPreview";
+import { localSupabaseOnly } from "./localSupabaseOnly";
 
 test.beforeEach(async ({ context }) => protectPreview(context));
 
@@ -27,7 +28,7 @@ test("signed-out users keep their intent and can configure a provider", async ({
 });
 
 test("fresh account browser restores hosted v2, applies validated commands, and keeps failure paths safe", async ({ page, browser }) => {
-  test.skip(process.env.KINETABLE_HOSTED_V2_BROWSER_QA !== "1", "Requires disposable hosted v2 account");
+  test.skip(!localSupabaseOnly(), "Requires local Supabase fixtures");
   test.setTimeout(120000);
   const { a, projectId } = JSON.parse(readFileSync("../../output/slice-06-hosted-v2.json", "utf8"));
   await page.goto(`/auth?next=/projects/${projectId}`);

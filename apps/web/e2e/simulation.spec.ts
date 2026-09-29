@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { protectPreview } from "./protectedPreview";
+import { localSupabaseOnly } from "./localSupabaseOnly";
 import { pinEndpoint, type KinetableProjectV3 } from "../src/projects/v3";
 import { layoutComponents } from "../src/hardware-core/layout";
 
@@ -163,7 +164,7 @@ test("BONK, blink, static Explain and mobile controls remain reachable", async (
 });
 
 test("authenticated simulation leaves the hosted project timestamp and document unchanged", async ({ page }) => {
-  test.skip(process.env.KINETABLE_HOSTED_V3_BROWSER_QA !== "1", "Requires hosted Supabase QA");
+  test.skip(!localSupabaseOnly(), "Requires local Supabase fixtures");
   test.setTimeout(120000);
   const env = Object.fromEntries(readFileSync(".env.local", "utf8").split(/\r?\n/).filter(line => line.includes("=")).map(line => { const i = line.indexOf("="); return [line.slice(0,i),line.slice(i+1)]; }));
   const url = env.VITE_SUPABASE_URL, key = env.VITE_SUPABASE_PUBLISHABLE_KEY;

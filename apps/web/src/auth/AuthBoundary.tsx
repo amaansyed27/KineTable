@@ -6,6 +6,7 @@ import { cloudProfileRepository, reconcileProfile } from "../persistence/cloudPr
 import { getBoard } from "../hardware/boards";
 import { useAuthStore } from "./authStore";
 import { syncInventory } from "../sync/inventorySync";
+import { useProjectStore } from "../state/projectStore";
 
 let syncing: Promise<void> | undefined;
 let queued = false;
@@ -67,9 +68,12 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
     const unsubscribe = useProfileStore.subscribe((state, previous) => {
       if (!state.saving && !state.error && state.profile && useAuthStore.getState().session && (state.profile.cloudDirty || !state.profile.cloudUserId) && previous.hydrated && previous.saving) void syncProfile(true);
     });
+    const unsubscribeOwner = useAuthStore.subscribe((state, previous) => {
+      if (state.session?.user.id !== previous.session?.user.id) useProjectStore.getState().cancelPending();
+    });
     const retry = () => { void syncProfile(); const session = useAuthStore.getState().session; if (session) void syncInventory(session).catch(() => undefined); };
     window.addEventListener("online", retry);
-    return () => { active = false; window.clearTimeout(timeout); subscription.unsubscribe(); unsubscribe(); window.removeEventListener("online", retry); };
+    return () => { active = false; window.clearTimeout(timeout); subscription.unsubscribe(); unsubscribe(); unsubscribeOwner(); window.removeEventListener("online", retry); };
   }, []);
   return children;
 }

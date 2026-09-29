@@ -6,6 +6,7 @@ db.version(1).stores({ profiles: "id" });
 db.version(2).stores({ profiles: "id", projects: "id, cloudUserId, updatedAt" });
 db.version(3).stores({ profiles: "id", projects: "id, cloudUserId, updatedAt", behaviorChats: "id, [ownerId+projectId], updatedAt" });
 db.version(4).stores({ profiles: "id", projects: "id, cloudUserId, updatedAt", behaviorChats: "id, [ownerId+projectId], updatedAt", inventoryItems: "[ownerId+definitionId], ownerId, updatedAt" });
+db.version(5).stores({ profiles: "id", projects: "id, cloudUserId, updatedAt", behaviorChats: "id, [ownerId+projectId], updatedAt", inventoryItems: "[ownerId+definitionId], ownerId, updatedAt", projectVersions: "id, [ownerId+projectId], [ownerId+projectId+createdAt]", projectConflicts: "[ownerId+projectId], ownerId" });
 const profiles: Table<HardwareProfile & { id: string }> = db.table("profiles");
 export function isProfile(value: unknown): value is HardwareProfile {
   if (!value || typeof value !== "object") return false;

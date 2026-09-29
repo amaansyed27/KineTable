@@ -1,20 +1,20 @@
 import { randomUUID, randomBytes } from "node:crypto";
 import { test, expect } from "@playwright/test";
-import { readFileSync, writeFileSync } from "node:fs";
-// Opt-in: uses disposable accounts from the hosted API verification, never personal credentials.
+import { readFileSync } from "node:fs";
+import { localSupabaseOnly } from "./localSupabaseOnly";
+// Disposable account tests run against local Supabase only.
 test("hosted password login, cloud restore, offline table and sign-out", async ({ page, browser }) => {
  test.setTimeout(120000);
- test.skip(!process.env.KINETABLE_HOSTED_QA, "Requires hosted verification accounts");
+ test.skip(!localSupabaseOnly(), "Requires local Supabase fixtures");
 
  const values = Object.fromEntries(readFileSync(".env.local", "utf8").trim().split(/\r?\n/).map(line => { const i=line.indexOf("="); return [line.slice(0,i),line.slice(i+1)]; }));
  const accounts=[];
  for(let i=0;i<2;i++){const email=`kinetable-qa-correction-${randomUUID()}@gmail.com`,password=randomBytes(24).toString("base64url");const r=await fetch(`${values.VITE_SUPABASE_URL}/auth/v1/signup`,{method:"POST",headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password})});expect(r.ok).toBe(true);const a=await r.json();accounts.push({email,password,id:a.user.id,token:a.access_token});}
- writeFileSync("../../output/hosted-qa-accounts.json",JSON.stringify(accounts));const [account]=accounts;
+ const [account]=accounts;
  const response = await fetch(`${values.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:"POST",headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email:account.email,password:account.password})});
  expect(response.ok).toBe(true); const session = await response.json();
  const reset = await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${account.id}`,{method:"PATCH",headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({primary_board_id:"esp32-dev-module",setup_completed:true})});
  expect(reset.ok).toBe(true);
- const resetProjects=await fetch(`${values.VITE_SUPABASE_URL}/rest/v1/projects?owner_id=eq.${account.id}`,{method:"DELETE",headers:{apikey:values.VITE_SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`}}); expect(resetProjects.ok).toBe(true);
  const errors: string[]=[]; page.on("pageerror", error => errors.push(error.message));
  await page.goto("/auth");
  await expect(page.locator('[data-cloud-configured="true"]')).toBeVisible();
@@ -59,7 +59,7 @@ test("hosted password login, cloud restore, offline table and sign-out", async (
 
 test("guest setup survives real password signup and is restored from cloud", async ({page,browser}) => {
  test.setTimeout(120000);
- test.skip(!process.env.KINETABLE_HOSTED_QA, "Creates a disposable hosted QA account");
+ test.skip(!localSupabaseOnly(), "Requires local Supabase fixtures");
  const email=`kinetable-qa-${randomUUID()}@gmail.com`, password=randomBytes(24).toString("base64url");
  await page.goto("/start"); await page.getByRole("radio",{name:"Arduino Uno",exact:true}).check();
  await page.getByRole("button",{name:/^Continue with/}).click(); await expect(page).toHaveURL(/\/home$/); await page.goto("/table"); await expect(page.locator('[data-board-id="arduino-uno"]')).toBeVisible();
@@ -69,7 +69,6 @@ test("guest setup survives real password signup and is restored from cloud", asy
  await page.getByRole("button",{name:"Create account",exact:true}).click();
  await expect(page.locator('[data-board-id="arduino-uno"]')).toBeVisible({timeout:20000});
  await expect(page.locator('[data-project-id]')).toHaveAttribute('data-project-id',guestProjectId!);
- writeFileSync("../../output/hosted-ui-account.json",JSON.stringify({email,password}));
  const context=await browser.newContext({storageState:process.env.E2E_STORAGE_STATE}); const fresh=await context.newPage();
  await fresh.goto(new URL(`/auth?next=/projects/${guestProjectId}`,page.url()).toString()); await fresh.getByLabel("Email",{exact:true}).fill(email); await fresh.getByLabel("Password",{exact:true}).fill(password);
  await fresh.getByRole("button",{name:"Sign in",exact:true}).click(); await expect(fresh.locator('[data-board-id="arduino-uno"]')).toBeVisible({timeout:20000});
