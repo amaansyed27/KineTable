@@ -226,11 +226,11 @@ Status: implemented; see [Slice 11](SLICE-11.md). `/parts` combines local-first 
 
 ## 12 — Personal Workspace
 
-Status: local candidate verified; production verification awaits approval. See [Slice 12](SLICE-12.md). Durable local/cloud project versions, atomic optimistic cloud checkpoints, persistent conflict resolution, fresh-device restore and deterministic My Parts matching power `/explore`. The production checkpoint RPC remains intentionally read-only. Inventory's own timestamp sync remains a documented limitation.
+Status: complete; production verification passed at `c90709d`. See [Slice 12](SLICE-12.md). Durable local/cloud project versions, atomic optimistic cloud checkpoints, persistent conflict resolution, fresh-device restore and deterministic My Parts matching power `/explore`. Production checkpoint writes resumed with migration `20260929000000`. Inventory's own timestamp sync remains a documented limitation.
 
 ## 13 — Learn
 
-Teach breadboard rows, LED, button, brightness and OLED projects through topology-aware missions and staged hints.
+Status: implemented and locally accepted; see [Slice 13](SLICE-13.md). Six missions teach breadboard rows/gap/rails, protected LED paths, button pull-up inputs, honest qualitative brightness, OLED I²C/Logic and canonical BONK. Pure evaluation reuses physical topology and matching simulation evidence. Owner-scoped local progress and staged hints work without an account, network or provider. Cross-device progress and generated Learn explanations are deferred. Exact production deployment evidence accompanies the final release handoff.
 
 ## 14 — Physical Runtime
 
@@ -273,11 +273,11 @@ Known limitations
 
 A slice is not complete because the screen renders. The intended user flow, persistence/server behaviour, and failure paths must work end-to-end.
 
-Slices 01–11 complete; Slice 12 is implemented and locally verified, with production verification pending.
-Slice 13 — Learn is next. It has not been started.
+Slices 01–13 complete.
+Slice 14 — Physical Runtime next. Slice 15 — Digital Twin later.
 
 ## Unnumbered pre-Slice-11 correction
 
-Slices 01–11 complete; Slice 12 is a local candidate. **Pre-Slice-11 UX correction and Slice 11 Hardware Platform complete.** Project hierarchy, contextual workbench, appearance, physical visual improvements and bounded provider-backed Logic use existing commands. Slice 11 adds the canonical supported-profile library and My Parts. Run/Code/upload remain future Slice 14. [Correction record](PRE-SLICE-11-UX-CORRECTION.md); [Slice 11 record](SLICE-11.md).
+Slices 01–12 complete. **Pre-Slice-11 UX correction and Slice 11 Hardware Platform complete.** Project hierarchy, contextual workbench, appearance, physical visual improvements and bounded provider-backed Logic use existing commands. Slice 11 adds the canonical supported-profile library and My Parts. Run/Code/upload remain future Slice 14. [Correction record](PRE-SLICE-11-UX-CORRECTION.md); [Slice 11 record](SLICE-11.md).
 
-Slice 12 adds append-only project history, revision-checked cloud sync, conflict preservation and resolution, and five deterministic Explore ideas based on My Parts. [Slice 12 record](SLICE-12.md). Slice 13 was not started.
+Slice 12 adds append-only project history, revision-checked cloud sync, conflict preservation and resolution, and five deterministic Explore ideas based on My Parts. [Slice 12 record](SLICE-12.md). Slice 13 was not part of the Slice 12 release.

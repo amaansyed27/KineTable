@@ -336,3 +336,7 @@ Home launches/continues; Projects retrieves all eligible saved documents; New Pr
 ## Slice 12 product behavior
 
 Projects have durable local and cloud History separate from undo/redo. Server revisions reject stale cross-device saves and preserve both project documents for explicit resolution. `/explore` ranks five curated supported builds by actual My Parts quantities and board compatibility. BONK starts from the validated deterministic circuit; other ideas start as honest blank projects. [Contract and limits](SLICE-12.md).
+
+## Slice 13 product behavior
+
+`/learn` teaches six code-owned missions through the normal physical workbench. Deterministic topology/runtime evidence earns stages; hints and Why never award completion. Guest/offline learning uses scoped local metadata and ordinary projects, without inventory or provider gating. Cross-device progress and generated Learn explanations are deferred. [Contract and evidence](SLICE-13.md).

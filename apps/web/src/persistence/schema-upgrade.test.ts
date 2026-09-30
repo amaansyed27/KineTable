@@ -24,5 +24,6 @@ it("upgrades an existing v4 database without losing projects or inventory", asyn
   expect((await db.table("inventoryItems").get(["guest", "led-5mm"]))?.quantity).toBe(2);
   expect(await db.table("projectVersions").count()).toBe(0);
   expect(await db.table("projectConflicts").count()).toBe(0);
+  expect(await db.table("learningProgress").count()).toBe(0);
   await db.delete();
 });

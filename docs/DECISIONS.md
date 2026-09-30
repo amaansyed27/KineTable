@@ -163,3 +163,7 @@ No service-role credential belongs in the browser. New cloud tables are still cr
 ## D-026 — Durable project revisions and deterministic Explore
 
 2026-09-28. Keep Project v4 and session undo/redo. IndexedDB v5 stores owner-scoped snapshots and conflicts. A server revision and one atomic owner-checked PostgreSQL checkpoint function replace timestamp-based project overwrite; historical cloud rows have read-only owner RLS. Stale edits preserve both documents and require Use this device, Use cloud version, or Keep both. Explore references canonical hardware IDs and exact My Parts quantities; no AI feed or inventory consumption. Inventory's timestamp policy remains separate. [Record](SLICE-12.md).
+
+## D-027 — Code-owned Learn, one hardware truth
+
+2026-09-30. Version mission content with code, evaluate committed projects through existing topology/drivers/runtime/Explain, and store only owner-scoped learning metadata in IndexedDB v6. Keep Project v4 and normal edit/history/cloud paths. Cross-device progress and generated explanation assistance are deferred until needed; completion remains deterministic. Qualitative brightness must not imply unsupported analog/PWM capability. [Slice 13](SLICE-13.md).

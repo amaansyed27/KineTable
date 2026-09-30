@@ -245,7 +245,7 @@ pnpm build
 pnpm test:e2e
 ```
 
-External hosted/provider checks remain explicit opt-in runs. Earlier Slice 10 evidence is in [SLICE-10.md](SLICE-10.md); future production Supabase QA is designed for one persistent account and project and is awaiting approval.
+External hosted/provider checks remain explicit opt-in runs. Earlier Slice 10 evidence is in [SLICE-10.md](SLICE-10.md). Slice 12 production verification passed using one persistent account and project; subsequent slices use only necessary bounded hosted checks after local gates.
 
 ## Pre-Slice-11 correction acceptance
 
@@ -268,3 +268,7 @@ Deployed checks allow 20 seconds for assertions and 120 seconds per multi-route 
 `slice12.test.ts` covers owner-scoped local versions, append-only restore, two-device stale-write detection and persistence, all three resolution actions, retry bounds, exact owned quantities and workspace sync interpretation. `personal-workspace.spec.ts` covers guest Explore → real BONK → History → restore, reload and five viewport widths in Light/Dark. `local-personal-workspace.spec.ts` verifies atomic RPC revision increments, tagged stale results, owner RLS, direct-write denial, fresh authenticated routes and browser conflict resolution against local Supabase. Run it only after building with local URL/key overrides. `hosted-personal-workspace.spec.ts` is one bounded same-account production check after local gates and the final migration. See [Slice 12](SLICE-12.md).
 
 `parts-cold-route.spec.ts` saves ESP32, Pico and Uno profiles separately, then opens `/parts` in a fresh page for each. It checks the Board filter before and after direct reload and verifies a compatibility result against that saved board without visiting `/start` in the new page.
+
+## Slice 13 checks
+
+`learn.test.ts` checks versioned content, canonical starters/board coverage, invalid and equivalent topology, breadboard strips/gap/rails, actual runtime traces, strict progress namespaces/version validation, idempotent completion and normal project undo/redo/restore without progress checkpoint noise. `learn.spec.ts` exercises six mission surfaces and completes Breadboard, LED, Button, OLED and BONK flows through normal controls, reload/offline progress, staged hints, Explain, all five widths in light/dark, reduced motion and exact production CSP theme bootstrap. `local-learn.spec.ts` adds real local account sign-out/sign-in isolation; it refuses random-user creation unless explicitly enabled against localhost. Run it and `local-personal-workspace.spec.ts` only after a build using the local Supabase URL/key. No exhaustive production suite is required for local-only metadata. See [Slice 13 evidence](SLICE-13.md).

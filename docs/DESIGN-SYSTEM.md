@@ -370,3 +370,7 @@ The September 28 screenshot follow-up adds the shared settings rail/cards, edita
 Current semantic CSS tokens supersede earlier application color examples: Light background #eeeadf, paper #f5f1e7, raised #faf7ef, ink #1a1b18; Dark background #181916, paper #20211d, raised #272822, ink #f0eee5. Restrained lime #b7f000. Muted/border/focus/error/selection adapt together. Static grain opacity 0.018/0.012. Persistent System/Light/Dark initializes before rendering. Landing keeps its own direction. Compact headers, native disclosures and mobile task sheets replace permanent sidebars. [Correction](PRE-SLICE-11-UX-CORRECTION.md).
 
 Slice 11's Parts shelf uses the same theme tokens, object rows, tactile lightweight thumbnails, native search/select controls and a modal detail sheet. My Parts and Library are two contexts in one route. Ownership actions retain explicit text and keyboard labels; mobile stacks filters and quantity controls. [Slice 11](SLICE-11.md).
+
+## Learn material
+
+Learn uses editorial curriculum rows, restrained progress and the existing physical workbench. Desktop guidance sits beside hardware; mobile places a short canvas above a task sheet. Hints reveal progressively, Why expands on demand, and native keyboard controls/status announcements remain available. Theme bootstrap is a synchronous self-hosted script under unchanged CSP. [Visual evidence](SLICE-13.md).

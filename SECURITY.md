@@ -46,3 +46,7 @@ Before public release, CI should include dependency and supply-chain checks appr
 ## Slice 11 owner and AI inventory boundaries
 
 My Parts is owner-scoped in IndexedDB and in `public.inventory_items` RLS. The browser uses a publishable key and user JWT; database defaults `owner_id` to `auth.uid()` and grants no browser write access to that column. Authenticated remote owned-only AI reloads both project and inventory through the same JWT/RLS boundary, replacing the browser snapshot. Guest/Local Bridge snapshots are validated and bounded. External component source text remains data, and visual metadata cannot relax electrical validation. [Implementation and checks](docs/SLICE-11.md).
+
+## Slice 13 learning boundaries
+
+Mission content is reviewed application code. Local metadata is strictly parsed in guest/account namespaces; sign-out hides account progress. No service key, remote executable content, AI HTML or new backend surface was introduced. Existing project safety/Logic checks and cloud owner RLS remain authoritative. Completion re-evaluates the committed graph and matching runtime rather than trusting UI/AI state. Theme startup uses a same-origin script without relaxing CSP. [Review evidence](docs/SLICE-13.md).

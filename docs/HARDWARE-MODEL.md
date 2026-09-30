@@ -447,3 +447,7 @@ That broader verified knowledge and inventory platform belongs to **Slice 11 —
 See [Slice 08](SLICE-08.md) for the current physical graph implementation and [ROADMAP.md](ROADMAP.md) for the full 15-slice roadmap.
 
 Slice 11 adds supported-variant, source, voltage, interface and simulation metadata to the stable-ID component platform. Compatibility checks use board logic/supply/interface facts; visual IDs remain presentation-only. These profiles bound Kinetable's model and do not certify every physical clone. [Current profiles](SLICE-11.md).
+
+## Learning boundary
+
+Learn observes the same canonical breadboard strips, compiled nets, component driver bindings and matching simulation traces. It does not add another electrical model or board pin table. Brightness teaches current limiting qualitatively using supported 220 Ω and ON/OFF semantics; analog current, precise brightness and PWM remain unsupported. [Mission contract](SLICE-13.md).

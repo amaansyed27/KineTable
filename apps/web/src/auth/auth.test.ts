@@ -70,6 +70,8 @@ it("rejects malformed cloud records and external redirect destinations", () => {
  expect(() => validateCloudProfile({ ...cloud, updated_at: "bad" })).toThrow();
  expect(safeDestination("https://evil.example")).toBe("/home");
  expect(safeDestination("/start")).toBe("/start");
+ expect(safeDestination("/learn/led")).toBe("/learn/led");
+ expect(safeDestination("/learn")).toBe("/learn");
 });
 it("handles invalid callbacks and exchanges valid codes only once", async () => {
  await expect(completeCallback(new URLSearchParams("error=expired"))).rejects.toThrow("expired");

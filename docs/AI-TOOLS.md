@@ -359,3 +359,7 @@ Natural preview requires Apply, which revalidates in the shared queue and create
 ## Slice 11 owned-parts hardware planning
 
 Hardware prompt context now comes from validated canonical component definitions. An optional `owned-only` snapshot contains known component IDs and quantities only; the parser bounds both fields, and the planner deterministically counts `component.add` commands against the snapshot. Authenticated remote requests replace the browser snapshot with the owner's Supabase inventory read through JWT/RLS and verify the cloud project first. Guest and Local Bridge requests use validated local rows. Apply checks current ownership again before shared command validation. Virtual manual editing remains unrestricted. [Details](SLICE-11.md).
+
+## Learn explanation boundary
+
+Learn's Why affordance shows deterministic diagnostics/net/runtime evidence and reviewed concept text. Generated paraphrasing is deferred, explicitly disclosed in the UI; no provider is required or called. Existing workbench AI still requires its normal preview/Apply command validation and cannot write learning completion. Check goal recomputes deterministic evidence at the action boundary. [Slice 13](SLICE-13.md).

@@ -138,7 +138,7 @@ validated project edit
 → signed-in cloud checkpoint
 ```
 
-Cloud failure leaves the valid local project dirty and retryable. A fresh authenticated browser restores exact cloud projects and history. In the local Slice 12 candidate, project writes require the current server revision: `checkpoint_project` updates the head and appends an immutable version atomically. A stale device keeps both snapshots locally and asks the user to choose. Production checkpoint writes remain paused pending approval. Inventory still uses client-timestamp reconciliation. [Slice 12](SLICE-12.md).
+Cloud failure leaves the valid local project dirty and retryable. A fresh authenticated browser restores exact cloud projects and history. In Slice 12, project writes require the current server revision: `checkpoint_project` updates the head and appends an immutable version atomically. A stale device keeps both snapshots locally and asks the user to choose. Production checkpoint writes resumed with migration `20260929000000`, and Slice 12 production verification passed. Inventory still uses client-timestamp reconciliation. [Slice 12](SLICE-12.md).
 
 ## AI backend and BYOK
 
@@ -260,3 +260,7 @@ Browser-safe public Supabase values are documented in `.env.example`. Secrets mu
 - cloud/network failure never destroys valid local work.
 
 Implementation evidence is recorded in the slice documents, especially [Slice 06](SLICE-06.md), [Slice 08](SLICE-08.md), [Slice 09](SLICE-09.md) and [Slice 10](SLICE-10.md). The canonical roadmap is [ROADMAP.md](ROADMAP.md).
+
+## Learn persistence
+
+Slice 13 adds only IndexedDB v6 `learningProgress`, keyed by owner/mission. Ordinary account mission projects reuse existing cloud checkpoint/RLS handling; learning metadata stays local and is not imported from guest automatically. No Supabase migration, new endpoint or remote mission content was added. [Slice 13](SLICE-13.md).

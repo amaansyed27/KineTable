@@ -341,7 +341,7 @@ interaction
 
 Undo/redo history is bounded and session-local. Restoring old content creates a new current revision timestamp.
 
-The Slice 12 local candidate uses a server revision and atomic PostgreSQL checkpoint function. Local IndexedDB versions and persistent conflicts preserve device work; immutable cloud versions preserve each successful head. Concurrent project edits require an explicit choice instead of timestamp-based overwrite. Production checkpoint writes remain paused pending approval. [Slice 12](SLICE-12.md).
+Slice 12 uses a server revision and atomic PostgreSQL checkpoint function. Local IndexedDB versions and persistent conflicts preserve device work; immutable cloud versions preserve each successful head. Concurrent project edits require an explicit choice instead of timestamp-based overwrite. Production checkpoint writes resumed with migration `20260929000000`; production verification passed at `c90709d`. [Slice 12](SLICE-12.md).
 
 ## 12. AI provider architecture
 
@@ -457,3 +457,7 @@ The validated component definitions in `component-library/definitions/` are inde
 ## Slice 12 personal workspace
 
 `projectHistoryRepository` owns local versions/conflicts; `projectSyncService` reconciles cloud heads by server revision; `checkpoint_project` advances head and inserts a cloud version atomically. `workspaceSyncState` interprets profile, project and inventory state without moving their persistence into one store. Explore uses five static recipes, canonical component IDs, compatibility and exact inventory quantities. [Implementation](SLICE-12.md).
+
+## Learn
+
+Versioned mission definitions, deterministic starters, pure evaluation and local progress are separate from route/guidance components. Evaluation reuses the canonical circuit compiler, drivers, validation and causal Explain; runtime must match project/revision. Dexie v6 adds scoped learning metadata, while Project v4, commands, history and sync remain unchanged. [Slice 13](SLICE-13.md).

@@ -23,7 +23,7 @@ Core rules:
 
 ## Current status
 
-**Slices 01–11 complete. Slice 12 is a locally verified candidate awaiting production verification. Slice 13 — Learn next.**
+**Slices 01–13 complete. Slice 14 — Physical Runtime next. Slice 15 — Digital Twin later.**
 
 Kinetable currently supports:
 
@@ -157,8 +157,8 @@ The earlier 22-slice plan was compressed after Slice 07. Historical Slice 01–0
 | 09 — Living Circuit | ✅ | Simulation + Explain/X-Ray |
 | 10 — Visual Logic | ✅ | Editable persistent semantic behaviour |
 | 11 — Hardware Platform | ✅ | My Parts + canonical Component Library |
-| 12 — Personal Workspace | Local candidate | Project history, conflict-safe sync + Explore; production checkpoint remains paused |
-| 13 — Learn | Planned | Interactive topology-aware missions |
+| 12 — Personal Workspace | ✅ | Project history, conflict-safe sync + Explore; production verified |
+| 13 — Learn | ✅ | Six interactive topology-aware missions; local progress and deterministic hints |
 | 14 — Physical Runtime | Planned | Compile/flash + live data + advanced code |
 | 15 — Digital Twin | Later | Workbench scan + continuous live workbench |
 
