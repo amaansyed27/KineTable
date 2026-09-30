@@ -3,7 +3,7 @@ import { validIntentText } from "../projects/schema.js";
 import { getDefinition } from "../component-library/catalog.js";
 
 export type ConversationMessage = { role: "user" | "assistant"; content: string };
-export type InventorySnapshot = { mode: "owned-only"; items: { definitionId: string; quantity: number }[] };
+export type InventorySnapshot = { mode: "owned-only" | "prefer-owned"; items: { definitionId: string; quantity: number }[] };
 export type PlanRequest = { projectId: string; revision: string; intent: string; boardId: string; conversation?: ConversationMessage[]; inventory?: InventorySnapshot };
 export type Plan = { status: "supported" | "unsupported"; summary: string; unsupportedReason: string; commands: ProjectCommand[] };
 export type PlanResponse = Plan & { revision: string };
@@ -18,7 +18,7 @@ export function parsePlanRequest(v: unknown): PlanRequest {
   return v as PlanRequest;
 }
 export function parseInventorySnapshot(value: unknown): InventorySnapshot | null {
-  if (!obj(value) || Object.keys(value).sort().join() !== "items,mode" || value.mode !== "owned-only" || !Array.isArray(value.items) || value.items.length > 20) return null;
+  if (!obj(value) || Object.keys(value).sort().join() !== "items,mode" || (value.mode !== "owned-only" && value.mode !== "prefer-owned") || !Array.isArray(value.items) || value.items.length > 20) return null;
   const seen = new Set<string>();
   for (const item of value.items) {
     if (!obj(item) || Object.keys(item).sort().join() !== "definitionId,quantity" || typeof item.definitionId !== "string" || getDefinition(item.definitionId)?.kind !== "component" ||

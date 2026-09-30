@@ -22,7 +22,7 @@ test("a guest applies real Codex CLI assembly and BONK behavior through the Loca
   await page.getByText("Parts & wires", {exact:true}).click();
     await page.goto("/projects/new");
     await page.getByLabel("Describe your idea").fill("Make a motion alarm");
-    await page.getByRole("button", { name: "Create project" }).click();
+    await page.getByRole("button", { name: "Create blank project" }).click();
     const projectId = await page.locator("[data-project-id]").getAttribute("data-project-id");
     await page.getByRole("button",{name:"✦ Ask Kinetable"}).click();
     await page.getByRole("link", { name: "Set up AI providers →" }).click();

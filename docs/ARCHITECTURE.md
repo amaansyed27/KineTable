@@ -461,3 +461,9 @@ The validated component definitions in `component-library/definitions/` are inde
 ## Learn
 
 Versioned mission definitions, deterministic starters, pure evaluation and local progress are separate from route/guidance components. Evaluation reuses the canonical circuit compiler, drivers, validation and causal Explain; runtime must match project/revision. Dexie v6 adds scoped learning metadata, while Project v4, commands, history and sync remain unchanged. [Slice 13](SLICE-13.md).
+
+## Prompt-to-project creation boundary
+
+`ProjectIntent` is shared by Home and New Project. Intent → deterministic matcher / existing `planAssembly` → structured proposal → hardware-core validation → user approval → ProjectCommands → Project v4 → standard Workbench. The proposal holds an unsaved ordinary v4 base and commands; it is transient UI state, not a second project schema. `createFromProposal` re-executes commands, checks account identity, serializes approval, deduplicates the base ID and saves once through normal local versions/cloud sync. Existing undo/redo and spatial arrival motion are reused.
+
+Unpersisted AI proposals use the existing validated guest-document BYOK/Local Bridge boundary even for signed-in users; no unsaved project is sent to Supabase. Optional `prefer-owned` planning is advisory and allows missing virtual parts. Existing authenticated assembly still reloads project/inventory through JWT/RLS; `owned-only` remains enforced. There is no database migration. [Correction](PRE-SLICE-14-PROMPT-TO-PROJECT-CORRECTION.md).

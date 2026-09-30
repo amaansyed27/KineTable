@@ -34,7 +34,7 @@ test("hosted builds sync, restore newest, enforce RLS, and survive cloud failure
     const firstId = await page.locator("[data-project-id]").getAttribute("data-project-id");
     await page.goto("/projects/new");
     await page.getByLabel("Describe your idea").fill("Make a motion alarm");
-    await page.getByRole("button", { name: "Create project" }).click();
+    await page.getByRole("button", { name: "Create blank project" }).click();
     await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", firstId!);
     await expect.poll(async () => (await api(a.token, `projects?id=eq.${firstId}&select=*`))[0]?.document?.intent?.text, { timeout: 20000 }).toBe("Make a motion alarm");
     const first = (await api(a.token, `projects?id=eq.${firstId}&select=*`))[0];
@@ -51,7 +51,7 @@ test("hosted builds sync, restore newest, enforce RLS, and survive cloud failure
       await fresh.getByRole("button",{name:"✦ Ask Kinetable"}).click(); await expect(fresh.locator(".ai-sheet")).toContainText("Make a motion alarm");
       await fresh.goto(new URL("/projects/new",page.url()).toString());
       await fresh.getByLabel("Describe your idea").fill("Make an LED blink");
-      await fresh.getByRole("button", { name: "Create project" }).click();
+      await fresh.getByRole("button", { name: "Create blank project" }).click();
       const secondId = await fresh.locator("[data-project-id]").getAttribute("data-project-id");
       expect(secondId).toBeTruthy(); expect(secondId).not.toBe(firstId);
       await expect.poll(async () => (await api(a.token, `projects?owner_id=eq.${a.id}&select=id,name,document`)).length, { timeout: 20000 }).toBe(2);
@@ -73,7 +73,7 @@ test("hosted builds sync, restore newest, enforce RLS, and survive cloud failure
       await fresh.route("https://*.supabase.co/**", route => route.abort());
       await fresh.goto(new URL("/projects/new",page.url()).toString());
       await fresh.getByLabel("Describe your idea").fill("Make a button beep twice");
-      await fresh.getByRole("button", { name: "Create project" }).click();
+      await fresh.getByRole("button", { name: "Create blank project" }).click();
       const offlineId = await fresh.locator("[data-project-id]").getAttribute("data-project-id");
       await fresh.reload();
       await expect(fresh.locator("[data-project-id]")).toHaveAttribute("data-project-id", offlineId!, { timeout: 20000 });

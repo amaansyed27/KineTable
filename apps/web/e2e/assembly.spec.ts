@@ -15,7 +15,7 @@ test("signed-out users keep their intent and can configure a provider", async ({
   await page.getByText("Parts & wires", {exact:true}).click();
   await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make a motion alarm");
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "Create blank project" }).click();
   const id = await page.locator("[data-project-id]").getAttribute("data-project-id");
   await expect(page.getByRole("button", { name: "✦ Ask Kinetable" })).toBeVisible();
   await page.getByRole("button", { name: "✦ Ask Kinetable" }).click(); await page.getByRole("button", { name: "Preview assembly" }).click();
@@ -59,7 +59,7 @@ test("fresh account browser restores hosted v2, applies validated commands, and 
   await page.unrouteAll();
   await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make an LED blink");
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "Create blank project" }).click();
   const ledId = await page.locator("[data-project-id]").getAttribute("data-project-id");
   const e = (componentId: string, pinId: string) => ({ componentId, pinId });
   const commands = [
@@ -105,7 +105,7 @@ test("fresh account browser restores hosted v2, applies validated commands, and 
   } finally { await freshContext.close(); }
   await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Build me a drone flight controller");
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "Create blank project" }).click();
   const unsupportedId = await page.locator("[data-project-id]").getAttribute("data-project-id");
   await page.route("**/api/ai/plan", route => { const request = JSON.parse(route.request().postData()!); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "unsupported", summary: "Unsupported build", unsupportedReason: "Flight-control hardware is outside the supported catalog.", commands: [], revision: request.input.revision }) }); });
   await page.getByRole("button", { name: "✦ Ask Kinetable" }).click(); await page.getByRole("button", { name: "Preview assembly" }).click();
@@ -115,7 +115,7 @@ test("fresh account browser restores hosted v2, applies validated commands, and 
   await page.unroute("**/api/ai/plan");
   await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make a button control an LED");
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "Create blank project" }).click();
   const newId = await page.locator("[data-project-id]").getAttribute("data-project-id");
   await page.route("**/api/ai/plan", route => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "PROVIDER_UNAVAILABLE" }) }));
   await page.getByRole("button", { name: "✦ Ask Kinetable" }).click(); await page.getByRole("button", { name: "Preview assembly" }).click();
@@ -142,7 +142,7 @@ test("table assembly controls fit required viewports", async ({ page }) => {
   await page.getByText("Parts & wires", {exact:true}).click();
   await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make a motion alarm");
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "Create blank project" }).click();
   mkdirSync("../../output/playwright", { recursive: true });
   for (const [width, height] of [[390,844],[768,1024],[1440,900],[1600,1000],[1920,1080]]) {
     await page.setViewportSize({ width, height });

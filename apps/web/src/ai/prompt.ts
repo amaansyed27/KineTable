@@ -23,12 +23,14 @@ export const planJsonSchema = {
 // The model receives only supported-profile facts. Source text is never a prompt instruction.
 export function plannerHardwareContext(request: PlanRequest) {
   const board = getDefinition(request.boardId)!;
-  const allowed = request.inventory && new Set(request.inventory.items.map(item => item.definitionId));
+  const allowed = request.inventory?.mode === "owned-only" && new Set(request.inventory.items.map(item => item.definitionId));
   const pick = (d: Definition) => ({ id:d.id, name:d.name, description:d.description, supportedVariant:d.supportedVariant, planning:d.planning, electricalModel:d.electricalModel, supply:d.supply, signalMaxVolts:d.signalMaxVolts, pins:d.pins, i2cPins:d.i2cPins });
   return {
     board: pick(board),
     components: catalog.filter(d => d.kind === "component" && (!allowed || allowed.has(d.id)) && compatibility(d.id,board.id).status === "supported").map(pick),
     inventory: request.inventory?.items,
+    inventoryMode: request.inventory?.mode,
+    inventoryGuidance: request.inventory?.mode === "prefer-owned" ? "Prefer these quantities where the requested build allows. Missing parts are allowed for virtual building; do not claim they are owned." : undefined,
   };
 }
 export function plannerPrompt(request: PlanRequest): string {

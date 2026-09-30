@@ -167,3 +167,7 @@ No service-role credential belongs in the browser. New cloud tables are still cr
 ## D-027 — Code-owned Learn, one hardware truth
 
 2026-09-30. Version mission content with code, evaluate committed projects through existing topology/drivers/runtime/Explain, and store only owner-scoped learning metadata in IndexedDB v6. Keep Project v4 and normal edit/history/cloud paths. Cross-device progress and generated explanation assistance are deferred until needed; completion remains deterministic. Qualitative brightness must not imply unsupported analog/PWM capability. [Slice 13](SLICE-13.md).
+
+## D-028 — Intent enters one real project
+
+2026-10-01. Home/New Project share prompt → validated proposal → user approval → ProjectCommands → Project v4 → existing Workbench. Prefer canonical deterministic starters when the intent matches narrowly; respect persisted board and actual inventory quantities. Workbench remains primary and AI horizontal/contextual, with no permanent chat sidebar. Proposals are transient and never a parallel persisted project model. Use the real local trailer with deliberate, deferred playback. This is an unnumbered correction; Slice 14 is not started. [Record](PRE-SLICE-14-PROMPT-TO-PROJECT-CORRECTION.md).

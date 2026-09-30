@@ -230,9 +230,15 @@ Status: complete; production verification passed at `c90709d`. See [Slice 12](SL
 
 ## 13 — Learn
 
-Status: implemented and locally accepted; see [Slice 13](SLICE-13.md). Six missions teach breadboard rows/gap/rails, protected LED paths, button pull-up inputs, honest qualitative brightness, OLED I²C/Logic and canonical BONK. Pure evaluation reuses physical topology and matching simulation evidence. Owner-scoped local progress and staged hints work without an account, network or provider. Cross-device progress and generated Learn explanations are deferred. Exact production deployment evidence accompanies the final release handoff.
+Status: complete; production READY at `7a9d3cf45c83b8b0634a001edb37876d44475cb3` (`dpl_5Rk6qr5Uoap4tvhBydig16moXDMt`); see [Slice 13](SLICE-13.md). Six missions teach breadboard rows/gap/rails, protected LED paths, button pull-up inputs, honest qualitative brightness, OLED I²C/Logic and canonical BONK. Pure evaluation reuses physical topology and matching simulation evidence. Owner-scoped local progress and staged hints work without an account, network or provider. Cross-device progress and generated Learn explanations are deferred. Exact production deployment evidence accompanies the final release handoff.
+
+## Unnumbered pre-Slice-14 Prompt-to-Project correction
+
+Status: complete. Home and New Project share intent → validated proposal → approval → real Project v4 → existing Workbench. Canonical BONK avoids inference; other ideas use Slice 06 planning. My Parts quantities inform optional planning without consumption. The real trailer is integrated into the landing. [Correction](PRE-SLICE-14-PROMPT-TO-PROJECT-CORRECTION.md). No numbered slice was added.
 
 ## 14 — Physical Runtime
+
+Status: next; not started.
 
 Support explicit device connection, isolated compilation and flashing, live board data, serial diagnostics and advanced code with clear code-to-visual rules.
 
@@ -274,6 +280,7 @@ Known limitations
 A slice is not complete because the screen renders. The intended user flow, persistence/server behaviour, and failure paths must work end-to-end.
 
 Slices 01–13 complete.
+Pre-Slice-14 Prompt-to-Project correction complete.
 Slice 14 — Physical Runtime next. Slice 15 — Digital Twin later.
 
 ## Unnumbered pre-Slice-11 correction

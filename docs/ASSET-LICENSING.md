@@ -110,3 +110,7 @@ The subtle surface-grain.png is an original deterministic 128px texture created 
 ## Slice 11 component asset metadata
 
 Each current canonical definition declares its procedural visual ID and `Kinetable original` license in code. This metadata is separate from manufacturer/datasheet provenance for electrical facts. The schema can describe a future GLTF source, license, attribution and scale, but Slice 11 adds no external 3D files and makes no dimensional-accuracy claim. [Inventory of supported definitions](SLICE-11.md).
+
+## Product trailer
+
+The supplied original Kinetable film at `videos/kinetable-trailer/renders/kinetable-trailer.mp4` was copied to `apps/web/public/media/kinetable-trailer.mp4` with lossless MP4 fast-start remuxing. Its 22-second H.264/AAC streams were not regenerated or re-encoded. The WebP poster is a frame extracted from that same film. The original local source and render files remain untouched.

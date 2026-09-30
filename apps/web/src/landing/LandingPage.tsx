@@ -3,6 +3,7 @@ import { LearningTeaser } from "./LearningTeaser";
 import { FinalCTA } from "./FinalCTA";
 import { useAuthStore } from "../auth/authStore";
 import { Link } from "react-router";
+import { Trailer } from "./Trailer";
 export function LandingPage() {
   const session=useAuthStore(s=>s.session);
   return (
@@ -29,6 +30,7 @@ export function LandingPage() {
       </header>
       <main>
         <ScrollStory />
+        <Trailer />
         <LearningTeaser />
         <FinalCTA />
       </main>

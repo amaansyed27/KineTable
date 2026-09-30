@@ -16,6 +16,7 @@ type ProjectState = { project: LocalProject | null; ready: boolean; status: "loc
   open: (board: BoardId, session: Session | null) => Promise<void>; setBoard: (board: BoardId, session: Session | null) => Promise<void>;
   openById: (id: string, board: BoardId, session: Session | null) => Promise<boolean>;
   createBuild: (board: BoardId, intent: string, name: string) => Promise<KinetableProjectV4>;
+  createFromProposal: (base: KinetableProjectV4, commands: ProjectCommand[], ownerId: string) => Promise<KinetableProjectV4>;
   tryBonk: () => Promise<KinetableProjectV4>;
   saveDocument: (document: KinetableProjectV4, expectedRevision: string, preserveHistory?: boolean, reason?: string) => Promise<void>;
   applyTransaction: (commands: ProjectCommand[] | ((current: KinetableProjectV4) => ProjectCommand[]), source?: "AI assembly" | "Updated behavior with Kinetable") => Promise<KinetableProjectV4>;
@@ -110,6 +111,26 @@ export function createProjectStore(local = localProjectRepository, cloud: Pick<t
       if (ownerId) { if (syncing) syncAgain = true; else void get().sync(); }
       return migrateProject(project.document);
     },
+    createFromProposal: (base, commands, expectedOwner) => enqueue(async () => {
+      const ownerId = useAuthStore.getState().session?.user.id;
+      if (projectOwner(ownerId) !== expectedOwner) throw new Error("AUTH_REQUIRED");
+      const existing = (await local.list()).find(row => row.id === base.id);
+      if (existing) {
+        if (!projectBelongsTo(existing, ownerId)) throw new Error("AUTH_REQUIRED");
+        return migrateProject(existing.document);
+      }
+      const document = executeCommands(base, commands);
+      const project: LocalProject = { id: document.id, name: document.name, schemaVersion: 4, document,
+        createdAt: document.metadata.createdAt, updatedAt: document.metadata.updatedAt, cloudUserId: ownerId, cloudDirty: !!ownerId };
+      await local.save(project, "Created project");
+      editGeneration++; generation++;
+      history.reset(project.id);
+      history.record(base);
+      set({ project, ready: true, status: "local", error: null, canUndo: history.canUndo, canRedo: false, conflictProjectId: null });
+      try { localStorage.setItem("kinetable.current-project", project.id); } catch { /* Optional navigation preference. */ }
+      if (ownerId) void get().sync();
+      return document;
+    }),
     tryBonk: () => enqueue(async () => {
       editGeneration++;
       const ownerId = useAuthStore.getState().session?.user.id;

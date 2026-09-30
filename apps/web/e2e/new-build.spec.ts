@@ -22,12 +22,8 @@ test("guest starter becomes a real build, and a second build keeps the first", a
   await expect(page).toHaveURL(/\/new$/);
   await page.getByLabel("Describe your idea").fill("Make a motion alarm");
   await expect(page.getByLabel("Project name")).toHaveValue("Motion Alarm");
-  await page.getByRole("button", { name: "Preview starting point" }).click();
-  await expect(page.getByRole("heading", { name: "Motion Alarm" })).toBeFocused();
-  await expect(page.getByText("No parts or connections have been planned yet.")).toBeVisible();
-  await page.getByRole("button", { name: "Back to edit" }).click();
   await page.getByLabel("Project name").fill("My Motion Alarm");
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "Create blank project" }).click();
   await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/);
   await expect(page.locator("[data-project-id]")).toHaveAttribute("data-project-id", firstId!);
   await expect(page.getByText("My Motion Alarm")).toBeVisible();
@@ -39,7 +35,7 @@ test("guest starter becomes a real build, and a second build keeps the first", a
   await page.goto("/projects");
   await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make an LED blink");
-  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByRole("button", { name: "Create blank project" }).click();
   await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/);
   const secondId = await page.locator("[data-project-id]").getAttribute("data-project-id");
   expect(secondId).toBeTruthy(); expect(secondId).not.toBe(firstId);
@@ -73,20 +69,19 @@ test("draft, validation, keyboard creation, offline use and WebGL fallback", asy
   await expect(page.getByLabel("Describe your idea")).toBeFocused();
   await page.keyboard.press("Tab");
   await page.getByLabel("Describe your idea").fill("Make a test build"); await page.getByLabel("Project name").fill("");
-  await page.getByRole("button", { name: "Create project" }).focus(); await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Create blank project" }).focus(); await page.keyboard.press("Enter");
   await expect(page.getByRole("alert")).toContainText("Give this build a name");
   await page.getByLabel("Describe your idea").fill("");
   await page.getByLabel("Describe your idea").focus();
   await page.keyboard.type("Make a button beep twice");
-  await page.keyboard.press("Enter"); await page.keyboard.type("When pressed");
+  await page.keyboard.press("Shift+Enter"); await page.keyboard.type("When pressed");
   await page.getByLabel("Project name").fill("Button beeps twice");
   await expect(page.getByLabel("Describe your idea")).toHaveValue("Make a button beep twice\nWhen pressed");
   await page.goto("/projects");
   await page.goto("/projects/new");
   await expect(page.getByLabel("Describe your idea")).toHaveValue("Make a button beep twice\nWhen pressed");
-  await page.getByLabel("Describe your idea").focus(); await page.keyboard.press("Tab");
-  await expect(page.getByLabel("Project name")).toBeFocused();
-  await page.keyboard.press("Tab"); await expect(page.getByRole("button", { name: "Create project" })).toBeFocused();
+  await page.getByRole("button", { name: "Create blank project" }).focus();
+  await expect(page.getByRole("button", { name: "Create blank project" })).toBeFocused();
   await page.keyboard.press("Enter"); await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/);
   await page.getByRole("button",{name:"✦ Ask Kinetable"}).click(); await expect(page.locator(".ai-sheet")).toContainText("Make a button beep twice");
   const id = await page.locator("[data-project-id]").getAttribute("data-project-id");
@@ -110,7 +105,7 @@ test("new build survives a real browser restart", async ({}, testInfo) => {
   await page.getByText("Parts & wires", {exact:true}).click();
     await page.goto("/projects/new");
     await page.getByLabel("Describe your idea").fill("Make a motion alarm");
-    await page.getByRole("button", { name: "Create project" }).click();
+    await page.getByRole("button", { name: "Create blank project" }).click();
     const id = await page.locator("[data-project-id]").getAttribute("data-project-id");
     await context.close(); context = await launch();
     const restored = await context.newPage();
@@ -139,13 +134,12 @@ test("new build states fit all required viewports", async ({ page }) => {
     };
     await check("empty");
     await page.getByLabel("Describe your idea").fill("Make a test build"); await page.getByLabel("Project name").fill("");
-    await page.getByRole("button", { name: "Create project" }).click(); await expect(page.getByRole("alert")).toContainText("Give this build a name");
+    await page.getByRole("button", { name: "Create blank project" }).click(); await expect(page.getByRole("alert")).toContainText("Give this build a name");
     await check("validation");
     await page.getByLabel("Describe your idea").fill("Make a motion alarm"); await page.getByLabel("Project name").fill("Motion Alarm"); await check("typed");
-    await page.getByRole("button", { name: "Preview starting point" }).click(); await check("preview");
-    await page.getByRole("button", { name: "Back to edit" }).click();
+    await page.getByRole("button", { name: "See proposal" }).click(); await expect(page.getByRole("alert")).toContainText("Choose a local model"); await check("provider-absent");
   }
-  await page.getByRole("button", { name: "Create project" }).click(); await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/);
+  await page.getByRole("button", { name: "Create blank project" }).click(); await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/);
   for (const [width, height] of [[390,844],[768,1024],[1440,900],[1600,1000],[1920,1080]]) {
     await page.setViewportSize({ width, height });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `table at ${width}`).toBe(true);

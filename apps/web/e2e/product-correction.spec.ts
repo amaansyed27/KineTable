@@ -11,7 +11,7 @@ test("first Home, real BONK, project retrieval, direct refresh and guidance",asy
   await page.getByRole("button",{name:"Skip guidance"}).click();await page.reload();await expect(page.getByLabel("Workbench guidance")).toHaveCount(0);
   await page.goto("/projects");await page.getByRole("link",{name:/BONK circuit preview/}).click();await expect(page).toHaveURL(new RegExp(id));await page.reload();expect((await saved(page)).id).toBe(id);
   await page.goto("/table");await expect(page).toHaveURL(new RegExp(id));await page.goto("/projects/missing-project");await expect(page.getByRole("heading",{name:"This project isn’t here."})).toBeVisible();
-  await page.getByRole("link",{name:"Go to Projects"}).click();await page.goto("/projects/new");await page.getByRole("button",{name:"Create project",exact:true}).click();await expect(page.locator("[data-project-id]")).toBeVisible();expect((await saved(page)).components).toHaveLength(1);expect((await saved(page)).id).not.toBe(id);
+  await page.getByRole("link",{name:"Go to Projects"}).click();await page.goto("/projects/new");await page.getByRole("button",{name:"Create blank project",exact:true}).click();await expect(page.locator("[data-project-id]")).toBeVisible();expect((await saved(page)).components).toHaveLength(1);expect((await saved(page)).id).not.toBe(id);
 });
 test("themes follow System, persist explicit choices and account keyboard focus",async({page})=>{
   await page.emulateMedia({colorScheme:"dark"});await page.goto("/settings/appearance");await expect(page.locator("html")).toHaveAttribute("data-theme","dark");

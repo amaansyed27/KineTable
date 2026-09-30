@@ -374,3 +374,7 @@ Slice 11's Parts shelf uses the same theme tokens, object rows, tactile lightwei
 ## Learn material
 
 Learn uses editorial curriculum rows, restrained progress and the existing physical workbench. Desktop guidance sits beside hardware; mobile places a short canvas above a task sheet. Hints reveal progressively, Why expands on demand, and native keyboard controls/status announcements remain available. Theme bootstrap is a synchronous self-hosted script under unchanged CSP. [Visual evidence](SLICE-13.md).
+
+## Prompt-to-project surfaces
+
+Home makes “What do you want to make?” prominent inside the existing shell. Home/New share a restrained native textarea with arrow submit, Enter (Shift+Enter for a newline), example actions and quiet board/My Parts context. The proposal is an editorial heading and canonical parts list with explicit missing quantities, approval and Back to edit. Warm semantic surfaces, visible focus and status announcements carry all states; no gradient AI branding, transcript or permanent chat sidebar exists. Existing hardware arrival motion performs the handoff. The landing film uses a large physical frame, real poster, explicit Play, deferred video loading and native controls after activation; it never autoplays. [Review](PRE-SLICE-14-PROMPT-TO-PROJECT-CORRECTION.md).

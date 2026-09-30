@@ -47,7 +47,7 @@ export default async function handler(req: Request, res: ServerResponse) {
     const bearer = /^Bearer (\S+)$/.exec(req.headers.authorization ?? "")?.[1];
     const owned = bearer ? await ownedProject(bearer, input.projectId) : null;
     const project = owned?.project ?? migrateProject(body.project);
-    const trustedInput = input.inventory && owned ? { ...input, inventory: await ownedInventory(bearer!,owned.ownerId) } : input;
+    const trustedInput = input.inventory && owned ? { ...input, inventory: { ...await ownedInventory(bearer!,owned.ownerId), mode: input.inventory.mode } } : input;
     if (body.task !== undefined && body.task !== "hardware" && body.task !== "logic") throw new Error("INVALID_REQUEST");
     const plan = body.task === "logic" ? await planBehavior(provider,input,project) : await planHardware(provider, trustedInput, project);
     return send(res, 200, { ...plan, revision: input.revision });

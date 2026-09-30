@@ -62,9 +62,9 @@ test("guest My Parts, Library, persistence, compatibility and workbench remain u
   await expect(page.getByRole("listitem")).toHaveCount(0);
   await page.goto("/projects/new");
   await page.getByLabel("Describe your idea").fill("Make an LED blink");
-  await expect(page.getByRole("checkbox",{name:/Use my parts for AI planning/})).toBeVisible();
-  await page.getByRole("checkbox",{name:/Use my parts for AI planning/}).check();
-  await page.getByRole("button",{name:"Create project"}).click();
+  await expect(page.getByRole("checkbox",{name:/Consider My Parts/})).toBeVisible();
+  await page.getByRole("checkbox",{name:/Consider My Parts/}).check();
+  await page.getByRole("button",{name:"Create blank project"}).click();
   await page.getByRole("button",{name:"+ Part"}).click();
   await expect(page.getByText("My Parts · 1")).toBeVisible();
   await page.locator(".workbench-tray-items button").filter({hasText:"LED"}).first().click();
@@ -112,10 +112,10 @@ test("owned-only AI accepts owned quantities and rejects an unowned part",async(
   async function create(){
     await page.goto("/projects/new");
     await page.getByLabel("Describe your idea").fill("Make an LED blink");
-    await page.getByRole("checkbox",{name:/Use my parts for AI planning/}).check();
-    await page.getByRole("button",{name:"Create project"}).click();
+    await page.getByRole("checkbox",{name:/Consider My Parts/}).check();
+    await page.getByRole("button",{name:"Create blank project"}).click();
     await page.getByRole("button",{name:"✦ Ask Kinetable"}).click();
-    await expect(page.getByRole("checkbox",{name:"Use my parts only"})).toBeChecked();
+    await page.getByRole("checkbox",{name:"Use my parts only"}).check();
     await page.getByRole("button",{name:"Preview assembly"}).click();
   }
   await create();

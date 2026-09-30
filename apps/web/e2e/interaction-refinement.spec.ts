@@ -6,7 +6,7 @@ async function build(page:Page) {
   await page.goto("/start"); await page.getByRole("radio",{name:"ESP32",exact:true}).check();
   await page.getByRole("button",{name:"Continue with ESP32"}).click();
   await expect(page).toHaveURL(/\/home$/);
-  await page.goto("/projects/new"); await page.getByRole("button",{name:"Create project",exact:true}).click();
+  await page.goto("/projects/new"); await page.getByRole("button",{name:"Create blank project",exact:true}).click();
   await expect(page.locator("[data-project-id]")).toBeVisible();
   if (await page.getByRole("button",{name:"Skip guidance"}).count()) await page.getByRole("button",{name:"Skip guidance"}).click();
 }

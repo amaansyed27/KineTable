@@ -14,7 +14,7 @@ export function validateGeneratedPlan(request: PlanRequest, project: CircuitProj
   validatePlanInput(request, project);
   const plan = parsePlan(output);
   if (plan.status === "supported") {
-    if (request.inventory) validateOwnedCommands(plan.commands,request.inventory);
+    if (request.inventory?.mode === "owned-only") validateOwnedCommands(plan.commands,request.inventory);
     try { executeCommands(project, plan.commands); }
     catch (error) { if (error instanceof HardwareError) throw error; throw new Error("HARDWARE_VALIDATION"); }
   }

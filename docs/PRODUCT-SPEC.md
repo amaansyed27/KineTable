@@ -8,7 +8,7 @@ The product should make hardware creation feel closer to manipulating a system i
 
 The default user mental model is:
 
-> **I have these parts. I want this behaviour. Show me how it works.**
+> **I have these parts. I want this behavior. Build it with me.**
 
 Kinetable handles board setup, part compatibility, wiring logic, project structure and later generated firmware underneath that experience.
 
@@ -35,10 +35,12 @@ Ideal first-run path:
 
 ```text
 Open
-→ choose ESP32
-→ table appears
-→ type "make a motion alarm"
-→ validated components assemble
+→ choose a board
+→ Home asks “What do you want to make?”
+→ describe intent
+→ validated project proposal
+→ user approves
+→ real project opens in the Workbench
 → inspect/edit wiring
 → press simulate
 → see motion travel through the system
@@ -160,7 +162,7 @@ This extends the same project model rather than creating a separate camera-only 
 Keep navigation deliberately small:
 
 ```text
-Table     Projects     Parts     Learn
+Home     Projects     Parts     Explore     Learn
 ```
 
 Secondary destinations are contextual or live under profile/settings. Workbench modes live inside Table:
@@ -327,7 +329,7 @@ Slices 01–10 implement this virtual core. If any of these steps still requires
 
 ## Current application hierarchy
 
-Home launches/continues; Projects retrieves all eligible saved documents; New Project records optional intent and creates a blank board; /projects/:id edits one exact document. Setup enters Home, with real no-provider BONK. Build/Logic/Simulate/Explain remain the modes. Contextual AI uses the same commands as manual editing: initial assembly and bounded behavior preview/Apply. Incremental hardware AI and generated Explain/scenarios remain deferred. [Implementation](PRE-SLICE-11-UX-CORRECTION.md).
+Home launches/continues; Projects retrieves all eligible saved documents; Home and New Project share prompt → validated proposal → approval → real project → Workbench; New Project also offers explicit blank-board creation; /projects/:id edits one exact document. Setup enters Home, with real no-provider BONK. Build/Logic/Simulate/Explain remain the modes. Contextual AI uses the same commands as manual editing: initial assembly and bounded behavior preview/Apply. Incremental hardware AI and generated Explain/scenarios remain deferred. [Implementation](PRE-SLICE-11-UX-CORRECTION.md).
 
 ## Slice 11 product behavior
 
@@ -335,8 +337,12 @@ Home launches/continues; Projects retrieves all eligible saved documents; New Pr
 
 ## Slice 12 product behavior
 
-Projects have durable local and cloud History separate from undo/redo. Server revisions reject stale cross-device saves and preserve both project documents for explicit resolution. `/explore` ranks five curated supported builds by actual My Parts quantities and board compatibility. BONK starts from the validated deterministic circuit; other ideas start as honest blank projects. [Contract and limits](SLICE-12.md).
+Projects have durable local and cloud History separate from undo/redo. Server revisions reject stale cross-device saves and preserve both project documents for explicit resolution. `/explore` ranks five curated supported builds by actual My Parts quantities and board compatibility. BONK starts from the validated deterministic circuit; other curated Explore ideas start as honest blank projects. Home and New Project now share the validated proposal flow documented below. [Contract and limits](SLICE-12.md).
 
 ## Slice 13 product behavior
 
 `/learn` teaches six code-owned missions through the normal physical workbench. Deterministic topology/runtime evidence earns stages; hints and Why never award completion. Guest/offline learning uses scoped local metadata and ordinary projects, without inventory or provider gating. Cross-device progress and generated Learn explanations are deferred. [Contract and evidence](SLICE-13.md).
+
+## Prompt-to-project entry
+
+The natural-language prompt is the fastest way into a project. AI is horizontal: it helps enter and modify Build, Logic, Simulate and Explain, and does not replace them. Workbench remains primary; there is no permanent chat sidebar. Proposal requirements count actual inventory (including board/breadboard), allow virtual missing parts and never decrement ownership. Narrow canonical BONK requests prefer the ESP32-only validated starter; the persisted board remains explicit. [Correction and current limits](PRE-SLICE-14-PROMPT-TO-PROJECT-CORRECTION.md).

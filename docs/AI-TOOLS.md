@@ -363,3 +363,9 @@ Hardware prompt context now comes from validated canonical component definitions
 ## Learn explanation boundary
 
 Learn's Why affordance shows deterministic diagnostics/net/runtime evidence and reviewed concept text. Generated paraphrasing is deferred, explicitly disclosed in the UI; no provider is required or called. Existing workbench AI still requires its normal preview/Apply command validation and cannot write learning completion. Check goal recomputes deterministic evidence at the action boundary. [Slice 13](SLICE-13.md).
+
+## Prompt-to-project before Slice 14
+
+Home/New Project reuse `planAssembly`, the Slice 06 router, strict response parser, canonical prompt context, BYOK and Local Bridge. Supported proposals pass complete hardware validation before display and again at approval. Narrow BONK phrases use the canonical starter; other ideas require a configured provider. Unsupported/malformed/rejected responses do not create a project. One explicit submission owns one planning operation, with existing bounded route fallback and no render-triggered request or automatic retry.
+
+Optional `prefer-owned` snapshots contain bounded canonical component IDs/quantities and allow virtual missing parts; `owned-only` remains the strict assembly option. Inventory display counts the validated candidate and actual local rows. The unsaved proposal uses the existing guest-document boundary; account ownership applies when approved persistence begins. Contextual Ask Kinetable remains secondary after creation: bounded Logic changes are supported; incremental hardware edits and generated Explain remain explicitly unavailable. [Correction](PRE-SLICE-14-PROMPT-TO-PROJECT-CORRECTION.md).

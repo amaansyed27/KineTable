@@ -23,14 +23,14 @@ Core rules:
 
 ## Current status
 
-**Slices 01–13 complete. Slice 14 — Physical Runtime next. Slice 15 — Digital Twin later.**
+**Slices 01–13 complete. Pre-Slice-14 Prompt-to-Project correction complete. Slice 14 — Physical Runtime next. Slice 15 — Digital Twin later.**
 
 Kinetable currently supports:
 
 - board-first onboarding for ESP32, Raspberry Pi Pico and Arduino Uno;
 - optional Supabase authentication and owner-only cloud project sync;
 - local-first IndexedDB project persistence;
-- intent-first New Build;
+- prompt-first Home and New Project with a validated proposal, explicit approval and normal Workbench handoff;
 - real AI assembly through BYOK/local/CLI providers with structured commands and deterministic validation;
 - an interactive 3D workbench with camera controls, direct manipulation, add/remove/replace, undo/redo and autosave;
 - Project v4 circuit + behaviour data;
@@ -131,11 +131,12 @@ The AI path is always:
 
 ```text
 intent
-→ provider
-→ strict planner response
+→ canonical deterministic starter or existing AI planner
+→ strict proposal + deterministic hardware validation
+→ user approval
 → ProjectCommand[]
-→ deterministic hardware validation
-→ atomic project update
+→ atomic Project v4 save
+→ standard Workbench
 ```
 
 Provider credentials never belong in project JSON or Supabase project documents. Hardware planning stays hardware-only; a separate strict behavior contract now previews validated Logic through the same manual command path.
@@ -181,7 +182,7 @@ The current virtual product loop is:
 
 1. choose ESP32;
 2. describe the build;
-3. let AI propose a validated assembly;
+3. approve the canonical BONK proposal (no provider required), or a validated AI hardware proposal;
 4. inspect and edit the physical circuit;
 5. simulate it;
 6. use Explain/X-Ray;
@@ -256,3 +257,7 @@ For hosted Supabase features, copy `.env.example` to `apps/web/.env.local` and p
 ## Pre-Slice-11 application correction
 
 Home, Projects and explicit project routes now separate launching, retrieval and editing. No-provider BONK, contextual workbench, natural Visual Logic with provider-backed preview/Apply, grouped wiring, System/Light/Dark and mobile task sheets are implemented. Manual and AI changes share validated commands/history/persistence. See [correction record](docs/PRE-SLICE-11-UX-CORRECTION.md). No inventory or firmware/flashing was added.
+
+## Pre-Slice-14 prompt-to-project correction
+
+Home asks “What do you want to make?”; New Project uses the same flow with explicit board/name controls. Proposals show canonical parts and optional actual My Parts quantities before approval creates a normal Project v4. The Workbench remains primary, with contextual Ask Kinetable afterward. The public landing includes the real, manually played trailer. [Correction and evidence](docs/PRE-SLICE-14-PROMPT-TO-PROJECT-CORRECTION.md). Slice 14 was not started.
